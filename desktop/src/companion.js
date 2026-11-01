@@ -75,6 +75,7 @@ class Companion {
     try {
       this.client(link.url, link.key);
       await this.signIn();
+      await this.loadContent().catch(() => {});
       await this.refresh();
       this.chan = this.sb.channel("suite-" + link.campaignId)
         .on("postgres_changes", { event: "*", schema: "public", table: "characters", filter: "campaign_id=eq." + link.campaignId }, p => { this.soon(); this.onChange({ table: "characters", id: (p.new && p.new.id) || (p.old && p.old.id) }); })
@@ -85,6 +86,9 @@ class Companion {
       this.notesChan = this.sb.channel("suite-notes-" + link.campaignId)
         .on("postgres_changes", { event: "*", schema: "public", table: "session_notes", filter: "campaign_id=eq." + link.campaignId }, p => this.onChange({ table: "session_notes", id: (p.new && p.new.id) || (p.old && p.old.id) }))
         .subscribe();
+      this.contentChan = this.sb.channel("suite-content-" + link.campaignId)
+        .on("postgres_changes", { event: "*", schema: "public", table: "content_packs", filter: "campaign_id=eq." + link.campaignId }, () => { this.loadContent().then(() => this.soon()).catch(() => {}); this.onChange({ table: "content_packs" }); })
+        .subscribe();
       // safety net in case a live update is missed
       this.poll = setInterval(() => this.refresh().catch(() => {}), 60000);
     } catch (e) { this.status("error", e.message); throw e; }
@@ -93,7 +97,14 @@ class Companion {
     clearTimeout(this.timer); clearInterval(this.poll);
     if (this.chan && this.sb) this.sb.removeChannel(this.chan);
     if (this.notesChan && this.sb) this.sb.removeChannel(this.notesChan);
-    this.chan = null; this.notesChan = null; this.link = null; this.party = []; this.status("off");
+    if (this.contentChan && this.sb) this.sb.removeChannel(this.contentChan);
+    this.chan = null; this.notesChan = null; this.contentChan = null; this.link = null; this.party = []; this.status("off");
+  }
+  // Book classes and species change hit points and AC, so the party list needs the same books the players use.
+  async loadContent() {
+    if (!this.link) return;
+    const r = await this.sb.from("content_packs").select("name, abbr, enabled, data").eq("campaign_id", this.link.campaignId);
+    E.useContent(r.error ? [] : r.data || []);
   }
   soon() { clearTimeout(this.timer); this.timer = setTimeout(() => this.refresh().catch(e => this.status("error", e.message)), 120); }
   async refresh() {
@@ -154,6 +165,15 @@ const CALLS = {
     return ok(await this.sb.from("homebrew").insert({ campaign_id: this.cid(), kind, data }).select().single());
   },
   async deleteHomebrew(id) { ok(await this.sb.from("homebrew").delete().eq("id", id)); return true; },
+  // Content library: books the DM adds for the players' character builder (fix-07-content-library.sql in the Companion repo).
+  async listContent() { return ok(await this.sb.from("content_packs").select("*").eq("campaign_id", this.cid()).order("updated_at")); },
+  async saveContent(row, id) {
+    const r = Object.assign({}, row, { updated_at: new Date().toISOString() });
+    const out = id ? ok(await this.sb.from("content_packs").update(r).eq("id", id).select().single())
+      : ok(await this.sb.from("content_packs").insert(Object.assign({ campaign_id: this.cid() }, r)).select().single());
+    await this.loadContent(); return out;
+  },
+  async deleteContent(id) { ok(await this.sb.from("content_packs").delete().eq("id", id)); await this.loadContent(); return true; },
   async reassignCharacter(id, userId) { ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); return true; },
   async createDmInvite() { return this.makeInvite(); },
   // Player session notes (supabase/fix-04-session-notes.sql in the Companion repo).

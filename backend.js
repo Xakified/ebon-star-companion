@@ -17,7 +17,7 @@ class DemoBackend {
   db() {
     let db; try { db = JSON.parse(localStorage.getItem(this.key)); } catch (e) {}
     db = db || {};
-    for (const k of ["campaigns", "members", "characters", "grants", "homebrew", "sessions", "notes", "privateRecaps"]) db[k] = db[k] || [];
+    for (const k of ["campaigns", "members", "characters", "grants", "homebrew", "sessions", "notes", "privateRecaps", "content"]) db[k] = db[k] || [];
     return db;
   }
   put(db) { localStorage.setItem(this.key, JSON.stringify(db)); }
@@ -127,6 +127,16 @@ class DemoBackend {
     row.deleted = true; row.updated_at = new Date().toISOString(); this.put(db); this.emit({ table: "session_notes", campaign_id: row.campaign_id, id });
   }
   async listPrivateRecaps(cid) { return this.db().privateRecaps.filter(r => r.campaign_id === cid && r.user_id === this.user); }
+  // Content library: books the DM adds, readable by everyone in the campaign.
+  async listContent(cid) { return this.db().content.filter(r => r.campaign_id === cid); }
+  async saveContent(cid, row, id) {
+    const db = this.db(); if (!this.isDM(db, cid)) throw new Error("Only the DM can change the content library.");
+    let r = id && db.content.find(x => x.id === id);
+    if (r) Object.assign(r, row, { updated_at: new Date().toISOString() });
+    else { r = Object.assign({ id: Engine.uid(), campaign_id: cid, enabled: true, abbr: "" }, row, { updated_at: new Date().toISOString() }); db.content.push(r); }
+    this.put(db); this.emit({ table: "content_packs", campaign_id: cid, id: r.id }); return r;
+  }
+  async deleteContent(id) { const db = this.db(), r = db.content.find(x => x.id === id); db.content = db.content.filter(x => x.id !== id); this.put(db); if (r) this.emit({ table: "content_packs", campaign_id: r.campaign_id, id }); }
   subscribe(cid, cb) {
     const f = ev => { if (!ev.campaign_id || ev.campaign_id === cid) cb(ev); };
     this.listeners.add(f); return () => this.listeners.delete(f);
@@ -177,6 +187,14 @@ class SupabaseBackend {
   async deleteNote(id) { this.ok(await this.sb.from("session_notes").update({ deleted: true, updated_at: new Date().toISOString() }).eq("id", id)); }
   // One-time code that lets the desktop DM Suite join this campaign as a second DM device.
   async reassignCharacter(id, userId) { this.ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); }
+  // Content library (needs fix-07-content-library.sql).
+  async listContent(cid) { return this.ok(await this.sb.from("content_packs").select("*").eq("campaign_id", cid).order("updated_at")); }
+  async saveContent(cid, row, id) {
+    const r = Object.assign({}, row, { updated_at: new Date().toISOString() });
+    if (id) return this.ok(await this.sb.from("content_packs").update(r).eq("id", id).select().single());
+    return this.ok(await this.sb.from("content_packs").insert(Object.assign({ campaign_id: cid }, r)).select().single());
+  }
+  async deleteContent(id) { this.ok(await this.sb.from("content_packs").delete().eq("id", id)); }
   async createDmInvite(cid) {
     const code = this.ok(await this.sb.rpc("create_dm_invite", { p_campaign: cid }));
     const cfg = window.APP_CONFIG;
@@ -202,7 +220,10 @@ class SupabaseBackend {
     const recaps = this.sb.channel("recaps-" + cid)
       .on("postgres_changes", { event: "*", schema: "public", table: "session_private_recaps", filter: "campaign_id=eq." + cid }, () => cb({ table: "session_private_recaps", campaign_id: cid }))
       .subscribe();
-    return () => { this.sb.removeChannel(ch); this.sb.removeChannel(notes); this.sb.removeChannel(recaps); };
+    const content = this.sb.channel("content-" + cid)
+      .on("postgres_changes", { event: "*", schema: "public", table: "content_packs", filter: "campaign_id=eq." + cid }, () => cb({ table: "content_packs", campaign_id: cid }))
+      .subscribe();
+    return () => { this.sb.removeChannel(ch); this.sb.removeChannel(notes); this.sb.removeChannel(recaps); this.sb.removeChannel(content); };
   }
 }
 
@@ -238,6 +259,9 @@ class SuiteBackend {
   listHomebrew() { return this.ask("listHomebrew"); }
   saveHomebrew(_cid, kind, data, id) { return this.ask("saveHomebrew", kind, data, id); }
   deleteHomebrew(id) { return this.ask("deleteHomebrew", id); }
+  listContent() { return this.ask("listContent"); }
+  saveContent(_cid, row, id) { return this.ask("saveContent", row, id); }
+  deleteContent(id) { return this.ask("deleteContent", id); }
   // Player notes live in the DM Suite's Sessions tab, not in this view.
   async listSessions() { return []; }
   async listNotes() { return []; }

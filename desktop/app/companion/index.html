@@ -88,6 +88,7 @@ label.f { display: block; } label.f > span { display: block; font-size: .82rem; 
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); font-size: .8rem; }
 .pill.bad { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+.src { font-size: .68rem; font-weight: 600; padding: 0 5px; border-radius: 4px; background: var(--accent-soft); color: var(--muted); vertical-align: 1px; }
 .pill.good { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
 .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin: 12px -16px 0; padding: 0 16px; position: sticky; top: calc(env(safe-area-inset-top) + 57px); background: var(--bg); z-index: 10; }
 .tabs::-webkit-scrollbar { display: none; }
@@ -221,14 +222,11 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const sg = E.sign;
 const RK = r => String(r || "").replace(/\s/g, "").toLowerCase();
-const LINEAGES = {
-  Dragonborn: ["Black", "Blue", "Brass", "Bronze", "Copper", "Gold", "Green", "Red", "Silver", "White"],
-  Elf: ["Drow", "High Elf", "Wood Elf"], Gnome: ["Forest Gnome", "Rock Gnome"], Goliath: ["Cloud", "Fire", "Frost", "Hill", "Stone", "Storm"],
-  Tiefling: ["Abyssal", "Chthonic", "Infernal"]
-};
-const ORIGIN_FEATS = ["Alert", "Magic Initiate", "Savage Attacker", "Skilled"];
+// Lineages, origin feats, subclasses and spells grow when the DM turns on books in the content library.
+const { LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SPELLS, SOURCE } = SRD;
+const srcTag = (kind, name) => SOURCE[kind + ":" + name] ? ` <span class="src">${esc(SOURCE[kind + ":" + name])}</span>` : "";
 
-const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false, sessions: [], notes: [], privateRecaps: [], notesOk: true, noteSess: null, noteDraft: "", notesBack: "camp", liveSeen: null };
+const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], content: [], contentOk: true, view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false, sessions: [], notes: [], privateRecaps: [], notesOk: true, noteSess: null, noteDraft: "", notesBack: "camp", liveSeen: null };
 
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2600); }
 function fail(e) { console.error(e); toast(e.message || String(e)); }
@@ -264,7 +262,7 @@ function loadScript(src) { return new Promise((ok, no) => { const s = document.c
 async function openCamp(id) {
   A.camp = A.camps.find(c => c.id === id);
   localStorage.setItem("esc-camp-" + A.be.mode, id);
-  await refresh();
+  await Promise.all([refresh(), refreshContent()]);
   A.grants.filter(g => g.status === "pending").forEach(g => A.seenGrants.add(g.id));
   A.liveSeen = (liveSession() || {}).id || "";
   if (A.unsub) A.unsub();
@@ -284,11 +282,20 @@ async function refreshNotes() {
   catch (e) { console.warn(e); A.sessions = []; A.notes = []; A.notesOk = false; }
   try { A.privateRecaps = A.notesOk ? await A.be.listPrivateRecaps(A.camp.id) : []; } catch (e) { A.privateRecaps = []; } // needs fix-06
 }
+// The content library (supabase/fix-07-content-library.sql). Without it the builder uses the SRD only.
+async function refreshContent() {
+  try { A.content = A.camp ? await A.be.listContent(A.camp.id) : []; A.contentOk = true; }
+  catch (e) { console.warn(e); A.content = []; A.contentOk = false; }
+  E.useContent(A.content);
+}
 const liveSession = () => A.sessions.find(x => x.live) || null;
 let liveTimer = null;
+let contentChanged = false;
 function onLive(ev) {
+  if (ev.table === "content_packs") contentChanged = true;
   clearTimeout(liveTimer);
   liveTimer = setTimeout(async () => {
+    if (contentChanged) { contentChanged = false; await refreshContent(); }
     await refresh().catch(fail);
     const fresh = A.grants.filter(g => g.status === "pending" && !A.seenGrants.has(g.id));
     fresh.forEach(g => A.seenGrants.add(g.id));
@@ -390,7 +397,9 @@ function vCamp() {
         <div class="card"><div class="row"><h2 class="grow">Homebrew library</h2><button class="btn sm" data-a="import">${SUITE ? "Import from item library" : "Import from DM Suite"}</button></div>${libList()}</div>
         <div class="card"><h2>Recently sent</h2>${recent || `<p class="muted small">Nothing sent yet. Use Send to give a player an item, a custom skill, a spell, coins or XP.</p>`}</div>
       </div>
-      <input type="file" id="importFile" accept=".dmcampaign,.json,application/json" hidden>`;
+      <div class="card"><div class="row"><h2 class="grow">Books</h2><button class="btn sm" data-a="addbook">Add a book</button></div>${bookList()}</div>
+      <input type="file" id="importFile" accept=".dmcampaign,.json,application/json" hidden>
+      <input type="file" id="bookFile" accept=".json,application/json" multiple hidden>`;
   }
   const mine = A.chars.filter(c => c.owner === A.user);
   return `
@@ -405,6 +414,32 @@ function libList() {
   return `<div class="list">${A.homebrew.map(h => `<div class="li"><div class="grow"><b>${esc(h.data.name)}</b> <span class="small muted">${kinds[h.kind] || h.kind}${h.data.rarity ? ` · <span class="rar ${RK(h.data.rarity)}">${esc(h.data.rarity)}</span>` : ""}</span></div><button class="btn sm" data-a="sendlib" data-id="${h.id}">Send</button><button class="btn sm ghost danger" data-a="dellib" data-id="${h.id}" aria-label="Delete">✕</button></div>`).join("")}</div>`;
 }
 
+// The content library: books the DM has added. Players see what's turned on in their character builder.
+function bookList() {
+  if (!A.contentOk) return `<p class="muted small">To share options from your own books with your players' character builder, run <b>supabase/fix-07-content-library.sql</b> once in the Supabase SQL Editor.</p>`;
+  const rows = A.content.map(b => `<div class="li"><div class="grow"><b>${esc(b.name)}</b>${b.abbr ? ` <span class="src">${esc(b.abbr)}</span>` : ""}<div class="small muted">${esc(b.summary || (() => { try { return E.checkContent(b.data); } catch (e) { return ""; } })())}</div></div>
+    <label class="row small" style="gap:6px"><input type="checkbox" data-a="togglebook" data-id="${b.id}" ${b.enabled !== false ? "checked" : ""}> Players can use</label>
+    <button class="btn sm ghost danger" data-a="delbook" data-id="${b.id}" aria-label="Remove ${esc(b.name)}">✕</button></div>`).join("");
+  return `<p class="muted small" style="margin-top:0">Species, backgrounds, feats, classes, subclasses and spells from books you own, for your players' character builder. Only people in this campaign can see them.</p>${rows ? `<div class="list">${rows}</div>` : `<p class="small muted">No books yet. Add a book file (.json) made from your PDFs.</p>`}`;
+}
+// Characters using a class, species, background or subclass from this book.
+function bookUsers(b) {
+  const d0 = b.data || {}, has = (o, k) => !!k && Object.prototype.hasOwnProperty.call(o || {}, k);
+  return A.chars.filter(r => { const d = r.data; return has(d0.classes, d.cls) || has(d0.species, d.species) || has(d0.backgrounds, d.background) || ((d0.subclasses || {})[d.cls] || []).some(x => x.name === d.subclass); }).map(r => r.data.name || "Unnamed");
+}
+async function addBooks(files) {
+  let n = 0;
+  for (const f of files) {
+    if (f.size > 4e6) throw new Error(`${f.name} is too big (4 MB at most).`);
+    let d; try { d = JSON.parse(await f.text()); } catch (e) { throw new Error(`${f.name} isn't a book file.`); }
+    const summary = E.checkContent(d);
+    const old = A.content.find(b => b.name === d.name);
+    await A.be.saveContent(A.camp.id, { name: String(d.name).slice(0, 200), abbr: String(d.abbr || "").slice(0, 20), data: d, enabled: old ? old.enabled !== false : true }, old && old.id);
+    n++; toast(`${old ? "Updated" : "Added"} ${d.name}: ${summary}`);
+  }
+  if (n) { await refreshContent(); render(); }
+}
+
 // ---------- builder ----------
 const STEPS = ["Class", "Background", "Species", "Abilities", "Skills", "Finish"];
 function newDraft() {
@@ -416,12 +451,14 @@ function newDraft() {
 function vBuild() {
   const d = A.draft, s = A.step;
   let body = "";
-  if (s === 0) body = `<h2>Choose a class</h2><div class="pick" style="margin-top:10px">${Object.entries(CLASSES).map(([k, c]) => `<button class="${d.cls === k ? "on" : ""}" data-a="bset" data-k="cls" data-v="${k}"><b>${k}</b><span>d${c.hd} · ${c.primary}</span></button>`).join("")}</div>
-      ${d.cls ? `<div class="card small"><b>${d.cls}</b><div class="muted">Saves: ${CLASSES[d.cls].saves.map(a => ABIL_NAME[a]).join(", ")} · Armor: ${CLASSES[d.cls].armor} · Weapons: ${CLASSES[d.cls].weapons}</div><div style="margin-top:6px">${CLASSES[d.cls].f.filter(f => f[0] === 1).map(f => `<div><b>${f[1]}.</b> <span class="muted">${f[2]}</span></div>`).join("")}</div></div>` : ""}`;
+  const books = A.content.filter(b => b.enabled !== false).map(b => b.name);
+  const bookNote = books.length ? `<p class="small muted">Includes options from your DM's books: ${esc(books.join(", "))}.</p>` : "";
+  if (s === 0) body = `<h2>Choose a class</h2>${bookNote}<div class="pick" style="margin-top:10px">${Object.entries(CLASSES).map(([k, c]) => `<button class="${d.cls === k ? "on" : ""}" data-a="bset" data-k="cls" data-v="${esc(k)}"><b>${esc(k)}${srcTag("class", k)}</b><span>d${c.hd} · ${esc(c.primary)}</span></button>`).join("")}</div>
+      ${CLASSES[d.cls] ? `<div class="card small"><b>${esc(d.cls)}</b><div class="muted">Saves: ${CLASSES[d.cls].saves.map(a => ABIL_NAME[a]).join(", ")} · Armor: ${esc(CLASSES[d.cls].armor)} · Weapons: ${esc(CLASSES[d.cls].weapons)}</div><div style="margin-top:6px">${(CLASSES[d.cls].f || []).filter(f => f[0] === 1).map(f => `<div><b>${esc(f[1])}.</b> <span class="muted">${esc(f[2])}</span></div>`).join("")}</div></div>` : ""}`;
   if (s === 1) {
     const b = BACKGROUNDS[d.background];
-    body = `<h2>Choose a background</h2><div class="pick" style="margin-top:10px">${Object.entries(BACKGROUNDS).map(([k, x]) => `<button class="${d.background === k ? "on" : ""}" data-a="bset" data-k="background" data-v="${k}"><b>${k}</b><span>${x.skills.join(", ")} · ${x.feat}</span></button>`).join("")}</div>
-      ${b ? `<div class="card stack"><div class="small">Skills: <b>${b.skills.join(", ")}</b> · Tool: <b>${b.tool}</b> · Feat: <b>${b.feat}${b.featNote ? " (" + b.featNote + ")" : ""}</b></div>
+    body = `<h2>Choose a background</h2><div class="pick" style="margin-top:10px">${Object.entries(BACKGROUNDS).map(([k, x]) => `<button class="${d.background === k ? "on" : ""}" data-a="bset" data-k="background" data-v="${esc(k)}"><b>${esc(k)}${srcTag("background", k)}</b><span>${esc(x.skills.join(", "))} · ${esc(x.feat)}</span></button>`).join("")}</div>
+      ${b ? `<div class="card stack"><div class="small">Skills: <b>${esc(b.skills.join(", "))}</b> · Tool: <b>${esc(b.tool)}</b> · Feat: <b>${esc(b.feat)}${b.featNote ? " (" + esc(b.featNote) + ")" : ""}</b></div>${FEATS[b.feat] ? `<div class="small muted">${esc(FEATS[b.feat])}</div>` : ""}
         <div><div class="small muted">Ability increases (choose from ${b.abil.map(a => ABIL_NAME[a]).join(", ")})</div>
         <div class="chips" style="margin:6px 0"><button class="chip ${d.bgMode === "21" ? "on" : ""}" data-a="bset" data-k="bgMode" data-v="21">+2 and +1</button><button class="chip ${d.bgMode === "111" ? "on" : ""}" data-a="bset" data-k="bgMode" data-v="111">+1 to all three</button></div>
         ${d.bgMode === "21" ? `<div class="grid2"><label class="f"><span>+2 to</span><select data-b="bg2">${opt(b.abil, d.bg2, a => ABIL_NAME[a])}</select></label><label class="f"><span>+1 to</span><select data-b="bg1">${opt(b.abil.filter(a => a !== d.bg2), d.bg1, a => ABIL_NAME[a])}</select></label></div>` : ""}</div></div>` : ""}
@@ -429,10 +466,10 @@ function vBuild() {
   }
   if (s === 2) {
     const sp = SPECIES[d.species];
-    body = `<h2>Choose a species</h2><div class="pick" style="margin-top:10px">${Object.entries(SPECIES).map(([k, x]) => `<button class="${d.species === k ? "on" : ""}" data-a="bset" data-k="species" data-v="${k}"><b>${k}</b><span>${x.size} · ${x.speed} ft</span></button>`).join("")}</div>
-      ${sp ? `<div class="card stack">${LINEAGES[d.species] ? `<label class="f"><span>${d.species === "Dragonborn" ? "Draconic ancestry" : d.species === "Goliath" ? "Giant ancestry" : "Lineage"}</span><select data-b="lineage"><option value="">Choose…</option>${opt(LINEAGES[d.species], d.lineage)}</select></label>` : ""}
+    body = `<h2>Choose a species</h2><div class="pick" style="margin-top:10px">${Object.entries(SPECIES).map(([k, x]) => `<button class="${d.species === k ? "on" : ""}" data-a="bset" data-k="species" data-v="${esc(k)}"><b>${esc(k)}${srcTag("species", k)}</b><span>${esc(x.size)} · ${x.speed} ft</span></button>`).join("")}</div>
+      ${sp ? `<div class="card stack">${LINEAGES[d.species] ? `<label class="f"><span>${esc(LINEAGE_LABEL[d.species] || "Lineage")}</span><select data-b="lineage"><option value="">Choose…</option>${opt(LINEAGES[d.species], d.lineage)}</select></label>` : ""}
         ${d.species === "Human" ? `<label class="f"><span>Versatile: extra Origin feat</span><select data-b="originFeat2"><option value="">Choose…</option>${opt(ORIGIN_FEATS, d.originFeat2)}</select></label>` : ""}
-        ${sp.traits.map(t => `<div class="small"><b>${t[0]}.</b> <span class="muted">${t[1]}</span></div>`).join("")}</div>` : ""}`;
+        ${sp.traits.map(t => `<div class="small"><b>${esc(t[0])}.</b> <span class="muted">${esc(t[1])}</span></div>`).join("")}</div>` : ""}`;
   }
   if (s === 3) body = abilStep(d);
   if (s === 4) body = skillStep(d);
@@ -704,10 +741,18 @@ function featForm(f = {}) {
 }
 function readFeat() { const n = +val("fUses"); return { name: val("fName") || "Custom feature", text: val("fText"), uses: n ? { max: n, reset: val("fReset"), used: 0 } : null }; }
 function spellForm(s = {}) {
-  return `<div class="stack"><label class="f"><span>Spell name</span><input id="sName" value="${esc(s.name || "")}"></label>
+  return `<div class="stack"><label class="f"><span>Spell name${SPELLS.length ? " (start typing to pick one from the books)" : ""}</span><input id="sName" value="${esc(s.name || "")}" ${SPELLS.length ? `list="spellList" autocomplete="off"` : ""}></label>
+    ${SPELLS.length ? `<datalist id="spellList">${SPELLS.map(x => `<option value="${esc(x.name)}">${x.level ? "Level " + x.level : "Cantrip"} ${esc(x.school)} · ${esc(x.src)}</option>`).join("")}</datalist>` : ""}
     <div class="grid2"><label class="f"><span>Level</span><select id="sLevel">${opt(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"], String(s.level || 0), v => v === "0" ? "Cantrip" : "Level " + v)}</select></label><label class="f"><span>School (optional)</span><input id="sSchool" value="${esc(s.school || "")}"></label></div>
     <label class="f"><span>Description</span><textarea id="sText">${esc(s.text || "")}</textarea></label></div>`;
 }
+// Picking a spell from the books fills in the rest of the form.
+document.addEventListener("input", e => {
+  if (e.target.id !== "sName") return;
+  const x = SPELLS.find(o => o.name.toLowerCase() === e.target.value.trim().toLowerCase()); if (!x) return;
+  $("#sLevel").value = String(x.level); $("#sSchool").value = x.school;
+  $("#sText").value = [[x.time && "Casting time: " + x.time, x.range && "Range: " + x.range, x.components && "Components: " + x.components, x.duration && "Duration: " + x.duration].filter(Boolean).join(" · "), x.text].filter(Boolean).join("\n\n");
+});
 function readSpell() { return { name: val("sName") || "Unnamed spell", level: +val("sLevel") || 0, school: val("sSchool"), text: val("sText") }; }
 
 function levelUpDialog() {
@@ -717,15 +762,16 @@ function levelUpDialog() {
     <div><b>Hit points</b><div class="row" style="margin-top:6px"><button class="btn sm" data-a="rollhp" data-hd="${p.hd}">Roll d${p.hd}</button><span class="muted small">or take the average</span><input id="luHp" type="number" class="num" style="width:80px" min="1" max="${p.hd}" value="${p.avg}"><span class="small muted">+ Con ${sg(E.derive(d).mods.con)}</span></div></div>
     ${p.pbUp ? `<div class="small">Proficiency bonus goes up to <b>${sg(E.profBonus(p.level))}</b>.</div>` : ""}
     ${p.features.length ? `<div><b>New features</b>${p.features.map(f => `<div class="small"><b>${esc(f.name)}.</b> <span class="muted">${esc(f.text)}</span></div>`).join("")}</div>` : ""}
-    ${p.subclass ? `<label class="f"><span>Choose your subclass</span><select id="luSub"><option value="${esc(c.sub[0])}">${esc(c.sub[0])} (SRD)</option><option value="__custom">Other (type it in)</option></select></label><input id="luSubCustom" placeholder="Subclass name from your DM or book" hidden>` : ""}
-    ${p.subFeature ? `<div class="small">You gain a <b>${esc(d.subclass || "subclass")}</b> feature. Add it on the Features tab if it isn't from the SRD.</div>` : ""}
+    ${p.subclass ? `<label class="f"><span>Choose your subclass</span><select id="luSub">${p.subclass.map(o => `<option value="${esc(o.name)}">${esc(o.name)} (${esc(o.src)})</option>`).join("")}<option value="__custom">Other (type it in)</option></select></label><div class="small muted" id="luSubText">${esc(p.subclass[0] ? subText(p.subclass[0]) : "")}</div><input id="luSubCustom" placeholder="Subclass name from your DM or book" ${p.subclass.length ? "hidden" : ""}>` : ""}
+    ${p.subFeatures.length ? `<div><b>${esc(d.subclass)} features</b>${p.subFeatures.map(f => `<div class="small"><b>${esc(f.name)}.</b> <span class="muted">${esc(f.text)}</span></div>`).join("")}</div>` : p.subFeature ? `<div class="small">You gain a <b>${esc(d.subclass || "subclass")}</b> feature. Add it on the Features tab if it isn't from the SRD or your DM's books.</div>` : ""}
     ${p.asi ? `<div><b>${p.epic ? "Epic Boon or feat" : "Ability Score Improvement or feat"}</b>
       <div class="chips" style="margin:6px 0"><button class="chip on" data-a="asimode" data-v="2">+2 to one</button><button class="chip" data-a="asimode" data-v="11">+1 to two</button><button class="chip" data-a="asimode" data-v="feat">Take a feat</button></div>
       <div id="asiBox">${asiBox("2", d)}</div></div>` : ""}
     </div>`, `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="doLevel">Level up</button>`, dl => {
-    const s = dl.querySelector("#luSub"); if (s) s.onchange = () => { dl.querySelector("#luSubCustom").hidden = s.value !== "__custom"; };
+    const s = dl.querySelector("#luSub"); if (s) s.onchange = () => { dl.querySelector("#luSubCustom").hidden = s.value !== "__custom"; const o = p.subclass.find(o => o.name === s.value); dl.querySelector("#luSubText").textContent = o ? subText(o) : ""; };
   });
 }
+function subText(o) { return [o.text, ...(o.f || []).filter(f => f[0] === o.f[0][0]).map(f => `${f[1]}: ${f[2]}`)].filter(Boolean).join(" "); }
 function asiBox(mode, d) {
   const sc = E.derive(d).scores;
   const sel = id => `<select id="${id}">${ABILS.map(a => `<option value="${a}" ${sc[a] >= 20 ? "disabled" : ""}>${ABIL_NAME[a]} (${sc[a]})</option>`).join("")}</select>`;
@@ -782,7 +828,7 @@ async function importSuite(file) {
 // ---------- actions ----------
 const ACT = {
   theme() { const r = document.documentElement, cur = r.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); r.dataset.theme = cur === "dark" ? "light" : "dark"; localStorage.setItem("esc-theme", r.dataset.theme); },
-  home() { A.view = "home"; A.camp = null; if (A.unsub) A.unsub(); A.unsub = null; localStorage.removeItem("esc-camp-" + A.be.mode); render(); },
+  home() { A.view = "home"; A.camp = null; if (A.unsub) A.unsub(); A.unsub = null; A.content = []; E.useContent([]); localStorage.removeItem("esc-camp-" + A.be.mode); render(); },
   camp() { A.view = "camp"; render(); },
   async open(el) { await openCamp(el.dataset.id); render(); },
   async join() {
@@ -947,6 +993,19 @@ const ACT = {
   sendlib(el) { const h = A.homebrew.find(x => x.id === el.dataset.id); if (h) sendDialog({ kind: h.kind, data: h.data, libId: h.id, to: [] }); },
   async dellib(el) { const h = A.homebrew.find(x => x.id === el.dataset.id); if (!h || !await ask({ title: `Delete ${h.data.name}?`, text: "It's removed from your library. Anything already sent stays on players' sheets.", ok: "Delete", danger: true })) return; await A.be.deleteHomebrew(h.id); A.homebrew = A.homebrew.filter(x => x !== h); render(); },
   async suiteconnect() { await A.be.openConnect(); },
+  addbook() { const f = $("#bookFile"); f.onchange = () => f.files.length && addBooks([...f.files]).catch(fail).finally(() => { f.value = ""; }); f.click(); },
+  async togglebook(el) {
+    const b = A.content.find(x => x.id === el.dataset.id); if (!b) return;
+    const on = el.checked;
+    if (!on) { const used = bookUsers(b); if (used.length && !await ask({ title: `Turn off ${b.name}?`, text: `${used.join(", ")} ${used.length > 1 ? "use" : "uses"} options from it. Their sheets lose those numbers and features until you turn it back on.`, ok: "Turn off", danger: true })) { el.checked = true; return; } }
+    await A.be.saveContent(A.camp.id, { enabled: on }, b.id); await refreshContent(); render();
+  },
+  async delbook(el) {
+    const b = A.content.find(x => x.id === el.dataset.id); if (!b) return;
+    const used = bookUsers(b);
+    if (!await ask({ title: `Remove ${b.name}?`, text: (used.length ? `${used.join(", ")} ${used.length > 1 ? "use" : "uses"} options from it, and their sheets lose those numbers and features. ` : "") + "Players can't use its options anymore. You can add the file again later.", ok: "Remove", danger: true })) return;
+    await A.be.deleteContent(b.id); await refreshContent(); render();
+  },
   import() { if (SUITE) return importSuiteLibrary().catch(fail); const f = $("#importFile"); f.onchange = () => f.files[0] && importSuite(f.files[0]).catch(fail).finally(() => { f.value = ""; }); f.click(); },
   async doSend(el) {
     const kind = el.dataset.kind, to = [...document.querySelectorAll(".sendTo:checked")].map(c => c.value);
