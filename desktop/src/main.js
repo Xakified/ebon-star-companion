@@ -114,7 +114,7 @@ function openCampaign(file) {
 // The campaign file changed on disk because the other computer saved (through OneDrive, Dropbox…), and its
 // edits are now merged in. Update what's on screen: lore, sessions and items in place, the rest by reloading.
 function fromOtherComputer({ changed, conflicts, kept, by }) {
-  for (const col of changed.filter(k => ["pages", "sessions", "items"].includes(k)))
+  for (const col of changed.filter(k => ["pages", "sessions", "items", "notes"].includes(k)))
     for (const w of [dmWin, playersWin]) if (w && !w.isDestroyed()) w.webContents.send("db:changed", col, current.camp[col] || {});
   if (changed.includes("companion")) { startCompanion(); buildMenu(); }
   if (changed.some(k => ["table", "ui"].includes(k)) && dmWin && !dmWin.isDestroyed()) dmWin.loadFile(PAGE);

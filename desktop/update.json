@@ -1,32 +1,32 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "minShell": "1.2.0",
-  "notes": "New Players tab: every character, who plays it, sheets, sending and homebrew, right in the DM Suite",
-  "published": "2026-11-01T19:58:21.178Z",
+  "notes": "Player session notes: players write notes in the Companion and they're saved with each session here",
+  "published": "2026-11-01T20:11:54.919Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "e1c27a7d7eea26f0e38186c88f7df5b8ce888afb9dcad0c25d1c825ef733f742",
+    "package.json": "2ac64b8d65836bae98a196f4ed93ace40d2f18d270776615a40b1e40360ff6da",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
-    "src/campaign.js": "fca9a178a3ae691e6c27ad792e29f5ce289618d56c6e83f3db6eaa68e28c86e5",
+    "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
     "src/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
-    "src/companion-bridge.js": "eeb607d9aea38d613a456511a2962fad78efb31ad60b164b7e58d559523847fd",
-    "src/companion.js": "d04c86b9f98f96a9192c7a934c1da6b6553d96111dfe8b81e2efaa38fd3651fc",
+    "src/companion-bridge.js": "63e8fe22568155a6cf5fb0fc0effef899d0e61fd21a3f7d5f08a44b700077278",
+    "src/companion.js": "bd8c20a434efcdc00d65366c943c010848acf9dd373cd8ae7e99a9746af51180",
     "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
     "src/key.html": "b9c9c7a73913847b6d7f50fe238f4556bdaeece103b17868bbb71241331bb1a5",
-    "src/main.js": "33349a982bda8bad4dffb20b5687f0ea0119c34034b36f48a185d17723dd39b6",
+    "src/main.js": "eb000bf218d62128bbc1db40712d940beca32e6d1dc9656add6ad565610b47b3",
     "src/preload.js": "16e218c7cb9f5988459610d680c64581ea0a7f0e8727f62433a7e4b87e3f60d8",
-    "src/shim.js": "2443a4629e7a565eac36d438e0bb5a210d1dad3e100c9b79ab7f67d6025a0075",
+    "src/shim.js": "81e9da1e2804c82a7a1156b023db201c47bb2f4e5f687d3ece24bb738be0c597",
     "src/updater.js": "73c926a09ed7b70d0e1c34dde1915f2ac257cd0b40f4114e254af943481d8d71",
-    "app/companion/backend.js": "9d26468f1f9ba7cca38018745983336e54bd18e338131a577b710e4ded25c3ca",
+    "app/companion/backend.js": "4fd0a369400e4a87d947b7f8dde8db7ac1c4b19983491b6b714ec7fc4f8ff248",
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "c89774fa5531efbab55052de7b71c675d60bc42cb0f1876caae6fb565abcf38c",
+    "app/companion/index.html": "d7d1643e8f3f142d00d690ea5a5aafa69ec628d8e21d7cc1f66c94e0f8b6e73d",
     "app/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
-    "app/index.html": "7e77d6a83abbbc9e688232d23d08300dde996d31b029b278631514a1bedf4c09"
+    "app/index.html": "9869c82c7f920c6fac66c5335f74461ff8e98a9939ae575b0b0447290477135b"
   }
 }

@@ -227,7 +227,7 @@ const LINEAGES = {
 };
 const ORIGIN_FEATS = ["Alert", "Magic Initiate", "Savage Attacker", "Skilled"];
 
-const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false };
+const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false, sessions: [], notes: [], notesOk: true, noteSess: null, noteDraft: "", notesBack: "camp", liveSeen: null };
 
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2600); }
 function fail(e) { console.error(e); toast(e.message || String(e)); }
@@ -265,6 +265,7 @@ async function openCamp(id) {
   localStorage.setItem("esc-camp-" + A.be.mode, id);
   await refresh();
   A.grants.filter(g => g.status === "pending").forEach(g => A.seenGrants.add(g.id));
+  A.liveSeen = (liveSession() || {}).id || "";
   if (A.unsub) A.unsub();
   A.unsub = A.be.subscribe(id, onLive);
   A.view = "camp";
@@ -274,7 +275,14 @@ async function refresh() {
   if (!A.camp) return;
   [A.chars, A.grants, A.members] = await Promise.all([A.be.listCharacters(A.camp.id), A.be.listGrants(A.camp.id), A.be.members(A.camp.id)]);
   if (isDM()) A.homebrew = await A.be.listHomebrew(A.camp.id);
+  else await refreshNotes();
 }
+// Session notes need supabase/fix-04-session-notes.sql; without it the rest of the app works as before.
+async function refreshNotes() {
+  try { [A.sessions, A.notes] = await Promise.all([A.be.listSessions(A.camp.id), A.be.listNotes(A.camp.id)]); A.notesOk = true; }
+  catch (e) { console.warn(e); A.sessions = []; A.notes = []; A.notesOk = false; }
+}
+const liveSession = () => A.sessions.find(x => x.live) || null;
 let liveTimer = null;
 function onLive(ev) {
   clearTimeout(liveTimer);
@@ -283,6 +291,8 @@ function onLive(ev) {
     const fresh = A.grants.filter(g => g.status === "pending" && !A.seenGrants.has(g.id));
     fresh.forEach(g => A.seenGrants.add(g.id));
     if (fresh.length && !isDM()) { toast("The DM sent you " + fresh.map(E.grantLabel).join(", ")); navigator.vibrate && navigator.vibrate(120); }
+    else if (!isDM()) { const l = liveSession(); if (l && A.liveSeen !== null && A.liveSeen !== l.id) toast(`${l.title || "The session"} has started. Tap Session notes to jot things down.`); }
+    if (!isDM()) A.liveSeen = (liveSession() || {}).id || "";
     A.flashId = ev.table === "characters" ? ev.id : null;
     softRender();
   }, 150);
@@ -311,13 +321,15 @@ function header() {
   if (A.view === "sheet") { const r = charRow(A.charId); back = `<button class="btn icon ghost" data-a="camp" aria-label="Back">‹</button>`; title = r ? r.data.name || "Unnamed" : ""; if (r) { const d = r.data; sub = `${d.species} ${d.cls} ${d.level}${d.subclass ? " · " + d.subclass : ""}${isDM() ? " · " + (memberName(r.owner) || "player") : ""}`; } if (isDM()) right = `<button class="btn sm primary" data-a="send" data-id="${A.charId}">Send</button>`; }
   if (A.view === "build") { back = `<button class="btn icon ghost" data-a="camp" aria-label="Cancel">‹</button>`; title = "New character"; sub = A.camp ? A.camp.name : ""; }
   if (A.view === "camp" && isDM()) right = `<button class="btn sm primary" data-a="send">Send</button>`;
+  if ((A.view === "camp" || A.view === "sheet") && A.camp && !isDM() && A.notesOk) right = `<button class="btn sm ${liveSession() ? "primary" : ""}" data-a="notes" title="Notes for your DM about this session">Session notes${liveSession() ? " ●" : ""}</button>`;
+  if (A.view === "notes") { back = `<button class="btn icon ghost" data-a="notesback" aria-label="Back">‹</button>`; title = "Session notes"; sub = A.camp ? A.camp.name : ""; }
   h.innerHTML = `${back}<div class="title"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>${right}`;
 }
 
 function render() {
   header();
   $("#app").className = "wrap" + (A.view === "camp" && isDM() ? " wide" : "");
-  const v = { unlinked: vUnlinked, home: vHome, camp: vCamp, build: vBuild, sheet: vSheet }[A.view] || vHome;
+  const v = { unlinked: vUnlinked, home: vHome, camp: vCamp, build: vBuild, sheet: vSheet, notes: vNotes }[A.view] || vHome;
   $("#app").innerHTML = v();
   if (A.flashId) { const el = document.querySelector(`[data-pc="${A.flashId}"]`); if (el) el.classList.add("flash"); A.flashId = null; }
 }
@@ -382,6 +394,7 @@ function vCamp() {
   return `
     ${mine.map(r => { const d = r.data, h = hpOf(d); return `<button class="pc card" data-a="sheet" data-id="${r.id}" style="display:block"><div class="row nw"><div class="grow"><div class="nm">${esc(d.name || "Unnamed")}</div><div class="small muted">${esc(d.species)} ${esc(d.cls)} ${d.level}</div></div>${pend(r.id) ? `<span class="pill">${pend(r.id)} from DM</span>` : ""}</div><div class="row nw" style="margin-top:8px"><span class="num small">${h.cur}/${h.max}</span><div class="grow">${hpBar(h)}</div></div></button>`; }).join("")}
     ${mine.length ? "" : `<div class="card empty">You don't have a character in this campaign yet.</div>`}
+    ${A.notesOk && liveSession() ? `<div class="banner row"><span class="grow"><b>${esc(liveSession().title || "A session")}</b> is being played now. Write down what you notice, suspect or plan.</span><button class="btn sm primary" data-a="notes">Add a note</button></div>` : ""}
     <button class="btn primary" style="margin-top:12px;width:100%" data-a="build">Create a character</button>`;
 }
 function libList() {
@@ -597,13 +610,30 @@ function tFeatures(r, d, x) {
     <button class="btn" style="margin-top:12px;width:100%" data-a="addfeat">Add a custom feature or skill</button>`;
 }
 function tNotes(r, d) {
-  return `<div class="card stack"><label class="f"><span>Notes</span><textarea data-field="notes" style="min-height:160px">${esc(d.notes)}</textarea></label>
+  return `${!isDM() && A.notesOk ? `<div class="card row"><div class="grow"><b>Session notes</b><div class="small muted">Notes on a session that your DM keeps with their session log. These ones below stay on your sheet.</div></div><button class="btn sm" data-a="notes">Open</button></div>` : ""}<div class="card stack"><label class="f"><span>Notes</span><textarea data-field="notes" style="min-height:160px">${esc(d.notes)}</textarea></label>
     <label class="f"><span>Appearance and personality</span><textarea data-field="appearance">${esc(d.appearance)}</textarea></label>
     <label class="f"><span>Languages</span><input data-field="languages" value="${esc(d.languages)}"></label>
     <div class="grid3"><label class="f"><span>Extra max HP</span><input type="number" class="num" data-numfield="hpBonus" value="${d.hpBonus || 0}"></label><label class="f"><span>Extra AC</span><input type="number" class="num" data-numfield="acBonus" value="${d.acBonus || 0}"></label><label class="f"><span>Extra speed</span><input type="number" class="num" data-numfield="speedBonus" value="${d.speedBonus || 0}"></label></div></div>
     <div class="card"><h3>History</h3><div class="list">${(d.log || []).slice(0, 40).map(l => `<div class="li small"><span class="muted num tiny" style="min-width:6.5em">${new Date(l.t).toLocaleDateString()}</span><span>${esc(l.text)}</span></div>`).join("") || `<p class="muted small">Nothing yet.</p>`}</div></div>
     ${isDM() ? `<div class="card row"><div class="grow"><b>Player</b><div class="small muted">${esc(memberName(r.owner) || "Unknown player")}. If they're on a new phone or lost their browser data, have them join again with the campaign code, then move this character to them.</div></div><button class="btn sm" data-a="movechar">Move to another player</button></div>` : ""}
     <button class="btn danger" style="margin-top:12px" data-a="delchar">Delete character</button>`;
+}
+
+// ---------- session notes (players) ----------
+function noteTime(t) { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
+function sessLabel(x) { return `${x.title || "Session"}${x.played_on ? " · " + new Date(x.played_on + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""}${x.live ? " · playing now" : ""}`; }
+function vNotes() {
+  if (!A.notesOk) return `<div class="card"><h2>Not set up yet</h2><p class="muted" style="margin:0">Session notes aren't switched on for this campaign yet. Ask your DM to finish setting them up.</p></div>`;
+  if (!A.sessions.length) return `<div class="card"><h2>No sessions yet</h2><p class="muted" style="margin:0">Once your DM starts a session, you can write notes on it here. They go straight into the DM's session log.</p></div>`;
+  if (!A.sessions.some(x => x.id === A.noteSess)) A.noteSess = (liveSession() || A.sessions[0]).id;
+  const mine = A.chars.filter(c => c.owner === A.user), cur = mine.find(c => c.id === A.charId) || mine[0];
+  const bySess = A.sessions.map(x => ({ x, notes: A.notes.filter(n => n.session_id === x.id).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))) })).filter(g => g.notes.length);
+  return `<div class="card stack"><h2>Add a note</h2>
+      <label class="f"><span>Session</span><select id="nSess">${A.sessions.map(x => `<option value="${esc(x.id)}" ${x.id === A.noteSess ? "selected" : ""}>${esc(sessLabel(x))}</option>`).join("")}</select></label>
+      ${mine.length > 1 ? `<label class="f"><span>As</span><select id="nChar">${mine.map(c => `<option value="${c.id}" ${c === cur ? "selected" : ""}>${esc(c.data.name || "Unnamed")}</option>`).join("")}</select></label>` : ""}
+      <label class="f"><span>Note</span><textarea id="nBody" style="min-height:120px" placeholder="What happened, what you noticed, who you don't trust, what you want to do next…">${esc(A.noteDraft)}</textarea></label>
+      <div class="row"><span class="grow tiny muted">Only you and your DM see your notes. You can add to past sessions any time.</span><button class="btn primary" data-a="addnote">Save note</button></div></div>
+    ${bySess.length ? bySess.map(g => `<div class="card"><h3>${esc(sessLabel(g.x))}</h3><div class="list">${g.notes.map(n => `<div class="li" style="align-items:flex-start"><div class="grow"><div class="tiny muted">${esc(noteTime(n.created_at))}${n.character_name ? " · " + esc(n.character_name) : ""}${g.x.ended_at && n.created_at > g.x.ended_at ? " · added after the session" : ""}${n.updated_at && n.updated_at > n.created_at && Date.parse(n.updated_at) - Date.parse(n.created_at) > 60000 ? " · edited" : ""}</div><div style="white-space:pre-wrap">${esc(n.body)}</div></div><button class="btn sm ghost" data-a="editnote" data-id="${n.id}" aria-label="Edit">✎</button><button class="btn sm ghost danger" data-a="delnote" data-id="${n.id}" aria-label="Delete">✕</button></div>`).join("")}</div></div>`).join("") : `<div class="card empty">Your notes show up here, by session.</div>`}`;
 }
 
 // ---------- dialogs ----------
@@ -916,7 +946,31 @@ const ACT = {
       `<button class="btn" data-a="close">Done</button><button class="btn primary" data-a="copysuite">Copy code</button>`);
   },
   copysuite() { const t = $("#suiteCode"); t.select(); if (SUITE) return copyText(t.value, "Code copied"); (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => toast("Code copied"), () => { document.execCommand && document.execCommand("copy"); toast("Code selected: copy it with Ctrl+C"); }); },
-  close() { closeDlg(); }
+  close() { closeDlg(); },
+  // session notes
+  notes() { if (A.view !== "notes") A.notesBack = A.view; A.view = "notes"; render(); scrollTo(0, 0); },
+  notesback() { A.view = A.notesBack === "sheet" && charRow(A.charId) ? "sheet" : "camp"; render(); },
+  async addnote(el) {
+    const body = val("nBody"); if (!body) return toast("Write something first");
+    const mine = A.chars.filter(c => c.owner === A.user), ch = mine.find(c => c.id === (val("nChar") || A.charId)) || mine[0];
+    el.disabled = true;
+    try {
+      const row = await A.be.addNote(A.camp.id, { session_id: val("nSess") || A.noteSess, body, character_id: ch ? ch.id : null, character_name: ch ? ch.data.name || "" : "", author_name: memberName(A.user) || localStorage.getItem("esc-name") || "" });
+      A.notes.unshift(row); A.noteDraft = ""; render(); toast("Note saved for your DM");
+    } finally { el.disabled = false; }
+  },
+  editnote(el) {
+    const n = A.notes.find(x => x.id === el.dataset.id); if (!n) return;
+    dialog("Edit note", `<textarea id="enBody" style="min-height:160px;width:100%">${esc(n.body)}</textarea>`, `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="savenote" data-id="${n.id}">Save</button>`);
+  },
+  async savenote(el) {
+    const n = A.notes.find(x => x.id === el.dataset.id), body = val("enBody"); if (!n) return closeDlg(); if (!body) return toast("A note can't be empty. Delete it instead.");
+    Object.assign(n, await A.be.updateNote(n.id, body) || { body }); closeDlg(); render(); toast("Note updated");
+  },
+  async delnote(el) {
+    const n = A.notes.find(x => x.id === el.dataset.id); if (!n || !await ask({ title: "Delete this note?", text: "It's removed for your DM too.", ok: "Delete", danger: true })) return;
+    await A.be.deleteNote(n.id); A.notes = A.notes.filter(x => x !== n); render();
+  }
 };
 
 document.addEventListener("click", e => {
@@ -928,6 +982,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("change", e => {
   const el = e.target;
+  if (el.id === "nSess") { A.noteSess = el.value; return; }
   if (el.matches("input[type=checkbox][data-a]")) { const f = ACT[el.dataset.a]; f && Promise.resolve(f(el)).catch(fail); return; }
   if (A.view === "build") {
     const d = A.draft;
@@ -944,6 +999,7 @@ document.addEventListener("change", e => {
   }
 });
 document.addEventListener("input", e => {
+  if (e.target.id === "nBody") A.noteDraft = e.target.value;
   if (A.view === "build" && e.target.dataset.b === "name") { A.draft.name = e.target.value; const b = document.querySelector('[data-a="bdone"]'); if (b) b.disabled = !e.target.value.trim(); }
 });
 $("#dlg").addEventListener("click", e => { if (e.target === $("#dlg")) closeDlg(); });

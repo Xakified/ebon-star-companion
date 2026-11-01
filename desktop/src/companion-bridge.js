@@ -144,5 +144,66 @@
     linkedNow = linked;
   });
 
-  D.companionGet().then(r => { status = r.status || status; party = r.party || []; if (party.length) applyRemote(); else badge(); });
+  // ---------- Player session notes ----------
+  // Tells the Companion which sessions players can write notes on (played ones and the live one), and copies every
+  // player note into the campaign file (notes/{id}), where it stays even if Supabase loses it. A note the player
+  // deletes is removed here too. Needs supabase/fix-04-session-notes.sql in the Companion's Supabase project.
+  const hasJournal = typeof J !== "undefined" && typeof writeDoc === "function";
+  let notesOn = false, pubSig = "", pubBusy = false, pulling = false, pulledOnce = false, pullTimer = null, warned = false, quietUntil = 0;
+  function noteProblem(msg) {
+    quietUntil = Date.now() + 60000; // try again in a minute, not every few seconds
+    const setup = /game_sessions|session_notes|schema cache|does not exist/i.test(msg || "");
+    window.PLAYER_NOTES_PROBLEM = setup ? "Player notes need one more setup step: run fix-04-session-notes.sql from the Companion repo in the Supabase SQL Editor." : "Couldn't reach the Companion for player notes: " + msg;
+    if (setup && !warned) { warned = true; toast(window.PLAYER_NOTES_PROBLEM, null, null, 9000); }
+    if (typeof paintPlayerNotes === "function") paintPlayerNotes();
+  }
+  function noteFixed() { if (window.PLAYER_NOTES_PROBLEM) { delete window.PLAYER_NOTES_PROBLEM; if (typeof paintPlayerNotes === "function") paintPlayerNotes(); } }
+  function publishedSessions() {
+    return Object.entries(J.sessions).filter(([, x]) => x.status === "played" || x.live)
+      .map(([id, x]) => ({ id, title: x.title || "", played_on: x.date || "", live: !!x.live, ord: x.order || 0, ended_at: x.ended ? new Date(x.ended).toISOString() : null }))
+      .sort((a, b) => a.ord - b.ord);
+  }
+  async function publishSessions(force) {
+    if (!notesOn || pubBusy || !J.ready) return;
+    const list = publishedSessions(), sig = JSON.stringify(list);
+    if (!force && sig === pubSig) return;
+    pubBusy = true;
+    const r = await D.companionCall("publishSessions", [list]).catch(e => ({ error: e.message }));
+    pubBusy = false;
+    if (r && r.error) { pubSig = ""; noteProblem(r.error); return; }
+    pubSig = sig; noteFixed();
+  }
+  async function pullNotes() {
+    if (!notesOn || pulling || !J.ready || !J.db) return;
+    pulling = true;
+    try {
+      const r = await D.companionCall("listNotes", []).catch(e => ({ error: e.message }));
+      if (r && r.error) { noteProblem(r.error); return; }
+      pulledOnce = true; noteFixed();
+      let changed = false;
+      for (const n of r.value || []) {
+        const have = J.notes[n.id];
+        if (n.deleted) { if (have) { delete J.notes[n.id]; deleteDoc(`notes/${n.id}`).catch(() => {}); changed = true; } continue; }
+        const at = Date.parse(n.created_at) || Date.now(), up = Date.parse(n.updated_at) || at;
+        const doc = { session: n.session_id, by: n.author_name || "", character: n.character_name || "", body: n.body || "", at, edited: up - at > 60000 ? up : 0 };
+        if (JSON.stringify(have) !== JSON.stringify(doc)) { J.notes[n.id] = doc; writeDoc(`notes/${n.id}`, () => J.notes[n.id], 0); changed = true; }
+      }
+      if (changed) paintPlayerNotes();
+    } finally { pulling = false; }
+  }
+  function notesStatus(st) {
+    const on = !!st && st.state === "live";
+    if (on === notesOn) return;
+    notesOn = on; window.PLAYER_NOTES_ON = on;
+    if (on) { quietUntil = 0; publishSessions(true); pullNotes(); }
+    if (typeof renderJournal === "function") renderJournal(true);
+  }
+  if (hasJournal) {
+    D.onCompanionStatus(notesStatus);
+    if (D.onCompanionEvent) D.onCompanionEvent(ev => { if (ev && ev.table === "session_notes") { clearTimeout(pullTimer); pullTimer = setTimeout(pullNotes, 300); } });
+    setInterval(() => { if (Date.now() < quietUntil) return; publishSessions(); if (!pulledOnce) pullNotes(); }, 3000);   // sessions started, renamed or ended
+    setInterval(pullNotes, 60000);                                                    // safety net for a missed live update
+  }
+
+  D.companionGet().then(r => { if (hasJournal) notesStatus(r.status); status = r.status || status; party = r.party || []; if (party.length) applyRemote(); else badge(); });
 })();

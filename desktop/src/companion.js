@@ -81,6 +81,10 @@ class Companion {
         .on("postgres_changes", { event: "*", schema: "public", table: "grants", filter: "campaign_id=eq." + link.campaignId }, p => this.onChange({ table: "grants", id: (p.new && p.new.id) || (p.old && p.old.id) }))
         .on("postgres_changes", { event: "*", schema: "public", table: "members", filter: "campaign_id=eq." + link.campaignId }, () => this.onChange({ table: "members" }))
         .subscribe(s => { if (s === "SUBSCRIBED") { if (!this.notMember) this.status("live"); } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") this.status("error", "Live updates paused; retrying."); });
+      // Player session notes on their own channel: a Supabase project without fix-04 yet keeps the rest working.
+      this.notesChan = this.sb.channel("suite-notes-" + link.campaignId)
+        .on("postgres_changes", { event: "*", schema: "public", table: "session_notes", filter: "campaign_id=eq." + link.campaignId }, p => this.onChange({ table: "session_notes", id: (p.new && p.new.id) || (p.old && p.old.id) }))
+        .subscribe();
       // safety net in case a live update is missed
       this.poll = setInterval(() => this.refresh().catch(() => {}), 60000);
     } catch (e) { this.status("error", e.message); throw e; }
@@ -88,7 +92,8 @@ class Companion {
   stop() {
     clearTimeout(this.timer); clearInterval(this.poll);
     if (this.chan && this.sb) this.sb.removeChannel(this.chan);
-    this.chan = null; this.link = null; this.party = []; this.status("off");
+    if (this.notesChan && this.sb) this.sb.removeChannel(this.notesChan);
+    this.chan = null; this.notesChan = null; this.link = null; this.party = []; this.status("off");
   }
   soon() { clearTimeout(this.timer); this.timer = setTimeout(() => this.refresh().catch(e => this.status("error", e.message)), 120); }
   async refresh() {
@@ -151,6 +156,20 @@ const CALLS = {
   async deleteHomebrew(id) { ok(await this.sb.from("homebrew").delete().eq("id", id)); return true; },
   async reassignCharacter(id, userId) { ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); return true; },
   async createDmInvite() { return this.makeInvite(); },
+  // Player session notes (supabase/fix-04-session-notes.sql in the Companion repo).
+  // The sessions players may write on: [{ id, title, played_on, live, ord, ended_at }]. Anything not in the list is removed.
+  async publishSessions(list) {
+    const cid = this.cid(), rows = (Array.isArray(list) ? list : []).map(x => ({
+      campaign_id: cid, id: String(x.id), title: String(x.title || "").slice(0, 200), played_on: String(x.played_on || ""),
+      live: !!x.live, ord: x.ord | 0, ended_at: x.ended_at || null, updated_at: new Date().toISOString() }));
+    if (rows.length) ok(await this.sb.from("game_sessions").upsert(rows, { onConflict: "campaign_id,id" }));
+    const have = ok(await this.sb.from("game_sessions").select("id").eq("campaign_id", cid)) || [];
+    const keep = new Set(rows.map(r => r.id)), gone = have.map(r => r.id).filter(id => !keep.has(id));
+    if (gone.length) ok(await this.sb.from("game_sessions").delete().eq("campaign_id", cid).in("id", gone));
+    return true;
+  },
+  // Every note in the campaign, including ones players deleted (so this computer can drop its copy).
+  async listNotes() { return ok(await this.sb.from("session_notes").select("*").eq("campaign_id", this.cid()).order("created_at")); },
 };
 Companion.prototype.cid = function () { if (!this.link || !this.sb) throw new Error("This campaign isn't connected to the Companion."); return this.link.campaignId; };
 Companion.prototype.call = async function (method, args) {
