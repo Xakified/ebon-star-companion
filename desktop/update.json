@@ -1,26 +1,26 @@
 {
-  "version": "1.3.1",
+  "version": "1.4.0",
   "minShell": "1.2.0",
-  "notes": "Code for Another Device: connect the laptop or a browser as DM",
-  "published": "2026-11-01T19:13:45.854Z",
+  "notes": "New sky blue and gold look",
+  "published": "2026-11-01T19:39:03.560Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "9ae19e911b7d7f7740cc06ebfc62be01be442620cf9174de4fd39a451d1a501e",
+    "package.json": "54f7c89f8358ffc4e398ce27509ca82972ec10415d55448742c9a91ad015b94f",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fca9a178a3ae691e6c27ad792e29f5ce289618d56c6e83f3db6eaa68e28c86e5",
     "src/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
     "src/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
     "src/companion-bridge.js": "89be68e115db475c2fcf48841567f38405d8f8b27a4d54cc4150c7386911b17e",
     "src/companion.js": "1a2ffc350052960cfff2bbd75edd52448788e9f4a18db19217b04757a9489aba",
-    "src/connect.html": "36d0dae4d0ffb2d4b7f95768a3c477aae63b8cf1d000298f2d952a67082c053c",
-    "src/key.html": "966ebcac7f7c2e522818b0f54a16e26bcd081575e41116e439279d7663796fa4",
-    "src/main.js": "b7da4d1f271de0b50cf30743dcdb51ac818376162058042c4de7884ec01dcf57",
+    "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
+    "src/key.html": "b9c9c7a73913847b6d7f50fe238f4556bdaeece103b17868bbb71241331bb1a5",
+    "src/main.js": "08f65d194de1a8ad18fef260801f5a78fb1d8fc547751c8f800c58236a1b5393",
     "src/preload.js": "204d6bdf0adac10efe0c29965e4a19d89ce5d3d817c970484a83d95beb0ff82c",
     "src/shim.js": "2443a4629e7a565eac36d438e0bb5a210d1dad3e100c9b79ab7f67d6025a0075",
     "src/updater.js": "73c926a09ed7b70d0e1c34dde1915f2ac257cd0b40f4114e254af943481d8d71",
-    "app/index.html": "39880bc5e767914f7f2e1545dc7d857bd809479078c198a706e026fc6c798da7"
+    "app/index.html": "7e77d6a83abbbc9e688232d23d08300dde996d31b029b278631514a1bedf4c09"
   }
 }
