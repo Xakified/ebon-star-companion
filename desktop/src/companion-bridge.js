@@ -99,5 +99,50 @@
     }
     badge();
   });
+  // ---------- Players tab: the Companion's DM view, inside the DM Suite ----------
+  // Runs the Companion in a frame. Its requests come here and go through this computer's DM sign-in (main process),
+  // so everything a DM does in the Companion (sheets, sending, homebrew, moving characters, codes) happens here.
+  const nav = document.getElementById("tabNav"), main = document.querySelector("main");
+  let frame = null, frameLoaded = false, linkedNow = null;
+  const post = m => { if (frame && frame.contentWindow) frame.contentWindow.postMessage(m, "*"); };
+  const theme = () => document.documentElement.dataset.theme || "";
+  if (nav && main) {
+    const btn = document.createElement("button");
+    btn.dataset.tab = "players"; btn.textContent = "Players"; btn.title = "Your players' characters from the Companion";
+    nav.appendChild(btn);
+    const sec = document.createElement("section");
+    sec.id = "tab-players"; sec.hidden = true;
+    sec.innerHTML = `<iframe id="playersFrame" title="Players" style="display:block;width:100%;border:1px solid var(--line);border-radius:12px;background:var(--bg)"></iframe>`;
+    main.appendChild(sec);
+    frame = sec.querySelector("iframe");
+    const size = () => { if (!sec.hidden) frame.style.height = Math.max(480, innerHeight - frame.getBoundingClientRect().top - 16) + "px"; };
+    const show = on => {
+      sec.hidden = !on;
+      if (!on) return;
+      if (!frameLoaded) { frame.src = "companion/index.html#suite"; frameLoaded = true; }
+      requestAnimationFrame(size);
+    };
+    addEventListener("resize", size);
+    // The page's setTab only knows its own four tabs; wrap it so every way of switching tabs (the nav, lore links…) shows or hides this one.
+    if (typeof setTab === "function") { const orig = setTab; window.setTab = t => { orig(t); show(t === "players"); }; }
+    frame.addEventListener("load", () => post({ esc: "theme", theme: theme() }));
+    new MutationObserver(() => post({ esc: "theme", theme: theme() })).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+  addEventListener("message", async e => {
+    if (!frame || e.source !== frame.contentWindow || !e.data || e.data.esc !== "call") return;
+    const { id, method, args } = e.data;
+    let r;
+    try { r = await D.companionCall(String(method), Array.isArray(args) ? args : []); } catch (err) { r = { error: err.message }; }
+    post({ esc: "result", id, ok: !(r && r.error), value: r && r.value, error: r && r.error });
+  });
+  if (D.onCompanionEvent) D.onCompanionEvent(ev => post({ esc: "event", ev }));
+  // Reload the tab when this campaign gets connected or disconnected.
+  D.onCompanionStatus(st => {
+    const linked = !!st && (st.state === "live" || st.state === "connecting");
+    if (st && st.state === "connecting") return;
+    if (linkedNow !== null && linked !== linkedNow && frameLoaded) post({ esc: "reload" });
+    linkedNow = linked;
+  });
+
   D.companionGet().then(r => { status = r.status || status; party = r.party || []; if (party.length) applyRemote(); else badge(); });
 })();

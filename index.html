@@ -236,13 +236,20 @@ const charRow = id => A.chars.find(c => c.id === id);
 const memberName = uid => (A.members.find(m => m.user_id === uid) || {}).display_name || "";
 
 // ---------- boot ----------
+// Running inside the DM Suite's Players tab (desktop app): the Suite does the talking to Supabase.
+const SUITE = /(^|[#&])suite\b/.test(location.hash.slice(1)) && window.parent !== window;
+const PUBLIC_URL = "https://xakified.github.io/ebon-star-companion/";
+async function copyText(text, done) {
+  try { if (SUITE) await A.be.copy(text); else await navigator.clipboard.writeText(text); toast(done); return true; } catch (e) { return false; }
+}
 async function boot() {
   try {
     const cfg = window.APP_CONFIG || {};
-    if (cfg.supabaseUrl && cfg.supabaseAnonKey && !/[?&]demo\b/.test(location.search)) await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.75.0/dist/umd/supabase.js");
+    if (!SUITE && cfg.supabaseUrl && cfg.supabaseAnonKey && !/[?&]demo\b/.test(location.search)) await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.75.0/dist/umd/supabase.js");
     A.be = makeBackend();
     A.user = await A.be.init();
     A.camps = await A.be.myCampaigns();
+    if (SUITE) { if (A.camps[0]) { await openCamp(A.camps[0].id); A.view = "camp"; } else A.view = "unlinked"; render(); return; }
     const last = localStorage.getItem("esc-camp-" + A.be.mode);
     const hash = new URLSearchParams(location.hash.slice(1));
     if (hash.get("join")) { A.view = "home"; A.prefillCode = hash.get("join"); }
@@ -300,7 +307,7 @@ async function edit(id, fn) {
 function header() {
   const h = $("#hdr");
   let back = "", title = "Ebon Star Companion", sub = A.be && A.be.mode === "demo" ? "Demo mode: data stays in this browser" : "", right = "";
-  if (A.view === "camp" && A.camp) { back = `<button class="btn icon ghost" data-a="home" aria-label="Campaigns">‹</button>`; title = A.camp.name; sub = isDM() ? "Dungeon Master" : "Player"; }
+  if (A.view === "camp" && A.camp) { back = SUITE ? "" : `<button class="btn icon ghost" data-a="home" aria-label="Campaigns">‹</button>`; title = A.camp.name; sub = isDM() ? "Dungeon Master" : "Player"; }
   if (A.view === "sheet") { const r = charRow(A.charId); back = `<button class="btn icon ghost" data-a="camp" aria-label="Back">‹</button>`; title = r ? r.data.name || "Unnamed" : ""; if (r) { const d = r.data; sub = `${d.species} ${d.cls} ${d.level}${d.subclass ? " · " + d.subclass : ""}${isDM() ? " · " + (memberName(r.owner) || "player") : ""}`; } if (isDM()) right = `<button class="btn sm primary" data-a="send" data-id="${A.charId}">Send</button>`; }
   if (A.view === "build") { back = `<button class="btn icon ghost" data-a="camp" aria-label="Cancel">‹</button>`; title = "New character"; sub = A.camp ? A.camp.name : ""; }
   if (A.view === "camp" && isDM()) right = `<button class="btn sm primary" data-a="send">Send</button>`;
@@ -310,9 +317,17 @@ function header() {
 function render() {
   header();
   $("#app").className = "wrap" + (A.view === "camp" && isDM() ? " wide" : "");
-  const v = { home: vHome, camp: vCamp, build: vBuild, sheet: vSheet }[A.view] || vHome;
+  const v = { unlinked: vUnlinked, home: vHome, camp: vCamp, build: vBuild, sheet: vSheet }[A.view] || vHome;
   $("#app").innerHTML = v();
   if (A.flashId) { const el = document.querySelector(`[data-pc="${A.flashId}"]`); if (el) el.classList.add("flash"); A.flashId = null; }
+}
+
+// ---------- DM Suite, not connected yet ----------
+function vUnlinked() {
+  return `<div class="card stack"><h2>Connect to the Companion</h2>
+    <p class="muted" style="margin:0">${esc(A.be.statusMessage || "This campaign isn't linked to a Companion campaign yet.")}</p>
+    <p style="margin:0">Open the Companion on any device where you're the DM, press <b>Make DM code</b>, and paste the code here. Your players' characters, their sheets, sending items and everything else then live in this tab.</p>
+    <div><button class="btn primary" data-a="suiteconnect">Connect to Companion…</button></div></div>`;
 }
 
 // ---------- home ----------
@@ -351,11 +366,14 @@ function vCamp() {
     const recent = A.grants.slice(0, 12).map(g => { const r = charRow(g.character_id); return `<div class="grant"><div class="grow"><b>${esc(E.grantLabel(g))}</b> <span class="muted small">to ${esc(r ? r.data.name : "?")}</span></div><span class="pill ${g.status === "accepted" ? "good" : g.status === "declined" ? "bad" : ""}">${g.status}</span></div>`; }).join("");
     return `
       <div class="card row"><div class="grow"><div class="small muted">Players join with this code</div><div class="code">${esc(A.camp.join_code)}</div></div><button class="btn sm" data-a="copylink">Copy invite link</button></div>
-      <div class="card row"><div class="grow"><b>DM Suite and other devices</b><div class="small muted">Bring these characters into your DM Suite's party list and initiative tracker, with HP and conditions synced both ways. The same code makes another phone or browser a DM of this campaign.</div></div><button class="btn sm" data-a="suitecode">Make DM code</button></div>
+      ${SUITE ? `<div class="card row"><div class="grow"><b>Other DM devices</b><div class="small muted">Make a one-time code to be the DM on another computer's DM Suite, or in the Companion on a phone or browser.</div></div><button class="btn sm" data-a="suitecode">Make DM code</button></div>` : `<div class="card row"><div class="grow"><b>DM Suite and other devices</b><div class="small muted">Bring these characters into your DM Suite's party list and initiative tracker, with HP and conditions synced both ways. The same code makes another phone or browser a DM of this campaign.</div></div><button class="btn sm" data-a="suitecode">Make DM code</button></div>`}
       <div class="sec-title"><h2>Party</h2><span class="small muted">${A.chars.length} character${A.chars.length === 1 ? "" : "s"} · live</span></div>
       ${A.chars.length ? `<div class="party">${cards}</div>` : `<div class="card empty">No characters yet. When players join and build characters, they'll appear here.</div>`}
+      <div class="card"><div class="row"><h2 class="grow">Who's in the campaign</h2><span class="small muted">${A.members.filter(m => m.role === "player").length} player${A.members.filter(m => m.role === "player").length === 1 ? "" : "s"}</span></div>
+        <div class="list">${A.members.filter(m => m.role === "player").map(m => { const mine = A.chars.filter(c => c.owner === m.user_id); return `<div class="li"><div class="grow"><b>${esc(m.display_name || "Player")}</b>${m.joined_at ? `<span class="small muted"> · joined ${new Date(m.joined_at).toLocaleDateString()}</span>` : ""}</div><span class="small">${mine.length ? mine.map(c => `<button class="btn sm ghost" data-a="sheet" data-id="${c.id}">${esc(c.data.name || "Unnamed")}</button>`).join("") : `<span class="muted">no character yet</span>`}</span></div>`; }).join("") || `<p class="muted small">No players yet. Share the code above.</p>`}</div>
+        <p class="tiny muted" style="margin:6px 0 0">Someone on a new phone shows up twice. Open their character, go to Notes, and use Move to another player.</p></div>
       <div class="grid2" style="margin-top:4px">
-        <div class="card"><div class="row"><h2 class="grow">Homebrew library</h2><button class="btn sm" data-a="import">Import from DM Suite</button></div>${libList()}</div>
+        <div class="card"><div class="row"><h2 class="grow">Homebrew library</h2><button class="btn sm" data-a="import">${SUITE ? "Import from item library" : "Import from DM Suite"}</button></div>${libList()}</div>
         <div class="card"><h2>Recently sent</h2>${recent || `<p class="muted small">Nothing sent yet. Use Send to give a player an item, a custom skill, a spell, coins or XP.</p>`}</div>
       </div>
       <input type="file" id="importFile" accept=".dmcampaign,.json,application/json" hidden>`;
@@ -677,6 +695,15 @@ function sendDialog(preset = {}) {
 }
 
 // ---------- DM Suite import ----------
+async function importSuiteLibrary() {
+  const items = (await A.be.suiteItems()).filter(x => x && x.name);
+  if (!items.length) return toast("Your item library is empty. Save magic items on the Table tab first.");
+  const have = new Set(A.homebrew.filter(h => h.kind === "item").map(h => h.data.name));
+  let n = 0;
+  for (const x of items) { const it = E.fromSuiteItem(x); if (have.has(it.name)) continue; await A.be.saveHomebrew(A.camp.id, "item", it); have.add(it.name); n++; }
+  A.homebrew = await A.be.listHomebrew(A.camp.id); render();
+  toast(n ? `Imported ${n} item${n > 1 ? "s" : ""}` : "Those items are already in your library");
+}
 async function importSuite(file) {
   const text = await file.text();
   let j; try { j = JSON.parse(text); } catch (e) { throw new Error("That file isn't a DM Suite campaign or JSON export."); }
@@ -720,7 +747,7 @@ const ACT = {
     A.camps = await A.be.myCampaigns(); await openCamp(c.id); render(); toast("Sample loaded. Tap the character to open the sheet.");
   },
   newdemo() { A.be.switchUser(); location.reload(); },
-  copylink() { const u = location.origin + location.pathname + (A.be.mode === "demo" ? "?demo" : "") + "#join=" + A.camp.join_code; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast("Invite link copied"), () => ask({ title: "Invite link", text: "Copy this link and send it to your players.", input: "text", value: u, ok: "Done" })); },
+  copylink() { const u = (SUITE ? PUBLIC_URL : location.origin + location.pathname) + (A.be.mode === "demo" ? "?demo" : "") + "#join=" + A.camp.join_code; if (SUITE) return copyText(u, "Invite link copied"); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast("Invite link copied"), () => ask({ title: "Invite link", text: "Copy this link and send it to your players.", input: "text", value: u, ok: "Done" })); },
   build() { A.draft = newDraft(); A.step = 0; A.view = "build"; render(); },
   sheet(el) { A.charId = el.dataset.id; A.view = "sheet"; A.tab = "main"; render(); scrollTo(0, 0); },
   tab(el) { A.tab = el.dataset.v; render(); },
@@ -859,7 +886,8 @@ const ACT = {
   toall() { document.querySelectorAll(".sendTo").forEach(cb => { cb.checked = true; cb.parentElement.classList.add("on"); }); },
   sendlib(el) { const h = A.homebrew.find(x => x.id === el.dataset.id); if (h) sendDialog({ kind: h.kind, data: h.data, libId: h.id, to: [] }); },
   async dellib(el) { const h = A.homebrew.find(x => x.id === el.dataset.id); if (!h || !await ask({ title: `Delete ${h.data.name}?`, text: "It's removed from your library. Anything already sent stays on players' sheets.", ok: "Delete", danger: true })) return; await A.be.deleteHomebrew(h.id); A.homebrew = A.homebrew.filter(x => x !== h); render(); },
-  import() { const f = $("#importFile"); f.onchange = () => f.files[0] && importSuite(f.files[0]).catch(fail).finally(() => { f.value = ""; }); f.click(); },
+  async suiteconnect() { await A.be.openConnect(); },
+  import() { if (SUITE) return importSuiteLibrary().catch(fail); const f = $("#importFile"); f.onchange = () => f.files[0] && importSuite(f.files[0]).catch(fail).finally(() => { f.value = ""; }); f.click(); },
   async doSend(el) {
     const kind = el.dataset.kind, to = [...document.querySelectorAll(".sendTo:checked")].map(c => c.value);
     if (!to.length) return toast("Choose who to send it to");
@@ -887,7 +915,7 @@ const ACT = {
       <p class="small muted" style="margin:0">Keep it to yourself: whoever uses it becomes a DM of this campaign.</p></div>`,
       `<button class="btn" data-a="close">Done</button><button class="btn primary" data-a="copysuite">Copy code</button>`);
   },
-  copysuite() { const t = $("#suiteCode"); t.select(); (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => toast("Code copied"), () => { document.execCommand && document.execCommand("copy"); toast("Code selected: copy it with Ctrl+C"); }); },
+  copysuite() { const t = $("#suiteCode"); t.select(); if (SUITE) return copyText(t.value, "Code copied"); (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => toast("Code copied"), () => { document.execCommand && document.execCommand("copy"); toast("Code selected: copy it with Ctrl+C"); }); },
   close() { closeDlg(); }
 };
 

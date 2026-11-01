@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ebon Star Companion</title>
+<meta name="theme-color" content="#2a68b6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ebon Star">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  /* Sky and gold: pale sky pages, deep navy ink, royal blue and burnished gold accents. Light only, whatever the system setting. */
+  --bg: #dbe9f4;
+  --surface: #f4f9fd;
+  --raised: #ffffff;
+  --ink: #142a4c;
+  --muted: #4b6584;
+  --line: #bcd2e6;
+  --gold: #b8862a;
+  --gilt: #e0b44a;
+  --royal: #1d4f91;
+  --royal-2: #2f6fbf;
+  --accent: #1f5ca8;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbefc8;
+  --active: #fff4d3;
+  --good: #2e7a3a;
+  --warn: #a06200;
+  --bad: #b02a1f;
+  --pc: #1f5ca8;
+  --npc: #6a3f9a;
+  --mon: #a3301f;
+  --r-common: #5f6b7c;
+  --r-uncommon: #2e7a3a;
+  --r-rare: #1f5ca8;
+  --r-veryrare: #7038a0;
+  --r-legendary: #b4600a;
+  --r-artifact: #b02a1f;
+  --display: "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --book: "Alegreya", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 6px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+h1 { font-size: 1.5rem; } h2 { font-size: 1.2rem; } h3 { font-size: 1.02rem; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); } .small { font-size: .86rem; } .tiny { font-size: .76rem; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 96px; }
+.wrap.wide { max-width: 1200px; }
+header.top { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); padding: calc(env(safe-area-inset-top) + 8px) 16px 8px; }
+header.top .in { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 10px; min-height: 40px; }
+header.top .title { flex: 1; min-width: 0; }
+header.top .title h1 { font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+header.top .title .sub { font-size: .8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 12px; }
+.card > h2:first-child, .card > h3:first-child { margin-bottom: 8px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row.nw { flex-wrap: nowrap; } .grow { flex: 1; min-width: 0; }
+.stack > * + * { margin-top: 8px; }
+.btn { appearance: none; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 8px 14px; min-height: 40px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.danger { color: var(--bad); }
+.btn.sm { min-height: 32px; padding: 4px 10px; font-size: .9rem; }
+.btn.icon { width: 40px; padding: 0; display: inline-grid; place-items: center; font-size: 1.3rem; line-height: 1; }
+header .btn.icon { font-size: 1.7rem; }
+.btn:disabled { opacity: .45; cursor: default; }
+input[type=text], input[type=number], input:not([type]), select, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-height: 40px; width: 100%; }
+textarea { min-height: 90px; resize: vertical; }
+label.f { display: block; } label.f > span { display: block; font-size: .82rem; color: var(--muted); margin-bottom: 3px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); font-size: .8rem; }
+.pill.bad { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+.pill.good { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin: 12px -16px 0; padding: 0 16px; position: sticky; top: calc(env(safe-area-inset-top) + 57px); background: var(--bg); z-index: 10; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button { border: 0; background: none; padding: 10px 12px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500; }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.stat { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 8px 6px; text-align: center; }
+.stat .v { font-family: var(--mono); font-size: 1.35rem; font-weight: 600; }
+.stat .k { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.abils { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.abil { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px; text-align: center; }
+.abil .n { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.abil .m { font-family: var(--mono); font-size: 1.4rem; font-weight: 600; }
+.abil .s { font-family: var(--mono); font-size: .82rem; color: var(--muted); }
+.abil .sv { margin-top: 4px; font-size: .78rem; border-top: 1px solid var(--line); padding-top: 4px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--muted); vertical-align: middle; }
+.dot.on { background: var(--accent); border-color: var(--accent); }
+.dot.ex { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 2px var(--raised), 0 0 0 3.5px var(--accent); }
+.list > .li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.list > .li:first-child { border-top: 0; }
+.skill .mod { font-family: var(--mono); width: 3.2em; text-align: right; }
+.hpbar { height: 8px; border-radius: 6px; background: var(--line); overflow: hidden; display: flex; }
+.hpbar i { display: block; background: var(--good); } .hpbar i.t { background: var(--pc); }
+.hpbar.low i:first-child { background: var(--warn); } .hpbar.crit i:first-child { background: var(--bad); }
+.hpbig { font-family: var(--mono); font-size: 2rem; font-weight: 600; }
+.pips { display: inline-flex; gap: 5px; flex-wrap: wrap; }
+.pip { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--accent); background: var(--accent); cursor: pointer; padding: 0; }
+.pip.used { background: transparent; border-color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: .9rem; }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip:disabled { opacity: .4; cursor: default; }
+.feat { padding: 10px 0; border-top: 1px solid var(--line); }
+.feat:first-of-type { border-top: 0; }
+.feat .h { display: flex; gap: 8px; align-items: baseline; }
+.feat .h b { flex: 1; }
+.feat p { margin: 4px 0 0; font-size: .93rem; color: var(--muted); white-space: pre-wrap; }
+.rar { font-size: .78rem; font-weight: 600; text-transform: capitalize; }
+.rar.common { color: var(--r-common); } .rar.uncommon { color: var(--r-uncommon); } .rar.rare { color: var(--r-rare); } .rar.veryrare { color: var(--r-veryrare); } .rar.legendary { color: var(--r-legendary); } .rar.artifact { color: var(--r-artifact); }
+.inbox { border: 1.5px solid var(--accent); background: var(--active); }
+.grant { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.grant:first-of-type { border-top: 0; }
+.steps { display: flex; gap: 4px; margin: 12px 0 4px; }
+.steps i { flex: 1; height: 4px; border-radius: 3px; background: var(--line); } .steps i.on { background: var(--accent); }
+.pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.pick button { text-align: left; border: 1px solid var(--line); background: var(--raised); border-radius: 10px; padding: 10px; cursor: pointer; min-height: 64px; }
+.pick button.on { border-color: var(--accent); background: var(--active); box-shadow: inset 0 0 0 1px var(--accent); }
+.pick button b { display: block; font-family: var(--display); }
+.pick button span { font-size: .8rem; color: var(--muted); }
+.party { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.pc { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer; text-align: left; width: 100%; }
+.pc:hover { border-color: var(--accent); }
+.pc .nm { font-family: var(--display); font-weight: 700; font-size: 1.1rem; }
+.pc .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; text-align: center; }
+.pc .meta div { background: var(--surface); border-radius: 8px; padding: 4px; }
+.pc .meta b { display: block; font-family: var(--mono); }
+.pc .meta span { font-size: .7rem; color: var(--muted); text-transform: uppercase; }
+.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { from { box-shadow: 0 0 0 3px var(--accent); } to { box-shadow: 0 0 0 0 transparent; } }
+.code { font-family: var(--mono); font-size: 1.6rem; letter-spacing: .2em; font-weight: 600; color: var(--accent); }
+.banner { background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; font-size: .88rem; margin-top: 12px; }
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--raised); color: var(--ink); padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); }
+dialog::backdrop { background: rgb(0 0 0 / .5); }
+dialog .dh { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--raised); z-index: 1; }
+dialog .dh h2 { flex: 1; }
+dialog .db { padding: 14px; }
+dialog .df { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 14px; border-top: 1px solid var(--line); position: sticky; bottom: 0; background: var(--raised); }
+#toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; z-index: 100; max-width: calc(100vw - 32px); opacity: 0; transition: opacity .2s; pointer-events: none; }
+#toast.on { opacity: 1; }
+.empty { text-align: center; padding: 28px 12px; color: var(--muted); }
+.sec-title { display: flex; align-items: center; gap: 8px; margin: 20px 0 4px; }
+.sec-title h2 { flex: 1; }
+@media (max-width: 420px) { .stats { grid-template-columns: repeat(2, 1fr); } .grid3 { grid-template-columns: 1fr 1fr; } }
+
+/* ---- sky and gold theme ---- */
+body { background-color: var(--bg); background-image: radial-gradient(ellipse 60% 40% at 15% 8%, rgb(255 255 255 / .65), transparent 70%), radial-gradient(ellipse 50% 35% at 85% 20%, rgb(255 255 255 / .5), transparent 70%), radial-gradient(ellipse 120% 60% at 50% 110%, rgb(224 180 74 / .18), transparent 70%), linear-gradient(#cfe3f3, #e8f2fa 55%, #eef3ef); background-attachment: fixed; }
+h1, h2, h3 { font-weight: 600; letter-spacing: .03em; }
+::selection { background: #f6dc8e; color: var(--ink); }
+:root { accent-color: var(--accent); }
+.btn.primary { background: linear-gradient(var(--royal-2), var(--royal)); border-color: var(--gold); color: #fff; box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 1px 3px rgb(20 42 76 / .3); text-shadow: 0 1px 0 rgb(0 0 0 / .25); }
+.btn.primary:hover { filter: brightness(1.1); }
+a.btn { color: var(--ink); }
+.toast, #toast { background: #142a4c; color: #fff; border: 1px solid var(--gilt); }
+.toast .btn { color: #fff; border-color: #fff; }
+dialog::backdrop { background: rgb(10 30 60 / .45); }
+input[type=text], input[type=number], input:not([type]), select, textarea { box-shadow: inset 0 1px 2px rgb(20 42 76 / .07); }
+input:focus, select:focus, textarea:focus { border-color: var(--gilt); outline: none; box-shadow: 0 0 0 3px rgb(224 180 74 / .35); }
+
+header.top { --ink: #ffffff; --muted: #cfe0f4; --line: rgb(255 255 255 / .28); --raised: rgb(255 255 255 / .14); --surface: rgb(255 255 255 / .1); --bg: rgb(10 30 70 / .25); --accent: var(--gilt); --accent-ink: #142a4c; color: #fff; background: linear-gradient(#2a68b6, #1b4a8a); border-bottom: 3px solid var(--gilt); box-shadow: 0 1px 0 #8a6418, 0 4px 14px rgb(20 42 76 / .25); }
+header.top .title h1 { color: #fff; text-shadow: 0 1px 0 rgb(0 0 0 / .25); }
+header.top .btn.primary { background: linear-gradient(#ffe7a0, #e0b44a); color: #142a4c; border-color: #8a6418; text-shadow: none; }
+.card, .stat, .pc { border-color: #bcd2e6; box-shadow: 0 2px 12px rgb(29 79 145 / .09); }
+.card { outline: 1px solid rgb(184 134 42 / .35); outline-offset: -5px; }
+.card > h2:first-child, .card > h3:first-child, .sec-title h2, .card .row > h2 { color: var(--royal); }
+.tabs { background: rgb(219 233 244 / .92); backdrop-filter: blur(4px); }
+.tabs button { font-family: var(--display); letter-spacing: .04em; }
+.tabs button.on { color: var(--royal); border-bottom: 3px solid var(--gilt); }
+.stat .v, .abil .m, .hpbig { color: var(--royal); }
+.abil { background: linear-gradient(#ffffff, #eaf3fb); }
+.pc .nm, .pick button b { color: var(--royal); }
+.pill { background: #fbefc8; }
+.banner { background: #e3eefa; border: 1px solid #c6d9ea; }
+.inbox { border-color: var(--gilt); }
+.dot.on, .dot.ex, .pip { }
+.feat p { font-family: var(--book); font-size: 1rem; }
+.feat .h b { font-family: var(--book); font-size: 1.05rem; }
+.code { color: var(--royal); }
+dialog { border-color: var(--gold); background: var(--raised); box-shadow: 0 12px 40px rgb(10 30 60 / .35); }
+dialog .dh h2 { color: var(--royal); }
+.row > .grow:is(h1, h2, h3) { min-width: min(100%, max-content); }
+</style>
+</head>
+<body>
+<header class="top"><div class="in" id="hdr"></div></header>
+<main id="app" class="wrap"></main>
+<dialog id="dlg"></dialog>
+<dialog id="ask"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<footer class="wrap tiny muted" style="padding-bottom:24px;margin-top:-72px">Includes material from the System Reference Document 5.2 by Wizards of the Coast LLC, licensed under <a href="https://creativecommons.org/licenses/by/4.0/legalcode" style="color:inherit">CC-BY-4.0</a>.</footer>
+
+<script src="config.js"></script>
+<script src="srd.js"></script>
+<script src="engine.js"></script>
+<script src="backend.js"></script>
+<script>
+"use strict";
+const { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, ARMOR, WEAPONS, CONDITIONS, STANDARD_ARRAY, POINT_COST } = SRD;
+const E = Engine;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sg = E.sign;
+const RK = r => String(r || "").replace(/\s/g, "").toLowerCase();
+const LINEAGES = {
+  Dragonborn: ["Black", "Blue", "Brass", "Bronze", "Copper", "Gold", "Green", "Red", "Silver", "White"],
+  Elf: ["Drow", "High Elf", "Wood Elf"], Gnome: ["Forest Gnome", "Rock Gnome"], Goliath: ["Cloud", "Fire", "Frost", "Hill", "Stone", "Storm"],
+  Tiefling: ["Abyssal", "Chthonic", "Infernal"]
+};
+const ORIGIN_FEATS = ["Alert", "Magic Initiate", "Savage Attacker", "Skilled"];
+
+const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false };
+
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2600); }
+function fail(e) { console.error(e); toast(e.message || String(e)); }
+const isDM = () => A.camp && A.camp.role === "dm";
+const charRow = id => A.chars.find(c => c.id === id);
+const memberName = uid => (A.members.find(m => m.user_id === uid) || {}).display_name || "";
+
+// ---------- boot ----------
+// Running inside the DM Suite's Players tab (desktop app): the Suite does the talking to Supabase.
+const SUITE = /(^|[#&])suite\b/.test(location.hash.slice(1)) && window.parent !== window;
+const PUBLIC_URL = "https://xakified.github.io/ebon-star-companion/";
+async function copyText(text, done) {
+  try { if (SUITE) await A.be.copy(text); else await navigator.clipboard.writeText(text); toast(done); return true; } catch (e) { return false; }
+}
+async function boot() {
+  try {
+    const cfg = window.APP_CONFIG || {};
+    if (!SUITE && cfg.supabaseUrl && cfg.supabaseAnonKey && !/[?&]demo\b/.test(location.search)) await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.75.0/dist/umd/supabase.js");
+    A.be = makeBackend();
+    A.user = await A.be.init();
+    A.camps = await A.be.myCampaigns();
+    if (SUITE) { if (A.camps[0]) { await openCamp(A.camps[0].id); A.view = "camp"; } else A.view = "unlinked"; render(); return; }
+    const last = localStorage.getItem("esc-camp-" + A.be.mode);
+    const hash = new URLSearchParams(location.hash.slice(1));
+    if (hash.get("join")) { A.view = "home"; A.prefillCode = hash.get("join"); }
+    else if (last && A.camps.some(c => c.id === last)) await openCamp(last);
+    render();
+  } catch (e) { $("#app").innerHTML = `<div class="card"><h2>Couldn't start</h2><p>${esc(e.message)}</p><p class="muted small">Add <span class="num">?demo</span> to the address to try demo mode.</p></div>`; }
+  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("Couldn't load " + src)); document.head.appendChild(s); }); }
+
+async function openCamp(id) {
+  A.camp = A.camps.find(c => c.id === id);
+  localStorage.setItem("esc-camp-" + A.be.mode, id);
+  await refresh();
+  A.grants.filter(g => g.status === "pending").forEach(g => A.seenGrants.add(g.id));
+  if (A.unsub) A.unsub();
+  A.unsub = A.be.subscribe(id, onLive);
+  A.view = "camp";
+  if (!isDM()) { const mine = A.chars.filter(c => c.owner === A.user); if (mine.length === 1) { A.view = "sheet"; A.charId = mine[0].id; } }
+}
+async function refresh() {
+  if (!A.camp) return;
+  [A.chars, A.grants, A.members] = await Promise.all([A.be.listCharacters(A.camp.id), A.be.listGrants(A.camp.id), A.be.members(A.camp.id)]);
+  if (isDM()) A.homebrew = await A.be.listHomebrew(A.camp.id);
+}
+let liveTimer = null;
+function onLive(ev) {
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(async () => {
+    await refresh().catch(fail);
+    const fresh = A.grants.filter(g => g.status === "pending" && !A.seenGrants.has(g.id));
+    fresh.forEach(g => A.seenGrants.add(g.id));
+    if (fresh.length && !isDM()) { toast("The DM sent you " + fresh.map(E.grantLabel).join(", ")); navigator.vibrate && navigator.vibrate(120); }
+    A.flashId = ev.table === "characters" ? ev.id : null;
+    softRender();
+  }, 150);
+}
+// Don't redraw under someone's thumb while they're typing.
+function softRender() {
+  const f = document.activeElement;
+  if (f && f.closest("#app, #dlg") && /INPUT|TEXTAREA|SELECT/.test(f.tagName)) { A.pendingRender = true; return; }
+  render();
+}
+document.addEventListener("focusout", () => setTimeout(() => { if (A.pendingRender) { A.pendingRender = false; softRender(); } }, 50));
+
+// Save a change to a character: show it right away, then write it with a version check.
+async function edit(id, fn) {
+  const row = charRow(id); if (!row) return;
+  fn(row.data); render();
+  try { const r = await updateCharacter(A.be, id, fn); row.data = r.data; row.version = r.version; }
+  catch (e) { fail(e); await refresh(); render(); }
+}
+
+// ---------- header ----------
+function header() {
+  const h = $("#hdr");
+  let back = "", title = "Ebon Star Companion", sub = A.be && A.be.mode === "demo" ? "Demo mode: data stays in this browser" : "", right = "";
+  if (A.view === "camp" && A.camp) { back = SUITE ? "" : `<button class="btn icon ghost" data-a="home" aria-label="Campaigns">‹</button>`; title = A.camp.name; sub = isDM() ? "Dungeon Master" : "Player"; }
+  if (A.view === "sheet") { const r = charRow(A.charId); back = `<button class="btn icon ghost" data-a="camp" aria-label="Back">‹</button>`; title = r ? r.data.name || "Unnamed" : ""; if (r) { const d = r.data; sub = `${d.species} ${d.cls} ${d.level}${d.subclass ? " · " + d.subclass : ""}${isDM() ? " · " + (memberName(r.owner) || "player") : ""}`; } if (isDM()) right = `<button class="btn sm primary" data-a="send" data-id="${A.charId}">Send</button>`; }
+  if (A.view === "build") { back = `<button class="btn icon ghost" data-a="camp" aria-label="Cancel">‹</button>`; title = "New character"; sub = A.camp ? A.camp.name : ""; }
+  if (A.view === "camp" && isDM()) right = `<button class="btn sm primary" data-a="send">Send</button>`;
+  h.innerHTML = `${back}<div class="title"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>${right}`;
+}
+
+function render() {
+  header();
+  $("#app").className = "wrap" + (A.view === "camp" && isDM() ? " wide" : "");
+  const v = { unlinked: vUnlinked, home: vHome, camp: vCamp, build: vBuild, sheet: vSheet }[A.view] || vHome;
+  $("#app").innerHTML = v();
+  if (A.flashId) { const el = document.querySelector(`[data-pc="${A.flashId}"]`); if (el) el.classList.add("flash"); A.flashId = null; }
+}
+
+// ---------- DM Suite, not connected yet ----------
+function vUnlinked() {
+  return `<div class="card stack"><h2>Connect to the Companion</h2>
+    <p class="muted" style="margin:0">${esc(A.be.statusMessage || "This campaign isn't linked to a Companion campaign yet.")}</p>
+    <p style="margin:0">Open the Companion on any device where you're the DM, press <b>Make DM code</b>, and paste the code here. Your players' characters, their sheets, sending items and everything else then live in this tab.</p>
+    <div><button class="btn primary" data-a="suiteconnect">Connect to Companion…</button></div></div>`;
+}
+
+// ---------- home ----------
+function vHome() {
+  const list = A.camps.map(c => `<div class="li"><div class="grow"><b>${esc(c.name)}</b><div class="small muted">${c.role === "dm" ? "You're the DM · code " + esc(c.join_code) : "Player"}</div></div><button class="btn sm" data-a="open" data-id="${c.id}">Open</button></div>`).join("");
+  return `
+  ${A.camps.length ? `<div class="card"><h2>Your campaigns</h2><div class="list">${list}</div></div>` : `<div class="card"><h2>Welcome</h2><p class="muted">Join your DM's campaign with the code they gave you, or start one if you're running the game.</p></div>`}
+  <div class="card stack"><h2>Join a campaign</h2>
+    <label class="f"><span>Campaign code, or a DM code to get back in as the DM</span><input id="jCode" autocapitalize="characters" autocomplete="off" value="${esc(A.prefillCode || "")}" placeholder="ABC123" class="num"></label>
+    <label class="f"><span>Your name</span><input id="jName" value="${esc(localStorage.getItem("esc-name") || "")}" placeholder="e.g. Sam"></label>
+    <button class="btn primary" data-a="join">Join</button></div>
+  <div class="card stack"><h2>Run a campaign</h2>
+    <label class="f"><span>Campaign name</span><input id="cName" value="Ebon Star"></label>
+    <button class="btn" data-a="create">Create campaign as DM</button></div>
+  ${A.be.mode === "demo" && !A.camps.length ? `<div class="card banner row" style="margin-top:12px"><span class="grow">Just looking? Load a sample campaign with an example character and see the DM view.</span><button class="btn sm primary" data-a="sample">Load sample</button></div>` : ""}
+  ${A.be.mode === "demo" ? `<p class="small muted" style="margin-top:16px">Demo tip: create a campaign here, then open this page in a second tab and join with the code. Each tab acts as a different person, and changes show up live in both. <button class="btn sm ghost" data-a="newdemo">Be someone else in this tab</button></p>` : ""}`;
+}
+
+// ---------- campaign ----------
+function hpOf(d) { const x = E.derive(d); const cur = d.hp.cur ?? x.hpMax; return { cur, max: x.hpMax, temp: d.hp.temp || 0, x }; }
+function hpBar(h) { const tot = Math.max(h.max, h.cur + h.temp); const p = Math.max(0, h.cur) / tot * 100, t = h.temp / tot * 100; const cls = h.cur <= 0 || h.cur / h.max < .25 ? "crit" : h.cur / h.max < .5 ? "low" : ""; return `<div class="hpbar ${cls}"><i style="width:${p}%"></i><i class="t" style="width:${t}%"></i></div>`; }
+
+function vCamp() {
+  const pend = id => A.grants.filter(g => g.character_id === id && g.status === "pending").length;
+  if (isDM()) {
+    const cards = A.chars.map(r => {
+      const d = r.data, h = hpOf(d);
+      const tags = [...(d.conditions || []), d.exhaustion ? "Exhaustion " + d.exhaustion : "", d.stress ? "Stress " + d.stress : "", h.cur <= 0 ? "Down" : ""].filter(Boolean);
+      return `<button class="pc" data-a="sheet" data-id="${r.id}" data-pc="${r.id}">
+        <div class="row nw"><div class="grow"><div class="nm">${esc(d.name || "Unnamed")}</div><div class="small muted">${esc(d.species)} ${esc(d.cls)} ${d.level} · ${esc(memberName(r.owner) || "player")}</div></div>${pend(r.id) ? `<span class="pill">${pend(r.id)} pending</span>` : ""}</div>
+        <div class="row nw" style="margin-top:8px"><span class="num small">${h.cur}/${h.max}${h.temp ? " +" + h.temp : ""}</span><div class="grow">${hpBar(h)}</div></div>
+        <div class="meta"><div><b>${h.x.ac}</b><span>AC</span></div><div><b>${h.x.passive}</b><span>Passive Perc</span></div><div><b>${sg(h.x.init)}</b><span>Init</span></div></div>
+        ${tags.length ? `<div class="chips" style="margin-top:8px">${tags.map(t => `<span class="pill bad">${esc(t)}</span>`).join("")}</div>` : ""}
+      </button>`;
+    }).join("");
+    const recent = A.grants.slice(0, 12).map(g => { const r = charRow(g.character_id); return `<div class="grant"><div class="grow"><b>${esc(E.grantLabel(g))}</b> <span class="muted small">to ${esc(r ? r.data.name : "?")}</span></div><span class="pill ${g.status === "accepted" ? "good" : g.status === "declined" ? "bad" : ""}">${g.status}</span></div>`; }).join("");
+    return `
+      <div class="card row"><div class="grow"><div class="small muted">Players join with this code</div><div class="code">${esc(A.camp.join_code)}</div></div><button class="btn sm" data-a="copylink">Copy invite link</button></div>
+      ${SUITE ? `<div class="card row"><div class="grow"><b>Other DM devices</b><div class="small muted">Make a one-time code to be the DM on another computer's DM Suite, or in the Companion on a phone or browser.</div></div><button class="btn sm" data-a="suitecode">Make DM code</button></div>` : `<div class="card row"><div class="grow"><b>DM Suite and other devices</b><div class="small muted">Bring these characters into your DM Suite's party list and initiative tracker, with HP and conditions synced both ways. The same code makes another phone or browser a DM of this campaign.</div></div><button class="btn sm" data-a="suitecode">Make DM code</button></div>`}
+      <div class="sec-title"><h2>Party</h2><span class="small muted">${A.chars.length} character${A.chars.length === 1 ? "" : "s"} · live</span></div>
+      ${A.chars.length ? `<div class="party">${cards}</div>` : `<div class="card empty">No characters yet. When players join and build characters, they'll appear here.</div>`}
+      <div class="card"><div class="row"><h2 class="grow">Who's in the campaign</h2><span class="small muted">${A.members.filter(m => m.role === "player").length} player${A.members.filter(m => m.role === "player").length === 1 ? "" : "s"}</span></div>
+        <div class="list">${A.members.filter(m => m.role === "player").map(m => { const mine = A.chars.filter(c => c.owner === m.user_id); return `<div class="li"><div class="grow"><b>${esc(m.display_name || "Player")}</b>${m.joined_at ? `<span class="small muted"> · joined ${new Date(m.joined_at).toLocaleDateString()}</span>` : ""}</div><span class="small">${mine.length ? mine.map(c => `<button class="btn sm ghost" data-a="sheet" data-id="${c.id}">${esc(c.data.name || "Unnamed")}</button>`).join("") : `<span class="muted">no character yet</span>`}</span></div>`; }).join("") || `<p class="muted small">No players yet. Share the code above.</p>`}</div>
+        <p class="tiny muted" style="margin:6px 0 0">Someone on a new phone shows up twice. Open their character, go to Notes, and use Move to another player.</p></div>
+      <div class="grid2" style="margin-top:4px">
+        <div class="card"><div class="row"><h2 class="grow">Homebrew library</h2><button class="btn sm" data-a="import">${SUITE ? "Import from item library" : "Import from DM Suite"}</button></div>${libList()}</div>
+        <div class="card"><h2>Recently sent</h2>${recent || `<p class="muted small">Nothing sent yet. Use Send to give a player an item, a custom skill, a spell, coins or XP.</p>`}</div>
+      </div>
+      <input type="file" id="importFile" accept=".dmcampaign,.json,application/json" hidden>`;
+  }
+  const mine = A.chars.filter(c => c.owner === A.user);
+  return `
+    ${mine.map(r => { const d = r.data, h = hpOf(d); return `<button class="pc card" data-a="sheet" data-id="${r.id}" style="display:block"><div class="row nw"><div class="grow"><div class="nm">${esc(d.name || "Unnamed")}</div><div class="small muted">${esc(d.species)} ${esc(d.cls)} ${d.level}</div></div>${pend(r.id) ? `<span class="pill">${pend(r.id)} from DM</span>` : ""}</div><div class="row nw" style="margin-top:8px"><span class="num small">${h.cur}/${h.max}</span><div class="grow">${hpBar(h)}</div></div></button>`; }).join("")}
+    ${mine.length ? "" : `<div class="card empty">You don't have a character in this campaign yet.</div>`}
+    <button class="btn primary" style="margin-top:12px;width:100%" data-a="build">Create a character</button>`;
+}
+function libList() {
+  if (!A.homebrew.length) return `<p class="muted small">Things you save while sending show up here, ready to send again. You can also import the magic items from your DM Suite campaign file.</p>`;
+  const kinds = { item: "Item", feature: "Feature", spell: "Spell" };
+  return `<div class="list">${A.homebrew.map(h => `<div class="li"><div class="grow"><b>${esc(h.data.name)}</b> <span class="small muted">${kinds[h.kind] || h.kind}${h.data.rarity ? ` · <span class="rar ${RK(h.data.rarity)}">${esc(h.data.rarity)}</span>` : ""}</span></div><button class="btn sm" data-a="sendlib" data-id="${h.id}">Send</button><button class="btn sm ghost danger" data-a="dellib" data-id="${h.id}" aria-label="Delete">✕</button></div>`).join("")}</div>`;
+}
+
+// ---------- builder ----------
+const STEPS = ["Class", "Background", "Species", "Abilities", "Skills", "Finish"];
+function newDraft() {
+  const d = E.blank();
+  d.player = localStorage.getItem("esc-name") || "";
+  Object.assign(d, { abilAssign: {}, bgMode: "21", bg2: "", bg1: "", classSkills: [], extraSkills: [], originFeat2: "" });
+  return d;
+}
+function vBuild() {
+  const d = A.draft, s = A.step;
+  let body = "";
+  if (s === 0) body = `<h2>Choose a class</h2><div class="pick" style="margin-top:10px">${Object.entries(CLASSES).map(([k, c]) => `<button class="${d.cls === k ? "on" : ""}" data-a="bset" data-k="cls" data-v="${k}"><b>${k}</b><span>d${c.hd} · ${c.primary}</span></button>`).join("")}</div>
+      ${d.cls ? `<div class="card small"><b>${d.cls}</b><div class="muted">Saves: ${CLASSES[d.cls].saves.map(a => ABIL_NAME[a]).join(", ")} · Armor: ${CLASSES[d.cls].armor} · Weapons: ${CLASSES[d.cls].weapons}</div><div style="margin-top:6px">${CLASSES[d.cls].f.filter(f => f[0] === 1).map(f => `<div><b>${f[1]}.</b> <span class="muted">${f[2]}</span></div>`).join("")}</div></div>` : ""}`;
+  if (s === 1) {
+    const b = BACKGROUNDS[d.background];
+    body = `<h2>Choose a background</h2><div class="pick" style="margin-top:10px">${Object.entries(BACKGROUNDS).map(([k, x]) => `<button class="${d.background === k ? "on" : ""}" data-a="bset" data-k="background" data-v="${k}"><b>${k}</b><span>${x.skills.join(", ")} · ${x.feat}</span></button>`).join("")}</div>
+      ${b ? `<div class="card stack"><div class="small">Skills: <b>${b.skills.join(", ")}</b> · Tool: <b>${b.tool}</b> · Feat: <b>${b.feat}${b.featNote ? " (" + b.featNote + ")" : ""}</b></div>
+        <div><div class="small muted">Ability increases (choose from ${b.abil.map(a => ABIL_NAME[a]).join(", ")})</div>
+        <div class="chips" style="margin:6px 0"><button class="chip ${d.bgMode === "21" ? "on" : ""}" data-a="bset" data-k="bgMode" data-v="21">+2 and +1</button><button class="chip ${d.bgMode === "111" ? "on" : ""}" data-a="bset" data-k="bgMode" data-v="111">+1 to all three</button></div>
+        ${d.bgMode === "21" ? `<div class="grid2"><label class="f"><span>+2 to</span><select data-b="bg2">${opt(b.abil, d.bg2, a => ABIL_NAME[a])}</select></label><label class="f"><span>+1 to</span><select data-b="bg1">${opt(b.abil.filter(a => a !== d.bg2), d.bg1, a => ABIL_NAME[a])}</select></label></div>` : ""}</div></div>` : ""}
+      <p class="small muted">Your DM may have a custom background for you. Pick the closest one; they can send you features later.</p>`;
+  }
+  if (s === 2) {
+    const sp = SPECIES[d.species];
+    body = `<h2>Choose a species</h2><div class="pick" style="margin-top:10px">${Object.entries(SPECIES).map(([k, x]) => `<button class="${d.species === k ? "on" : ""}" data-a="bset" data-k="species" data-v="${k}"><b>${k}</b><span>${x.size} · ${x.speed} ft</span></button>`).join("")}</div>
+      ${sp ? `<div class="card stack">${LINEAGES[d.species] ? `<label class="f"><span>${d.species === "Dragonborn" ? "Draconic ancestry" : d.species === "Goliath" ? "Giant ancestry" : "Lineage"}</span><select data-b="lineage"><option value="">Choose…</option>${opt(LINEAGES[d.species], d.lineage)}</select></label>` : ""}
+        ${d.species === "Human" ? `<label class="f"><span>Versatile: extra Origin feat</span><select data-b="originFeat2"><option value="">Choose…</option>${opt(ORIGIN_FEATS, d.originFeat2)}</select></label>` : ""}
+        ${sp.traits.map(t => `<div class="small"><b>${t[0]}.</b> <span class="muted">${t[1]}</span></div>`).join("")}</div>` : ""}`;
+  }
+  if (s === 3) body = abilStep(d);
+  if (s === 4) body = skillStep(d);
+  if (s === 5) {
+    const c = CLASSES[d.cls];
+    body = `<h2>Name and gear</h2><div class="card stack">
+      <label class="f"><span>Character name</span><input data-b="name" value="${esc(d.name)}" placeholder="e.g. Orifina"></label>
+      <label class="f"><span>Player</span><input data-b="player" value="${esc(d.player)}"></label>
+      <label class="f"><span>Appearance and personality (optional)</span><textarea data-b="appearance">${esc(d.appearance)}</textarea></label></div>
+      <div class="card small"><b>Starting gear:</b> you start with ${c.gold} gp from your class and 50 gp from your background (${c.gold + 50} gp). Add weapons, armor and gear on the Gear tab of your sheet, or use your DM's starting packages.</div>
+      <div class="card">${preview(finishDraft(JSON.parse(JSON.stringify(d))))}</div>`;
+  }
+  const can = stepOk(d, s);
+  return `<div class="steps">${STEPS.map((x, i) => `<i class="${i <= s ? "on" : ""}"></i>`).join("")}</div><div class="small muted">Step ${s + 1} of ${STEPS.length}: ${STEPS[s]}</div>
+    <div style="margin-top:10px">${body}</div>
+    <div class="row" style="margin-top:16px"><button class="btn" data-a="bprev" ${s ? "" : "disabled"}>Back</button><span class="grow small muted" style="text-align:center">${can === true ? "" : esc(can)}</span>${s < STEPS.length - 1 ? `<button class="btn primary" data-a="bnext" ${can === true ? "" : "disabled"}>Next</button>` : `<button class="btn primary" data-a="bdone" ${can === true ? "" : "disabled"}>Create character</button>`}</div>`;
+}
+function opt(list, cur, lab = x => x) { return list.map(v => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(lab(v))}</option>`).join(""); }
+function pointsUsed(d) { return ABILS.reduce((s, a) => s + (POINT_COST[d.base[a]] ?? 99), 0); }
+function abilStep(d) {
+  const m = d.abilMethod, c = CLASSES[d.cls];
+  let rows = "";
+  if (m === "standard") {
+    const used = Object.values(d.abilAssign);
+    rows = ABILS.map(a => `<label class="f"><span>${ABIL_NAME[a]}</span><select data-ab="${a}"><option value="">–</option>${STANDARD_ARRAY.map((v, i) => { const key = String(i); const taken = used.includes(key) && d.abilAssign[a] !== key; return `<option value="${key}" ${d.abilAssign[a] === key ? "selected" : ""} ${taken ? "disabled" : ""}>${v}</option>`; }).join("")}</select></label>`).join("");
+  } else if (m === "point") {
+    rows = ABILS.map(a => `<div class="abil"><div class="n">${ABIL_NAME[a]}</div><div class="row nw" style="justify-content:center"><button class="btn sm icon" data-a="pt" data-ab="${a}" data-d="-1">−</button><span class="m">${d.base[a]}</span><button class="btn sm icon" data-a="pt" data-ab="${a}" data-d="1">+</button></div></div>`).join("");
+  } else rows = ABILS.map(a => `<label class="f"><span>${ABIL_NAME[a]}</span><input type="number" min="3" max="20" data-raw="${a}" value="${d.base[a]}" class="num"></label>`).join("");
+  const fin = finishDraft(JSON.parse(JSON.stringify(d))), x = E.derive(fin);
+  return `<h2>Ability scores</h2>
+    <div class="chips" style="margin:10px 0"><button class="chip ${m === "standard" ? "on" : ""}" data-a="amethod" data-v="standard">Standard array</button><button class="chip ${m === "point" ? "on" : ""}" data-a="amethod" data-v="point">Point buy</button><button class="chip ${m === "manual" ? "on" : ""}" data-a="amethod" data-v="manual">Rolled / manual</button></div>
+    ${m === "point" ? `<div class="small muted">Points spent: <b class="num">${pointsUsed(d)}</b> / 27 (scores 8 to 15)</div>` : ""}
+    ${m === "manual" ? `<div class="small muted">Roll 4d6 and drop the lowest six times (or however your DM says), then type the results.</div>` : ""}
+    <div class="${m === "point" ? "abils" : "grid3"}" style="margin-top:8px">${rows}</div>
+    <div class="small muted" style="margin-top:8px">${c ? `${d.cls}s rely on ${c.primary}. ` : ""}Background bonuses are added below.</div>
+    <div class="abils" style="margin-top:8px">${ABILS.map(a => `<div class="abil"><div class="n">${a}</div><div class="m">${sg(x.mods[a])}</div><div class="s">${x.scores[a]}</div></div>`).join("")}</div>`;
+}
+function skillOpts(d) {
+  const b = BACKGROUNDS[d.background] || { skills: [] }, c = CLASSES[d.cls];
+  const extras = [];
+  if (d.species === "Human") extras.push({ label: "Skillful (Human): any skill", from: ALL_SKILLS });
+  if (d.species === "Elf") extras.push({ label: "Keen Senses (Elf)", from: ["Insight", "Perception", "Survival"] });
+  if (d.originFeat2 === "Skilled") for (let i = 0; i < 3; i++) extras.push({ label: "Skilled feat", from: ALL_SKILLS });
+  return { bg: b.skills, cls: c.skills, n: c.skillN, extras };
+}
+function skillStep(d) {
+  const o = skillOpts(d);
+  return `<h2>Skills</h2>
+    <div class="card"><div class="small muted">From your background</div><div class="chips" style="margin-top:6px">${o.bg.map(s => `<span class="chip on">${s}</span>`).join("")}</div></div>
+    <div class="card"><div class="small muted">${d.cls}: choose ${o.n} (${d.classSkills.length}/${o.n})</div><div class="chips" style="margin-top:6px">${o.cls.map(s => { const on = d.classSkills.includes(s), dis = o.bg.includes(s) || (!on && d.classSkills.length >= o.n); return `<button class="chip ${on ? "on" : ""}" data-a="cskill" data-v="${esc(s)}" ${dis && !on ? "disabled" : ""}>${s}</button>`; }).join("")}</div></div>
+    ${o.extras.map((e, i) => `<div class="card"><label class="f"><span>${e.label}</span><select data-xs="${i}"><option value="">Choose…</option>${opt(e.from.filter(s => !o.bg.includes(s) && !d.classSkills.includes(s) || d.extraSkills[i] === s), d.extraSkills[i] || "")}</select></label></div>`).join("")}`;
+}
+function stepOk(d, s) {
+  if (s === 0) return d.cls ? true : "Pick a class";
+  if (s === 1) { if (!d.background) return "Pick a background"; if (d.bgMode === "21" && (!d.bg2 || !d.bg1 || d.bg1 === d.bg2)) return "Choose your +2 and +1"; return true; }
+  if (s === 2) { if (!d.species) return "Pick a species"; if (LINEAGES[d.species] && !d.lineage) return "Choose a lineage"; if (d.species === "Human" && !d.originFeat2) return "Choose an Origin feat"; return true; }
+  if (s === 3) { if (d.abilMethod === "standard" && Object.values(d.abilAssign).filter(Boolean).length < 6) return "Assign all six scores"; if (d.abilMethod === "point" && pointsUsed(d) > 27) return "Too many points"; return true; }
+  if (s === 4) { const o = skillOpts(d); if (d.classSkills.length < o.n) return `Choose ${o.n - d.classSkills.length} more`; if (o.extras.some((e, i) => !d.extraSkills[i])) return "Choose your extra skills"; return true; }
+  if (s === 5) return d.name.trim() ? true : "Name your character";
+  return true;
+}
+function finishDraft(d) {
+  if (d.abilMethod === "standard") ABILS.forEach(a => { d.base[a] = d.abilAssign[a] ? STANDARD_ARRAY[+d.abilAssign[a]] : 8; });
+  const b = BACKGROUNDS[d.background];
+  d.bgBonus = {};
+  if (b) { if (d.bgMode === "111") b.abil.forEach(a => d.bgBonus[a] = 1); else { if (d.bg2) d.bgBonus[d.bg2] = 2; if (d.bg1) d.bgBonus[d.bg1] = (d.bgBonus[d.bg1] || 0) + 1; } }
+  d.skills = [...new Set([...(b ? b.skills : []), ...d.classSkills, ...d.extraSkills.filter(Boolean)])];
+  d.tools = b ? [b.tool] : [];
+  d.feats = [];
+  if (b) d.feats.push({ id: E.uid(), name: b.feat + (b.featNote ? ` (${b.featNote})` : ""), text: FEATS[b.feat] || "", source: d.background });
+  if (d.originFeat2) d.feats.push({ id: E.uid(), name: d.originFeat2, text: FEATS[d.originFeat2] || "", source: "Human (Versatile)" });
+  if (d.feats.some(f => f.name.startsWith("Alert"))) d.feats.forEach(f => { if (f.name.startsWith("Alert")) f.name = "Alert"; });
+  return d;
+}
+function preview(d) {
+  const x = E.derive(d);
+  return `<div class="row"><div class="grow"><b>${esc(d.name || "Your character")}</b><div class="small muted">${esc(d.species)}${d.lineage ? " (" + esc(d.lineage) + ")" : ""} ${esc(d.cls)} 1 · ${esc(d.background)}</div></div></div>
+    <div class="stats"><div class="stat"><div class="v">${x.hpMax}</div><div class="k">HP</div></div><div class="stat"><div class="v">${x.ac}</div><div class="k">AC</div></div><div class="stat"><div class="v">${sg(x.init)}</div><div class="k">Init</div></div><div class="stat"><div class="v">${x.speed}</div><div class="k">Speed</div></div></div>
+    <div class="small muted" style="margin-top:8px">Skills: ${d.skills.join(", ")}<br>Feats: ${d.feats.map(f => f.name).join(", ")}</div>`;
+}
+async function createChar() {
+  const d = finishDraft(A.draft);
+  ["abilAssign", "bgMode", "bg2", "bg1", "classSkills", "extraSkills", "originFeat2"].forEach(k => delete d[k]);
+  d.coins.gp = CLASSES[d.cls].gold + 50;
+  d.hp.cur = E.derive(d).hpMax;
+  d.log.unshift({ t: Date.now(), text: "Created at level 1" });
+  localStorage.setItem("esc-name", d.player || "");
+  const row = await A.be.createCharacter(A.camp.id, d);
+  A.chars.push(row); A.charId = row.id; A.view = "sheet"; A.tab = "main"; A.draft = null; render(); toast("Character created");
+}
+
+// ---------- sheet ----------
+const TABS = [["main", "Main"], ["combat", "Combat"], ["spells", "Spells"], ["gear", "Gear"], ["features", "Features"], ["notes", "Notes"]];
+function vSheet() {
+  const r = charRow(A.charId); if (!r) { A.view = "camp"; return vCamp(); }
+  const d = r.data, x = E.derive(d), h = hpOf(d);
+  const pending = A.grants.filter(g => g.character_id === r.id && g.status === "pending");
+  const inbox = pending.length ? `<div class="card inbox"><h3>From your DM</h3>${pending.map(g => `<div class="grant"><div class="grow"><b>${esc(E.grantLabel(g))}</b> <span class="small muted">${{ item: "item", feature: "feature", spell: "spell", coins: "coins", xp: "experience", level: "level up" }[g.kind] || g.kind}</span>${g.note ? `<div class="small muted">“${esc(g.note)}”</div>` : ""}${grantDetail(g)}</div>${isDM() ? `<span class="pill">waiting</span>` : `<button class="btn sm primary" data-a="accept" data-id="${g.id}">Accept</button><button class="btn sm ghost" data-a="decline" data-id="${g.id}">Decline</button>`}</div>`).join("")}</div>` : "";
+  const lvlReady = d.level < 20 && ((d.pendingLevels || 0) > 0 || x.canLevelByXp);
+  const tabBody = { main: tMain, combat: tCombat, spells: tSpells, gear: tGear, features: tFeatures, notes: tNotes }[A.tab](r, d, x, h);
+  return `${inbox}
+    ${lvlReady ? `<div class="banner row"><span class="grow">${(d.pendingLevels || 0) > 0 ? "Your DM gave you a level!" : "You have enough XP to level up."}</span><button class="btn sm primary" data-a="levelup">Level up</button></div>` : ""}
+    <div class="card" data-pc="${r.id}">
+      <div class="row nw"><div class="grow"><div class="small muted">Hit points</div><div class="hpbig">${h.cur}<span class="muted" style="font-size:1rem"> / ${h.max}</span>${h.temp ? `<span style="font-size:1rem;color:var(--pc)"> +${h.temp} temp</span>` : ""}</div></div>
+        <div class="row nw"><input type="number" id="hpAmt" min="0" inputmode="numeric" placeholder="0" class="num" style="width:68px"><div class="stack" style="--g:4px"><button class="btn sm" data-a="hp" data-d="-1" style="color:var(--bad)">Damage</button><button class="btn sm" data-a="hp" data-d="1" style="color:var(--good)">Heal</button></div></div></div>
+      <div style="margin-top:8px">${hpBar(h)}</div>
+      <div class="row small" style="margin-top:8px"><button class="btn sm ghost" data-a="temp">Temp HP</button><button class="btn sm ghost" data-a="rest" data-v="short">Short rest</button><button class="btn sm ghost" data-a="rest" data-v="long">Long rest</button><span class="grow"></span><span class="muted">Hit dice ${d.level - (d.hitDiceUsed || 0)}/${d.level} d${x.hitDie}</span></div>
+      ${h.cur <= 0 ? deathSaves(d) : ""}
+    </div>
+    <div class="stats"><div class="stat"><div class="v">${x.ac}</div><div class="k">AC</div></div><div class="stat"><div class="v">${sg(x.init)}</div><div class="k">Initiative</div></div><div class="stat"><div class="v">${x.speed}</div><div class="k">Speed</div></div><div class="stat"><div class="v">${sg(x.pb)}</div><div class="k">Prof.</div></div></div>
+    <nav class="tabs">${TABS.map(([k, l]) => `<button class="${A.tab === k ? "on" : ""}" data-a="tab" data-v="${k}">${l}</button>`).join("")}</nav>
+    ${tabBody}`;
+}
+function grantDetail(g) {
+  const p = g.payload || {};
+  const t = p.desc || p.text;
+  return t ? `<details class="small"><summary class="muted">Details</summary><p style="white-space:pre-wrap;margin:4px 0">${esc(t)}</p></details>` : "";
+}
+function deathSaves(d) {
+  const ds = d.deathSaves || { s: 0, f: 0 };
+  const pips = (k, n) => [0, 1, 2].map(i => `<button class="pip ${i < n ? "" : "used"}" style="${k === "f" ? "border-color:var(--bad);" + (i < n ? "background:var(--bad)" : "") : ""}" data-a="ds" data-k="${k}" data-i="${i}" aria-label="${k === "s" ? "success" : "failure"} ${i + 1}"></button>`).join("");
+  return `<div class="row" style="margin-top:10px"><b class="small">Death saves</b><span class="small muted">Successes</span><span class="pips">${pips("s", ds.s)}</span><span class="small muted">Failures</span><span class="pips">${pips("f", ds.f)}</span></div>`;
+}
+function tMain(r, d, x) {
+  const skills = Object.entries(x.skills).map(([k, s]) => `<div class="li skill">${A.editSkills ? `<button class="btn sm icon ghost" data-a="skillcyc" data-v="${esc(k)}" aria-label="Change ${k} proficiency"><span class="dot ${s.exp ? "ex" : s.prof ? "on" : ""}"></span></button>` : `<span class="dot ${s.exp ? "ex" : s.prof ? "on" : ""}"></span>`}<span class="grow">${k} <span class="tiny muted">${s.abil.toUpperCase()}</span></span><span class="mod">${sg(s.mod)}</span></div>`).join("");
+  return `
+    <div class="card"><div class="abils">${ABILS.map(a => `<div class="abil"><div class="n">${ABIL_NAME[a]}</div><div class="m">${sg(x.mods[a])}</div><div class="s">${x.scores[a]}</div><div class="sv"><span class="dot ${x.saves[a].prof ? "on" : ""}"></span> Save <b class="num">${sg(x.saves[a].mod)}</b></div></div>`).join("")}</div>
+      ${d.exhaustion ? `<div class="small" style="margin-top:8px;color:var(--bad)">Exhaustion ${d.exhaustion}: −${x.d20Penalty} to every d20 test, −${5 * d.exhaustion} ft speed.</div>` : ""}</div>
+    <div class="card"><div class="row"><h3 class="grow">Conditions</h3></div>
+      <div class="chips">${CONDITIONS.map(c => `<button class="chip ${d.conditions.includes(c) ? "on" : ""}" data-a="cond" data-v="${c}">${c}</button>`).join("")}</div>
+      <div class="grid2" style="margin-top:12px">
+        <div><div class="small muted">Exhaustion (0–6)</div><div class="row nw"><button class="btn sm icon" data-a="num" data-k="exhaustion" data-d="-1" data-max="6">−</button><b class="num">${d.exhaustion || 0}</b><button class="btn sm icon" data-a="num" data-k="exhaustion" data-d="1" data-max="6">+</button></div></div>
+        <div><div class="small muted">Stress (0–4)</div><div class="row nw"><button class="btn sm icon" data-a="num" data-k="stress" data-d="-1" data-max="4">−</button><b class="num">${d.stress || 0}</b><button class="btn sm icon" data-a="num" data-k="stress" data-d="1" data-max="4">+</button></div></div>
+      </div>
+      <label class="row small" style="margin-top:10px"><input type="checkbox" data-a="insp" ${d.inspiration ? "checked" : ""}> Heroic Inspiration</label></div>
+    <div class="card"><div class="row"><h3 class="grow">Skills</h3><span class="small muted">Passive Perception <b class="num">${x.passive}</b></span><button class="btn sm ghost" data-a="editskills">${A.editSkills ? "Done" : "Edit"}</button></div>
+      ${A.editSkills ? `<p class="small muted">Tap a dot to cycle: not proficient, proficient, expertise.</p>` : ""}<div class="list">${skills}</div></div>
+    <div class="card small"><b>Proficiencies.</b> <span class="muted">${esc(CLASSES[d.cls] ? CLASSES[d.cls].armor + "; " + CLASSES[d.cls].weapons : "")}${d.tools.length ? "; " + esc(d.tools.join(", ")) : ""}. Languages: ${esc(d.languages)}</span></div>
+    <div class="row" style="margin-top:12px"><span class="small muted grow">Level ${d.level} · ${d.xp || 0} XP${x.xpNext ? " / " + x.xpNext : ""}</span>${d.level < 20 ? `<button class="btn sm" data-a="levelup">Level up</button>` : ""}<button class="btn sm" data-a="xp">Add XP</button></div>`;
+}
+function tCombat(r, d, x) {
+  const sl = x.slots;
+  const slotRows = sl.slots.map((n, i) => { const L = i + 1, used = (d.slotsUsed || {})[L] || 0; return `<div class="li"><span class="grow">Level ${L}</span><span class="pips">${Array.from({ length: n }, (_, j) => `<button class="pip ${j < n - used ? "" : "used"}" data-a="slot" data-l="${L}" data-n="${n}" data-j="${j}" aria-label="slot"></button>`).join("")}</span></div>`; }).join("");
+  const pact = sl.pact ? `<div class="li"><span class="grow">Pact slots (level ${sl.pact.lvl})</span><span class="pips">${Array.from({ length: sl.pact.n }, (_, j) => `<button class="pip ${j < sl.pact.n - (d.pactUsed || 0) ? "" : "used"}" data-a="pact" data-n="${sl.pact.n}" data-j="${j}"></button>`).join("")}</span></div>` : "";
+  const res = x.res.map(rs => typeof rs.max === "number" && rs.reset !== "info" ? `<div class="li"><span class="grow">${rs.name} <span class="tiny muted">${rs.reset} rest</span></span>${rs.max > 8 ? `<div class="row nw"><button class="btn sm icon" data-a="res" data-k="${esc(rs.name)}" data-d="1" data-max="${rs.max}">−</button><b class="num">${rs.max - (d.resUsed[rs.name] || 0)}/${rs.max}</b><button class="btn sm icon" data-a="res" data-k="${esc(rs.name)}" data-d="-1" data-max="${rs.max}">+</button></div>` : `<span class="pips">${Array.from({ length: rs.max }, (_, j) => `<button class="pip ${j < rs.max - (d.resUsed[rs.name] || 0) ? "" : "used"}" data-a="respip" data-k="${esc(rs.name)}" data-j="${j}" data-max="${rs.max}"></button>`).join("")}</span>`}</div>` : `<div class="li"><span class="grow">${rs.name}</span><b class="num">${esc(rs.max)}</b></div>`).join("");
+  const custom = [...d.features, ...d.feats].filter(f => f.uses && f.uses.max).map(f => `<div class="li"><span class="grow">${esc(f.name)} <span class="tiny muted">${esc(f.uses.reset)} rest</span></span><span class="pips">${Array.from({ length: f.uses.max }, (_, j) => `<button class="pip ${j < f.uses.max - (f.uses.used || 0) ? "" : "used"}" data-a="fuse" data-id="${f.id}" data-j="${j}"></button>`).join("")}</span></div>`).join("");
+  return `
+    <div class="card"><h3>Attacks</h3><div class="list">${x.attacks.map(a => `<div class="li"><div class="grow"><b>${esc(a.name)}</b>${a.props ? `<div class="tiny muted">${esc(a.props)}${a.mastery ? " · Mastery: " + esc(a.mastery) : ""}</div>` : ""}</div><span class="num">${sg(a.hit)}</span><span class="num small" style="min-width:8em;text-align:right">${esc(a.dmg)}</span></div>`).join("")}</div>
+      <p class="tiny muted">Equip weapons on the Gear tab to see them here.${x.d20Penalty ? ` Exhaustion: −${x.d20Penalty} to attack rolls.` : ""}</p></div>
+    ${x.spell ? `<div class="card"><div class="row"><h3 class="grow">Spellcasting</h3><span class="small">Save DC <b class="num">${x.spell.dc}</b> · Attack <b class="num">${sg(x.spell.atk)}</b></span></div><div class="list">${slotRows}${pact}</div></div>` : ""}
+    ${res || custom ? `<div class="card"><h3>Resources</h3><div class="list">${res}${custom}</div></div>` : ""}`;
+}
+function tSpells(r, d, x) {
+  const by = {};
+  d.spells.forEach(s => (by[s.level] = by[s.level] || []).push(s));
+  const lv = Object.keys(by).map(Number).sort((a, b) => a - b);
+  return `${x.spell ? `<div class="banner">Save DC <b class="num">${x.spell.dc}</b> · Spell attack <b class="num">${sg(x.spell.atk)}</b> · ${ABIL_NAME[x.spell.abil]}</div>` : ""}
+    ${lv.map(L => `<div class="card"><h3>${L === 0 ? "Cantrips" : "Level " + L}</h3>${by[L].map(s => `<div class="feat"><div class="h"><b>${esc(s.name)}</b>${s.source === "DM" ? `<span class="pill">from DM</span>` : ""}${L ? `<label class="small row" style="gap:4px"><input type="checkbox" data-a="prep" data-id="${s.id}" ${s.prepared ? "checked" : ""}> Prepared</label>` : ""}<button class="btn sm ghost danger" data-a="delspell" data-id="${s.id}" aria-label="Remove">✕</button></div>${s.text ? `<p>${esc(s.text)}</p>` : ""}</div>`).join("")}</div>`).join("")}
+    ${d.spells.length ? "" : `<div class="card empty">No spells yet.${x.spell ? " Add the spells you know or have prepared." : ""}</div>`}
+    <button class="btn" style="margin-top:12px;width:100%" data-a="addspell">Add a spell</button>`;
+}
+function tGear(r, d, x) {
+  const items = d.inventory.map(i => `<div class="feat"><div class="h"><b>${esc(i.name)}${i.qty > 1 ? ` <span class="num muted">×${i.qty}</span>` : ""}</b>${i.fromDM ? `<span class="pill">from DM</span>` : ""}
+      ${i.weapon || i.armor || i.acBonus || i.abil ? `<label class="small row" style="gap:4px"><input type="checkbox" data-a="equip" data-id="${i.id}" ${i.equipped ? "checked" : ""}> Equipped</label>` : ""}
+      ${i.attune ? `<label class="small row" style="gap:4px"><input type="checkbox" data-a="attune" data-id="${i.id}" ${i.attuned ? "checked" : ""}> Attuned</label>` : ""}
+      <button class="btn sm ghost" data-a="edititem" data-id="${i.id}" aria-label="Edit">✎</button></div>
+      <div class="tiny muted">${[i.type, i.rarity ? `<span class="rar ${RK(i.rarity)}">${esc(i.rarity)}</span>` : "", i.attune ? "requires attunement" + (i.attuneBy ? " " + esc(i.attuneBy) : "") : "", i.weapon ? esc(i.weapon.dmg + " " + i.weapon.type) : "", i.armor ? (i.armor.cat === "Shield" ? "+2 AC" : "AC " + i.armor.base) : "", i.bonus ? "+" + i.bonus + " attack/damage" : "", i.acBonus ? "+" + i.acBonus + " AC" : ""].filter(Boolean).map(v => typeof v === "string" && v.startsWith("<") ? v : esc(v)).join(" · ")}</div>
+      ${i.desc ? `<details class="small"><summary class="muted">Description</summary><p>${esc(i.desc)}</p></details>` : ""}</div>`).join("");
+  const attuned = d.inventory.filter(i => i.attuned).length;
+  return `<div class="card"><h3>Coins</h3><div class="grid3" style="grid-template-columns:repeat(5,1fr)">${["cp", "sp", "ep", "gp", "pp"].map(k => `<label class="f"><span>${k.toUpperCase()}</span><input type="number" class="num" data-coin="${k}" value="${d.coins[k] || 0}" inputmode="numeric"></label>`).join("")}</div></div>
+    <div class="card"><div class="row"><h3 class="grow">Inventory</h3><span class="small muted">Attuned ${attuned}/3</span></div>${items || `<p class="muted small">Nothing yet.</p>`}</div>
+    <div class="row" style="margin-top:12px"><button class="btn grow" data-a="addweapon">Add weapon</button><button class="btn grow" data-a="addarmor">Add armor</button><button class="btn grow" data-a="additem">Add item</button></div>`;
+}
+function tFeatures(r, d, x) {
+  const sec = (title, list, editable) => list.length ? `<div class="card"><h3>${title}</h3>${list.map(f => `<div class="feat"><div class="h"><b>${esc(f.name)}</b>${f.level ? `<span class="tiny muted">Lvl ${f.level}</span>` : ""}${f.source === "DM" ? `<span class="pill">from DM</span>` : f.source && editable ? `<span class="tiny muted">${esc(f.source)}</span>` : ""}${editable ? `<button class="btn sm ghost" data-a="editfeat" data-id="${f.id}" aria-label="Edit">✎</button>` : ""}</div>${f.text ? `<p>${esc(f.text)}</p>` : ""}${f.uses && f.uses.max ? `<div class="tiny muted">${f.uses.max} use${f.uses.max > 1 ? "s" : ""} per ${esc(f.uses.reset)} rest</div>` : ""}</div>`).join("")}</div>` : "";
+  return `${sec("Custom and DM-granted", d.features, true)}${sec("Feats", d.feats, true)}${sec(`${d.cls} features`, x.classFeatures, false)}${sec(`${d.species} traits${d.lineage ? " (" + esc(d.lineage) + ")" : ""}`, x.speciesTraits, false)}
+    <button class="btn" style="margin-top:12px;width:100%" data-a="addfeat">Add a custom feature or skill</button>`;
+}
+function tNotes(r, d) {
+  return `<div class="card stack"><label class="f"><span>Notes</span><textarea data-field="notes" style="min-height:160px">${esc(d.notes)}</textarea></label>
+    <label class="f"><span>Appearance and personality</span><textarea data-field="appearance">${esc(d.appearance)}</textarea></label>
+    <label class="f"><span>Languages</span><input data-field="languages" value="${esc(d.languages)}"></label>
+    <div class="grid3"><label class="f"><span>Extra max HP</span><input type="number" class="num" data-numfield="hpBonus" value="${d.hpBonus || 0}"></label><label class="f"><span>Extra AC</span><input type="number" class="num" data-numfield="acBonus" value="${d.acBonus || 0}"></label><label class="f"><span>Extra speed</span><input type="number" class="num" data-numfield="speedBonus" value="${d.speedBonus || 0}"></label></div></div>
+    <div class="card"><h3>History</h3><div class="list">${(d.log || []).slice(0, 40).map(l => `<div class="li small"><span class="muted num tiny" style="min-width:6.5em">${new Date(l.t).toLocaleDateString()}</span><span>${esc(l.text)}</span></div>`).join("") || `<p class="muted small">Nothing yet.</p>`}</div></div>
+    ${isDM() ? `<div class="card row"><div class="grow"><b>Player</b><div class="small muted">${esc(memberName(r.owner) || "Unknown player")}. If they're on a new phone or lost their browser data, have them join again with the campaign code, then move this character to them.</div></div><button class="btn sm" data-a="movechar">Move to another player</button></div>` : ""}
+    <button class="btn danger" style="margin-top:12px" data-a="delchar">Delete character</button>`;
+}
+
+// ---------- dialogs ----------
+function dialog(title, body, foot, onOpen) {
+  const d = $("#dlg");
+  d.innerHTML = `<div class="dh"><h2>${esc(title)}</h2><button class="btn icon ghost" data-a="close" aria-label="Close">✕</button></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ""}`;
+  if (!d.open) d.showModal();
+  onOpen && onOpen(d);
+}
+// In-page replacement for confirm()/prompt(), which some app views block.
+function ask({ title, text = "", input = null, value = "", ok = "OK", danger = false }) {
+  return new Promise(res => {
+    const d = $("#ask");
+    d.innerHTML = `<form method="dialog"><div class="dh"><h2>${esc(title)}</h2></div><div class="db stack">${text ? `<p style="margin:0">${esc(text)}</p>` : ""}${input ? `<input id="askIn" type="${input}" class="${input === "number" ? "num" : ""}" value="${esc(value)}" ${input === "number" ? 'inputmode="numeric"' : ""} autocomplete="off">` : ""}</div><div class="df"><button class="btn" value="cancel" type="submit">Cancel</button><button class="btn ${danger ? "danger" : "primary"}" value="ok" type="submit">${esc(ok)}</button></div></form>`;
+    d.onclose = () => res(d.returnValue === "ok" ? (input ? $("#askIn", d).value : true) : null);
+    d.returnValue = ""; d.showModal();
+    const i = $("#askIn", d); if (i) { i.focus(); i.select(); }
+  });
+}
+const closeDlg = () => $("#dlg").open && $("#dlg").close();
+const val = id => { const el = $("#" + id); return el ? (el.type === "checkbox" ? el.checked : el.value.trim()) : ""; };
+
+function itemForm(i = {}) {
+  return `<div class="stack"><label class="f"><span>Name</span><input id="iName" value="${esc(i.name || "")}"></label>
+    <div class="grid2"><label class="f"><span>Type</span><select id="iType">${opt(["Wondrous Item", "Weapon", "Armor", "Shield", "Potion", "Scroll", "Ring", "Wand", "Staff", "Rod", "Gear", "Treasure"], i.type || "Wondrous Item")}</select></label>
+    <label class="f"><span>Rarity</span><select id="iRarity"><option value="">–</option>${opt(["common", "uncommon", "rare", "very rare", "legendary", "artifact"], i.rarity || "")}</select></label></div>
+    <div class="grid3"><label class="f"><span>Quantity</span><input id="iQty" type="number" class="num" value="${i.qty || 1}"></label><label class="f"><span>+ Attack/dmg</span><input id="iBonus" type="number" class="num" value="${i.bonus || 0}"></label><label class="f"><span>+ AC</span><input id="iAc" type="number" class="num" value="${i.acBonus || 0}"></label></div>
+    <label class="row small"><input type="checkbox" id="iAttune" ${i.attune ? "checked" : ""}> Requires attunement</label>
+    <label class="f"><span>Description</span><textarea id="iDesc">${esc(i.desc || "")}</textarea></label></div>`;
+}
+function readItem(base = {}) {
+  return Object.assign(base, { name: val("iName") || "Unnamed item", type: val("iType"), rarity: val("iRarity"), qty: +val("iQty") || 1, bonus: +val("iBonus") || 0, acBonus: +val("iAc") || 0, attune: val("iAttune"), desc: val("iDesc") });
+}
+function featForm(f = {}) {
+  return `<div class="stack"><label class="f"><span>Name</span><input id="fName" value="${esc(f.name || "")}" placeholder="e.g. Starborn Sight"></label>
+    <label class="f"><span>What it does</span><textarea id="fText">${esc(f.text || "")}</textarea></label>
+    <div class="grid2"><label class="f"><span>Uses (blank = unlimited)</span><input id="fUses" type="number" class="num" min="0" value="${f.uses ? f.uses.max : ""}"></label><label class="f"><span>Recharges on</span><select id="fReset">${opt(["short", "long", "dawn"], f.uses ? f.uses.reset : "long", v => v === "dawn" ? "Dawn" : v[0].toUpperCase() + v.slice(1) + " rest")}</select></label></div></div>`;
+}
+function readFeat() { const n = +val("fUses"); return { name: val("fName") || "Custom feature", text: val("fText"), uses: n ? { max: n, reset: val("fReset"), used: 0 } : null }; }
+function spellForm(s = {}) {
+  return `<div class="stack"><label class="f"><span>Spell name</span><input id="sName" value="${esc(s.name || "")}"></label>
+    <div class="grid2"><label class="f"><span>Level</span><select id="sLevel">${opt(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"], String(s.level || 0), v => v === "0" ? "Cantrip" : "Level " + v)}</select></label><label class="f"><span>School (optional)</span><input id="sSchool" value="${esc(s.school || "")}"></label></div>
+    <label class="f"><span>Description</span><textarea id="sText">${esc(s.text || "")}</textarea></label></div>`;
+}
+function readSpell() { return { name: val("sName") || "Unnamed spell", level: +val("sLevel") || 0, school: val("sSchool"), text: val("sText") }; }
+
+function levelUpDialog() {
+  const r = charRow(A.charId), d = r.data, p = E.levelUpPlan(d); if (!p) return;
+  const c = CLASSES[d.cls];
+  dialog(`Level ${p.level} ${d.cls}`, `<div class="stack">
+    <div><b>Hit points</b><div class="row" style="margin-top:6px"><button class="btn sm" data-a="rollhp" data-hd="${p.hd}">Roll d${p.hd}</button><span class="muted small">or take the average</span><input id="luHp" type="number" class="num" style="width:80px" min="1" max="${p.hd}" value="${p.avg}"><span class="small muted">+ Con ${sg(E.derive(d).mods.con)}</span></div></div>
+    ${p.pbUp ? `<div class="small">Proficiency bonus goes up to <b>${sg(E.profBonus(p.level))}</b>.</div>` : ""}
+    ${p.features.length ? `<div><b>New features</b>${p.features.map(f => `<div class="small"><b>${esc(f.name)}.</b> <span class="muted">${esc(f.text)}</span></div>`).join("")}</div>` : ""}
+    ${p.subclass ? `<label class="f"><span>Choose your subclass</span><select id="luSub"><option value="${esc(c.sub[0])}">${esc(c.sub[0])} (SRD)</option><option value="__custom">Other (type it in)</option></select></label><input id="luSubCustom" placeholder="Subclass name from your DM or book" hidden>` : ""}
+    ${p.subFeature ? `<div class="small">You gain a <b>${esc(d.subclass || "subclass")}</b> feature. Add it on the Features tab if it isn't from the SRD.</div>` : ""}
+    ${p.asi ? `<div><b>${p.epic ? "Epic Boon or feat" : "Ability Score Improvement or feat"}</b>
+      <div class="chips" style="margin:6px 0"><button class="chip on" data-a="asimode" data-v="2">+2 to one</button><button class="chip" data-a="asimode" data-v="11">+1 to two</button><button class="chip" data-a="asimode" data-v="feat">Take a feat</button></div>
+      <div id="asiBox">${asiBox("2", d)}</div></div>` : ""}
+    </div>`, `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="doLevel">Level up</button>`, dl => {
+    const s = dl.querySelector("#luSub"); if (s) s.onchange = () => { dl.querySelector("#luSubCustom").hidden = s.value !== "__custom"; };
+  });
+}
+function asiBox(mode, d) {
+  const sc = E.derive(d).scores;
+  const sel = id => `<select id="${id}">${ABILS.map(a => `<option value="${a}" ${sc[a] >= 20 ? "disabled" : ""}>${ABIL_NAME[a]} (${sc[a]})</option>`).join("")}</select>`;
+  if (mode === "2") return sel("asiA");
+  if (mode === "11") return `<div class="grid2">${sel("asiA")}${sel("asiB")}</div>`;
+  return `<div class="stack"><select id="featPick"><option value="">Choose…</option>${opt(Object.keys(FEATS).filter(f => f !== "Ability Score Improvement"), "")}<option value="__custom">Other feat (type it in)</option></select><input id="featName" placeholder="Feat name"><textarea id="featText" placeholder="What it does"></textarea></div>`;
+}
+
+function sendDialog(preset = {}) {
+  const kind = preset.kind || "item";
+  const targets = A.chars.map(r => `<label class="chip ${preset.to && preset.to.includes(r.id) ? "on" : ""}" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" class="sendTo" value="${r.id}" ${preset.to && preset.to.includes(r.id) ? "checked" : ""} hidden>${esc(r.data.name || "Unnamed")}</label>`).join("");
+  const forms = {
+    item: () => itemForm(preset.data || {}), feature: () => featForm(preset.data || {}), spell: () => spellForm(preset.data || {}),
+    coins: () => `<div class="grid3" style="grid-template-columns:repeat(5,1fr)">${["cp", "sp", "ep", "gp", "pp"].map(k => `<label class="f"><span>${k.toUpperCase()}</span><input type="number" class="num" id="c_${k}" value="0"></label>`).join("")}</div>`,
+    xp: () => `<label class="f"><span>Experience points</span><input type="number" class="num" id="xpAmt" value="0"></label>`,
+    level: () => `<p class="small muted">Each chosen player gets a "Level up" button on their sheet. Use this for milestone leveling.</p>`
+  };
+  dialog("Send to players", `<div class="stack">
+    <div><div class="small muted">To</div><div class="chips" id="toChips" style="margin-top:4px">${targets || `<span class="muted small">No characters yet.</span>`}${A.chars.length > 1 ? `<button class="chip" data-a="toall">Everyone</button>` : ""}</div></div>
+    <div class="chips">${[["item", "Item"], ["feature", "Feature / skill"], ["spell", "Spell"], ["coins", "Coins"], ["xp", "XP"], ["level", "Level up"]].map(([k, l]) => `<button class="chip ${k === kind ? "on" : ""}" data-a="sendkind" data-v="${k}">${l}</button>`).join("")}</div>
+    <div id="sendForm">${forms[kind]()}</div>
+    ${["item", "feature", "spell"].includes(kind) ? `<label class="row small"><input type="checkbox" id="saveLib" ${preset.libId ? "" : "checked"}> Save to my homebrew library</label>` : ""}
+    <label class="f"><span>Note to the player (optional)</span><input id="sendNote" placeholder="e.g. You find this in the vault"></label></div>`,
+    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="doSend" data-kind="${kind}" data-lib="${preset.libId || ""}">Send</button>`, dl => {
+      dl.querySelectorAll(".sendTo").forEach(cb => cb.parentElement.onclick = e => { e.preventDefault(); cb.checked = !cb.checked; cb.parentElement.classList.toggle("on", cb.checked); });
+    });
+}
+
+// ---------- DM Suite import ----------
+async function importSuiteLibrary() {
+  const items = (await A.be.suiteItems()).filter(x => x && x.name);
+  if (!items.length) return toast("Your item library is empty. Save magic items on the Table tab first.");
+  const have = new Set(A.homebrew.filter(h => h.kind === "item").map(h => h.data.name));
+  let n = 0;
+  for (const x of items) { const it = E.fromSuiteItem(x); if (have.has(it.name)) continue; await A.be.saveHomebrew(A.camp.id, "item", it); have.add(it.name); n++; }
+  A.homebrew = await A.be.listHomebrew(A.camp.id); render();
+  toast(n ? `Imported ${n} item${n > 1 ? "s" : ""}` : "Those items are already in your library");
+}
+async function importSuite(file) {
+  const text = await file.text();
+  let j; try { j = JSON.parse(text); } catch (e) { throw new Error("That file isn't a DM Suite campaign or JSON export."); }
+  let items = [];
+  if (j.format === "ebon-dm-campaign") { items = Object.values(j.items || {}); if (j.table && Array.isArray(j.table.library)) items = items.concat(j.table.library); }
+  else if (Array.isArray(j)) items = j; else if (j.items) items = Array.isArray(j.items) ? j.items : Object.values(j.items); else if (j.library) items = j.library;
+  items = items.filter(x => x && x.name);
+  if (!items.length) throw new Error("No magic items found in that file. Save some in the DM Suite's item library first.");
+  const have = new Set(A.homebrew.filter(h => h.kind === "item").map(h => h.data.name));
+  let n = 0;
+  for (const x of items) { const it = E.fromSuiteItem(x); if (have.has(it.name)) continue; await A.be.saveHomebrew(A.camp.id, "item", it); n++; }
+  A.homebrew = await A.be.listHomebrew(A.camp.id); render();
+  toast(n ? `Imported ${n} item${n > 1 ? "s" : ""}` : "Those items are already in your library");
+}
+
+// ---------- actions ----------
+const ACT = {
+  theme() { const r = document.documentElement, cur = r.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); r.dataset.theme = cur === "dark" ? "light" : "dark"; localStorage.setItem("esc-theme", r.dataset.theme); },
+  home() { A.view = "home"; A.camp = null; if (A.unsub) A.unsub(); A.unsub = null; localStorage.removeItem("esc-camp-" + A.be.mode); render(); },
+  camp() { A.view = "camp"; render(); },
+  async open(el) { await openCamp(el.dataset.id); render(); },
+  async join() {
+    const code = val("jCode"), name = val("jName"); if (!code || !name) return toast("Enter the code and your name");
+    localStorage.setItem("esc-name", name);
+    const dm = /^ESC1\./.test(code.replace(/\s+/g, ""));
+    const c = dm ? await A.be.redeemDmInvite(code, name) : await A.be.joinCampaign(code, name); A.camps = await A.be.myCampaigns(); history.replaceState(null, "", location.pathname + location.search);
+    await openCamp(c.id); render(); toast((dm ? "You're a DM of " : "Joined ") + c.name);
+  },
+  async create() { const c = await A.be.createCampaign(val("cName") || "Campaign", "DM"); A.camps = await A.be.myCampaigns(); await openCamp(c.id); render(); },
+  async sample() {
+    const c = await A.be.createCampaign("Ebon Star (sample)", "DM");
+    const d = E.blank();
+    Object.assign(d, { name: "Orifina (example)", player: "Example player", species: "Tiefling", lineage: "Infernal", background: "Sage", cls: "Warlock", subclass: "Fiend Patron", level: 3,
+      base: { str: 8, dex: 14, con: 13, int: 12, wis: 10, cha: 15 }, bgBonus: { con: 1, int: 2 }, skills: ["Arcana", "History", "Deception", "Intimidation"], tools: ["Calligrapher's Supplies"], hpRolls: [5, 5] });
+    d.feats.push({ id: E.uid(), name: "Magic Initiate (Wizard)", text: FEATS["Magic Initiate"], source: "Sage" });
+    d.inventory.push({ id: E.uid(), name: "Leather Armor", type: "Armor", qty: 1, equipped: true, armor: { base: 11, cap: null, cat: "Light" } }, { id: E.uid(), name: "Dagger", type: "Weapon", qty: 2, equipped: true, weapon: { dmg: "1d4", type: "piercing", props: "Finesse, Light, Thrown (20/60)", mastery: "Nick", cat: "Simple" } });
+    d.spells.push({ id: E.uid(), name: "Eldritch Blast", level: 0, text: "A beam of crackling energy: ranged spell attack, 1d10 force.", prepared: true }, { id: E.uid(), name: "Hex", level: 1, text: "Bonus action curse: +1d6 necrotic on your hits against the target.", prepared: true });
+    d.coins.gp = 42; d.hp.cur = E.derive(d).hpMax - 6; d.conditions = ["Frightened"]; d.stress = 1;
+    d.log.unshift({ t: Date.now(), text: "Example character for the demo" });
+    await A.be.createCharacter(c.id, d);
+    A.camps = await A.be.myCampaigns(); await openCamp(c.id); render(); toast("Sample loaded. Tap the character to open the sheet.");
+  },
+  newdemo() { A.be.switchUser(); location.reload(); },
+  copylink() { const u = (SUITE ? PUBLIC_URL : location.origin + location.pathname) + (A.be.mode === "demo" ? "?demo" : "") + "#join=" + A.camp.join_code; if (SUITE) return copyText(u, "Invite link copied"); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast("Invite link copied"), () => ask({ title: "Invite link", text: "Copy this link and send it to your players.", input: "text", value: u, ok: "Done" })); },
+  build() { A.draft = newDraft(); A.step = 0; A.view = "build"; render(); },
+  sheet(el) { A.charId = el.dataset.id; A.view = "sheet"; A.tab = "main"; render(); scrollTo(0, 0); },
+  tab(el) { A.tab = el.dataset.v; render(); },
+  // builder
+  bset(el) { const k = el.dataset.k, v = el.dataset.v, d = A.draft; d[k] = v; if (k === "cls") d.classSkills = []; if (k === "species") { d.lineage = ""; d.originFeat2 = ""; d.extraSkills = []; } if (k === "background") { d.bg2 = ""; d.bg1 = ""; } render(); },
+  bnext() { A.step++; render(); scrollTo(0, 0); }, bprev() { A.step--; render(); scrollTo(0, 0); },
+  amethod(el) { const d = A.draft; d.abilMethod = el.dataset.v; if (d.abilMethod === "point") ABILS.forEach(a => d.base[a] = 8); if (d.abilMethod === "manual") ABILS.forEach(a => d.base[a] = 10); render(); },
+  pt(el) { const d = A.draft, a = el.dataset.ab, v = d.base[a] + +el.dataset.d; if (v < 8 || v > 15) return; d.base[a] = v; if (pointsUsed(d) > 27) d.base[a] -= +el.dataset.d; render(); },
+  cskill(el) { const d = A.draft, s = el.dataset.v; d.classSkills = d.classSkills.includes(s) ? d.classSkills.filter(x => x !== s) : [...d.classSkills, s]; d.extraSkills = d.extraSkills.map(x => x === s ? "" : x); render(); },
+  async bdone() { await createChar(); },
+  // sheet
+  hp(el) {
+    const n = Math.abs(+$("#hpAmt").value || 0); if (!n) return toast("Type an amount first");
+    const dir = +el.dataset.d;
+    edit(A.charId, d => { const max = E.derive(d).hpMax; let cur = d.hp.cur ?? max;
+      if (dir < 0) { let dmg = n; const t = Math.min(d.hp.temp || 0, dmg); d.hp.temp = (d.hp.temp || 0) - t; dmg -= t; cur = Math.max(0, cur - dmg); }
+      else { if (cur <= 0) d.deathSaves = { s: 0, f: 0 }; cur = Math.min(max, cur + n); }
+      d.hp.cur = cur; });
+  },
+  async temp() { const v = await ask({ title: "Temporary hit points", input: "number", value: "0", ok: "Set" }); if (v == null) return; const n = +v; if (isNaN(n)) return; edit(A.charId, d => { d.hp.temp = Math.max(0, n); }); },
+  async rest(el) {
+    const long = el.dataset.v === "long";
+    if (!await ask({ title: long ? "Long rest" : "Short rest", text: long ? "Restore HP, spell slots and resources, and remove one level of Exhaustion?" : "Pact slots and short-rest resources come back. Spend hit dice by healing on the HP card.", ok: "Rest" })) return;
+    edit(A.charId, d => {
+      const x = E.derive(d);
+      if (long) {
+        d.hp.cur = x.hpMax; d.hp.temp = 0; d.slotsUsed = {}; d.pactUsed = 0; d.resUsed = {}; d.deathSaves = { s: 0, f: 0 };
+        d.hitDiceUsed = Math.max(0, (d.hitDiceUsed || 0) - Math.max(1, Math.floor(d.level / 2)));
+        d.exhaustion = Math.max(0, (d.exhaustion || 0) - 1);
+        if (d.species === "Human") d.inspiration = true;
+        [...d.features, ...d.feats].forEach(f => { if (f.uses) f.uses.used = 0; });
+      } else {
+        d.pactUsed = 0;
+        x.res.forEach(r => { if (/^short/.test(r.reset)) d.resUsed[r.name] = 0; else if (/1 back on short/.test(r.reset) && d.resUsed[r.name]) d.resUsed[r.name]--; });
+        [...d.features, ...d.feats].forEach(f => { if (f.uses && f.uses.reset === "short") f.uses.used = 0; });
+      }
+      d.log.unshift({ t: Date.now(), text: long ? "Long rest" : "Short rest" });
+    });
+  },
+  ds(el) { const k = el.dataset.k, i = +el.dataset.i; edit(A.charId, d => { d.deathSaves = d.deathSaves || { s: 0, f: 0 }; d.deathSaves[k] = d.deathSaves[k] > i ? i : i + 1; }); },
+  cond(el) { const c = el.dataset.v; edit(A.charId, d => { d.conditions = d.conditions.includes(c) ? d.conditions.filter(x => x !== c) : [...d.conditions, c]; }); },
+  num(el) { const k = el.dataset.k, max = +el.dataset.max; edit(A.charId, d => { d[k] = Math.max(0, Math.min(max, (d[k] || 0) + +el.dataset.d)); }); },
+  insp(el) { edit(A.charId, d => { d.inspiration = el.checked; }); },
+  editskills() { A.editSkills = !A.editSkills; render(); },
+  skillcyc(el) { const s = el.dataset.v; edit(A.charId, d => { if (d.expertise.includes(s)) { d.expertise = d.expertise.filter(x => x !== s); d.skills = d.skills.filter(x => x !== s); } else if (d.skills.includes(s)) d.expertise.push(s); else d.skills.push(s); }); },
+  async xp() { const n = +(await ask({ title: "Add experience", input: "number", value: "0", ok: "Add" })); if (!n) return; edit(A.charId, d => { d.xp = (d.xp || 0) + n; }); },
+  slot(el) { const L = el.dataset.l, n = +el.dataset.n, j = +el.dataset.j; edit(A.charId, d => { d.slotsUsed = d.slotsUsed || {}; const used = d.slotsUsed[L] || 0, avail = n - used; d.slotsUsed[L] = j < avail ? n - j : n - j - 1; }); },
+  pact(el) { const n = +el.dataset.n, j = +el.dataset.j; edit(A.charId, d => { const avail = n - (d.pactUsed || 0); d.pactUsed = j < avail ? n - j : n - j - 1; }); },
+  respip(el) { const k = el.dataset.k, max = +el.dataset.max, j = +el.dataset.j; edit(A.charId, d => { const avail = max - (d.resUsed[k] || 0); d.resUsed[k] = j < avail ? max - j : max - j - 1; }); },
+  res(el) { const k = el.dataset.k, max = +el.dataset.max; edit(A.charId, d => { d.resUsed[k] = Math.max(0, Math.min(max, (d.resUsed[k] || 0) + +el.dataset.d)); }); },
+  fuse(el) { const id = el.dataset.id, j = +el.dataset.j; edit(A.charId, d => { const f = [...d.features, ...d.feats].find(f => f.id === id); if (!f) return; const max = f.uses.max, avail = max - (f.uses.used || 0); f.uses.used = j < avail ? max - j : max - j - 1; }); },
+  prep(el) { const id = el.dataset.id; edit(A.charId, d => { const s = d.spells.find(s => s.id === id); if (s) s.prepared = el.checked; }); },
+  async delspell(el) { if (!await ask({ title: "Remove this spell?", ok: "Remove", danger: true })) return; const id = el.dataset.id; edit(A.charId, d => { d.spells = d.spells.filter(s => s.id !== id); }); },
+  addspell() { dialog("Add a spell", spellForm(), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveSpell">Add</button>`); },
+  saveSpell() { const s = readSpell(); edit(A.charId, d => { d.spells.push(Object.assign(s, { id: E.uid(), prepared: true, source: "Player" })); }); closeDlg(); },
+  equip(el) { const id = el.dataset.id; edit(A.charId, d => { const it = d.inventory.find(i => i.id === id); if (!it) return; it.equipped = el.checked; if (el.checked && it.armor) d.inventory.forEach(o => { if (o !== it && o.armor && (o.armor.cat === "Shield") === (it.armor.cat === "Shield")) o.equipped = false; }); }); },
+  attune(el) {
+    const id = el.dataset.id, d0 = charRow(A.charId).data;
+    if (el.checked && d0.inventory.filter(i => i.attuned).length >= 3) { el.checked = false; return toast("You can attune to at most 3 items"); }
+    edit(A.charId, d => { const it = d.inventory.find(i => i.id === id); if (it) it.attuned = el.checked; });
+  },
+  addweapon() { dialog("Add a weapon", `<div class="list">${WEAPONS.map((w, i) => `<div class="li"><div class="grow"><b>${w[0]}</b><div class="tiny muted">${w[1]} ${w[2]}${w[3] ? " · " + w[3] : ""} · ${w[4]}</div></div><button class="btn sm" data-a="pickW" data-i="${i}">Add</button></div>`).join("")}</div>`); },
+  pickW(el) { const w = WEAPONS[+el.dataset.i]; edit(A.charId, d => { d.inventory.push({ id: E.uid(), name: w[0], type: "Weapon", qty: 1, equipped: true, weapon: { dmg: w[1], type: w[2], props: w[3], mastery: w[4], cat: w[5] } }); }); closeDlg(); toast(w[0] + " added and equipped"); },
+  addarmor() { dialog("Add armor", `<div class="list">${ARMOR.map((a, i) => `<div class="li"><div class="grow"><b>${a[0]}</b><div class="tiny muted">${a[3]} · ${a[3] === "Shield" ? "+2 AC" : "AC " + a[1] + (a[2] === 0 ? "" : a[2] == null ? " + Dex" : " + Dex (max 2)")}${a[4] ? " · Stealth disadvantage" : ""}</div></div><button class="btn sm" data-a="pickA" data-i="${i}">Add</button></div>`).join("")}</div>`); },
+  pickA(el) { const a = ARMOR[+el.dataset.i]; edit(A.charId, d => { const it = { id: E.uid(), name: a[0], type: a[3] === "Shield" ? "Shield" : "Armor", qty: 1, equipped: true, armor: { base: a[1], cap: a[2], cat: a[3] } }; d.inventory.forEach(o => { if (o.armor && (o.armor.cat === "Shield") === (a[3] === "Shield")) o.equipped = false; }); d.inventory.push(it); }); closeDlg(); toast(a[0] + " added and equipped"); },
+  additem() { dialog("Add an item", itemForm(), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveItem">Add</button>`); },
+  saveItem(el) {
+    const id = el.dataset.id;
+    edit(A.charId, d => { if (id) { const it = d.inventory.find(i => i.id === id); if (it) readItem(it); } else d.inventory.push(readItem({ id: E.uid(), equipped: false })); });
+    closeDlg();
+  },
+  edititem(el) {
+    const it = charRow(A.charId).data.inventory.find(i => i.id === el.dataset.id); if (!it) return;
+    dialog("Edit item", itemForm(it), `<button class="btn danger" data-a="delitem" data-id="${it.id}">Remove</button><span class="grow"></span><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveItem" data-id="${it.id}">Save</button>`);
+  },
+  delitem(el) { const id = el.dataset.id; edit(A.charId, d => { d.inventory = d.inventory.filter(i => i.id !== id); }); closeDlg(); },
+  addfeat() { dialog("Custom feature or skill", featForm(), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveFeat">Add</button>`); },
+  saveFeat(el) {
+    const id = el.dataset.id, f = readFeat();
+    edit(A.charId, d => { const ex = id && [...d.features, ...d.feats].find(x => x.id === id); if (ex) { ex.name = f.name; ex.text = f.text; ex.uses = f.uses ? Object.assign(f.uses, { used: Math.min(ex.uses ? ex.uses.used || 0 : 0, f.uses.max) }) : null; } else d.features.push(Object.assign(f, { id: E.uid(), source: isDM() ? "DM" : "Custom" })); });
+    closeDlg();
+  },
+  editfeat(el) {
+    const f = [...charRow(A.charId).data.features, ...charRow(A.charId).data.feats].find(x => x.id === el.dataset.id); if (!f) return;
+    dialog("Edit feature", featForm(f), `<button class="btn danger" data-a="delfeat" data-id="${f.id}">Remove</button><span class="grow"></span><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveFeat" data-id="${f.id}">Save</button>`);
+  },
+  delfeat(el) { const id = el.dataset.id; edit(A.charId, d => { d.features = d.features.filter(f => f.id !== id); d.feats = d.feats.filter(f => f.id !== id); }); closeDlg(); },
+  async movechar() {
+    const r = charRow(A.charId); if (!r) return;
+    A.members = await A.be.members(A.camp.id);
+    const owned = uid => A.chars.filter(c => c.owner === uid).length;
+    const others = A.members.filter(m => m.role === "player" && m.user_id !== r.owner)
+      .sort((a, b) => (owned(a.user_id) - owned(b.user_id)) || String(b.joined_at || "").localeCompare(String(a.joined_at || "")));
+    if (!others.length) return ask({ title: "No one to move it to yet", text: `Have the player open the Companion on their new device and join with code ${A.camp.join_code}. Then come back here and move ${r.data.name} to them.`, ok: "OK" });
+    dialog(`Move ${r.data.name}`, `<div class="stack"><p style="margin:0" class="small muted">Pick who should own this character now. They'll see it on their device right away, and ${esc(memberName(r.owner) || "the old device")} will no longer have it.</p>
+      <div class="list">${others.map((m, i) => `<label class="li" style="cursor:pointer"><input type="radio" name="moveTo" value="${m.user_id}" ${i ? "" : "checked"}><span class="grow"><b>${esc(m.display_name || "Player")}</b><span class="small muted"> · ${owned(m.user_id) ? owned(m.user_id) + " character" + (owned(m.user_id) > 1 ? "s" : "") : "no character yet"}${m.joined_at ? " · joined " + new Date(m.joined_at).toLocaleDateString() : ""}</span></span></label>`).join("")}</div></div>`,
+      `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="doMove">Move character</button>`);
+  },
+  async doMove() {
+    const to = document.querySelector("input[name=moveTo]:checked"); if (!to) return toast("Pick a player");
+    const r = charRow(A.charId), name = (A.members.find(m => m.user_id === to.value) || {}).display_name || "them";
+    await A.be.reassignCharacter(r.id, to.value);
+    await edit(r.id, d => { d.log.unshift({ t: Date.now(), text: `Moved to ${name} by the DM` }); });
+    closeDlg(); await refresh(); render(); toast(`${r.data.name} now belongs to ${name}`);
+  },
+  async delchar() {
+    const r = charRow(A.charId); if (!r) return; const typed = await ask({ title: "Delete character", text: `This can't be undone. Type ${r.data.name} to confirm.`, input: "text", ok: "Delete", danger: true }); if (typed == null || typed.trim() !== r.data.name) { if (typed != null) toast("The name didn't match"); return; }
+    await A.be.deleteCharacter(r.id); A.chars = A.chars.filter(c => c.id !== r.id); A.view = "camp"; render(); toast("Character deleted");
+  },
+  levelup() { levelUpDialog(); },
+  rollhp(el) { $("#luHp").value = 1 + Math.floor(Math.random() * +el.dataset.hd); toast("Rolled " + $("#luHp").value); },
+  asimode(el) { el.parentElement.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c === el)); $("#asiBox").innerHTML = asiBox(el.dataset.v, charRow(A.charId).data); $("#asiBox").dataset.mode = el.dataset.v; },
+  doLevel() {
+    const d0 = charRow(A.charId).data, p = E.levelUpPlan(d0);
+    const choice = { hp: +val("luHp") || p.avg };
+    if (p.subclass) { const s = val("luSub"); choice.subclass = s === "__custom" ? val("luSubCustom") || "Subclass" : s; }
+    if (p.asi) {
+      const mode = $("#asiBox").dataset.mode || "2";
+      if (mode === "2") choice.asi = { [val("asiA")]: 2 };
+      else if (mode === "11") { const a = val("asiA"), b = val("asiB"); if (a === b) return toast("Pick two different abilities"); choice.asi = { [a]: 1, [b]: 1 }; }
+      else { const pick = val("featPick"); const name = pick && pick !== "__custom" ? pick : val("featName"); if (!name) return toast("Choose or name a feat"); choice.feat = { name, text: val("featText") || FEATS[name] || "" }; }
+    }
+    const usedGrant = (d0.pendingLevels || 0) > 0;
+    edit(A.charId, d => { E.applyLevelUp(d, choice); if (usedGrant) d.pendingLevels = Math.max(0, (d.pendingLevels || 0) - 1); });
+    closeDlg(); toast(`Level ${p.level}!`);
+  },
+  async accept(el) {
+    const g = A.grants.find(x => x.id === el.dataset.id); if (!g) return;
+    await edit(g.character_id, d => E.applyGrant(d, g));
+    await A.be.setGrantStatus(g.id, "accepted"); g.status = "accepted"; render(); toast("Added to your sheet");
+  },
+  async decline(el) { const g = A.grants.find(x => x.id === el.dataset.id); if (!g || !await ask({ title: "Decline this?", text: "Your DM will see that you declined it.", ok: "Decline", danger: true })) return; await A.be.setGrantStatus(g.id, "declined"); g.status = "declined"; render(); },
+  // DM
+  send(el) { sendDialog({ to: el.dataset.id ? [el.dataset.id] : A.view === "sheet" ? [A.charId] : [] }); },
+  sendkind(el) { const to = [...document.querySelectorAll(".sendTo:checked")].map(c => c.value); sendDialog({ kind: el.dataset.v, to }); },
+  toall() { document.querySelectorAll(".sendTo").forEach(cb => { cb.checked = true; cb.parentElement.classList.add("on"); }); },
+  sendlib(el) { const h = A.homebrew.find(x => x.id === el.dataset.id); if (h) sendDialog({ kind: h.kind, data: h.data, libId: h.id, to: [] }); },
+  async dellib(el) { const h = A.homebrew.find(x => x.id === el.dataset.id); if (!h || !await ask({ title: `Delete ${h.data.name}?`, text: "It's removed from your library. Anything already sent stays on players' sheets.", ok: "Delete", danger: true })) return; await A.be.deleteHomebrew(h.id); A.homebrew = A.homebrew.filter(x => x !== h); render(); },
+  async suiteconnect() { await A.be.openConnect(); },
+  import() { if (SUITE) return importSuiteLibrary().catch(fail); const f = $("#importFile"); f.onchange = () => f.files[0] && importSuite(f.files[0]).catch(fail).finally(() => { f.value = ""; }); f.click(); },
+  async doSend(el) {
+    const kind = el.dataset.kind, to = [...document.querySelectorAll(".sendTo:checked")].map(c => c.value);
+    if (!to.length) return toast("Choose who to send it to");
+    let payload;
+    if (kind === "item") payload = readItem({});
+    else if (kind === "feature") payload = readFeat();
+    else if (kind === "spell") payload = readSpell();
+    else if (kind === "coins") { payload = {}; ["cp", "sp", "ep", "gp", "pp"].forEach(k => { const v = +val("c_" + k); if (v) payload[k] = v; }); if (!Object.keys(payload).length) return toast("Enter an amount"); }
+    else if (kind === "xp") { payload = { xp: +val("xpAmt") || 0 }; if (!payload.xp) return toast("Enter an amount"); }
+    else payload = {};
+    if (kind === "feature" && payload.uses) payload.reset = payload.uses.reset, payload.uses = payload.uses.max;
+    const note = val("sendNote");
+    for (const id of to) await A.be.sendGrant(A.camp.id, id, kind, payload, note);
+    if (["item", "feature", "spell"].includes(kind) && val("saveLib")) {
+      const lib = kind === "feature" ? Object.assign({}, payload, { uses: payload.uses ? { max: payload.uses, reset: payload.reset } : null }) : payload;
+      await A.be.saveHomebrew(A.camp.id, kind, lib);
+    }
+    closeDlg(); await refresh(); render(); toast(`Sent to ${to.length} player${to.length > 1 ? "s" : ""}`);
+  },
+  async suitecode() {
+    const code = await A.be.createDmInvite(A.camp.id);
+    dialog("DM code", `<div class="stack">
+      <p style="margin:0">In the DM Suite desktop app, choose <b>Companion &gt; Connect to Companion…</b> and paste this code. Or, to be the DM in this app on another phone or browser, paste it into <b>Join a campaign</b> there. It works once and expires in 30 minutes.</p>
+      <textarea id="suiteCode" readonly class="num small" style="min-height:110px;word-break:break-all">${esc(code)}</textarea>
+      <p class="small muted" style="margin:0">Keep it to yourself: whoever uses it becomes a DM of this campaign.</p></div>`,
+      `<button class="btn" data-a="close">Done</button><button class="btn primary" data-a="copysuite">Copy code</button>`);
+  },
+  copysuite() { const t = $("#suiteCode"); t.select(); if (SUITE) return copyText(t.value, "Code copied"); (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => toast("Code copied"), () => { document.execCommand && document.execCommand("copy"); toast("Code selected: copy it with Ctrl+C"); }); },
+  close() { closeDlg(); }
+};
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-a]"); if (!el) return;
+  if (el.tagName === "INPUT" && el.type === "checkbox") return; // handled on change
+  const f = ACT[el.dataset.a]; if (!f) return;
+  e.preventDefault();
+  Promise.resolve(f(el)).catch(fail);
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.matches("input[type=checkbox][data-a]")) { const f = ACT[el.dataset.a]; f && Promise.resolve(f(el)).catch(fail); return; }
+  if (A.view === "build") {
+    const d = A.draft;
+    if (el.dataset.b) { d[el.dataset.b] = el.value; if (!["name", "player", "appearance"].includes(el.dataset.b)) render(); }
+    else if (el.dataset.ab) { d.abilAssign[el.dataset.ab] = el.value; render(); }
+    else if (el.dataset.raw) { d.base[el.dataset.raw] = Math.max(1, Math.min(30, +el.value || 10)); render(); }
+    else if (el.dataset.xs != null) { d.extraSkills[+el.dataset.xs] = el.value; render(); }
+    return;
+  }
+  if (A.view === "sheet") {
+    if (el.dataset.coin) edit(A.charId, d => { d.coins[el.dataset.coin] = Math.max(0, +el.value || 0); });
+    else if (el.dataset.field) edit(A.charId, d => { d[el.dataset.field] = el.value; });
+    else if (el.dataset.numfield) edit(A.charId, d => { d[el.dataset.numfield] = +el.value || 0; });
+  }
+});
+document.addEventListener("input", e => {
+  if (A.view === "build" && e.target.dataset.b === "name") { A.draft.name = e.target.value; const b = document.querySelector('[data-a="bdone"]'); if (b) b.disabled = !e.target.value.trim(); }
+});
+$("#dlg").addEventListener("click", e => { if (e.target === $("#dlg")) closeDlg(); });
+$("#dlg").addEventListener("change", e => {
+  if (e.target.id === "featPick") { const v = e.target.value; const n = $("#featName"), t = $("#featText"); if (v && v !== "__custom") { n.value = v; t.value = FEATS[v] || ""; } else { n.value = ""; t.value = ""; } }
+});
+try { const t = localStorage.getItem("esc-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+boot();
+</script>
+</body>
+</html>

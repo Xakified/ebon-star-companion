@@ -44,6 +44,7 @@ const companion = new Companion({
   storage: companionStorage,
   onParty: list => { if (dmWin && !dmWin.isDestroyed()) dmWin.webContents.send("companion:party", list); },
   onStatus: st => { companionStatus = st; if (dmWin && !dmWin.isDestroyed()) dmWin.webContents.send("companion:status", st); buildMenu(); },
+  onChange: ev => { if (dmWin && !dmWin.isDestroyed()) dmWin.webContents.send("companion:event", ev); },
 });
 function startCompanion() {
   companion.stop();
@@ -320,6 +321,25 @@ ipcMain.handle("companion:connect", async (_e, code) => {
 });
 ipcMain.on("companion:cancel", () => { if (connectWin) connectWin.close(); });
 ipcMain.handle("companion:get", () => ({ status: companionStatus, party: companion.party }));
+// The Players tab: the Companion's DM view, with every request made here using this computer's DM sign-in.
+ipcMain.handle("companion:call", async (e, method, args) => {
+  if (!dmWin || e.sender !== dmWin.webContents) return { error: "Not allowed from this window." };
+  try {
+    if (method === "status") {
+      const link = current && current.camp.companion;
+      return { ok: true, value: { linked: !!link && companionStatus.state !== "unlinked", state: companionStatus.state, message: companionStatus.message || "", user: companion.userId || null, name: link && link.name } };
+    }
+    if (method === "openConnect") { askForCompanion(); return { ok: true, value: true }; }
+    if (method === "copy") { clipboard.writeText(String(args && args[0] || "")); return { ok: true, value: true }; }
+    if (method === "suiteItems") {
+      const camp = current ? current.camp : {};
+      const lib = (camp.table && Array.isArray(camp.table.library)) ? camp.table.library : [];
+      return { ok: true, value: [...Object.values(camp.items || {}), ...lib] };
+    }
+    if (companionStatus.state === "connecting" && companion.link) await new Promise(r => setTimeout(r, 1500));
+    return { ok: true, value: await companion.call(method, args) };
+  } catch (err) { return { error: err.message }; }
+});
 ipcMain.handle("companion:patch", async (_e, id, patch) => { try { await companion.patch(id, patch); return { ok: true }; } catch (e) { return { error: e.message }; } });
 
 ipcMain.handle("file:save", async (_e, filename, data) => {

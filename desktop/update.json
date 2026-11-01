@@ -1,26 +1,32 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "minShell": "1.2.0",
-  "notes": "New sky blue and gold look",
-  "published": "2026-11-01T19:39:03.560Z",
+  "notes": "New Players tab: every character, who plays it, sheets, sending and homebrew, right in the DM Suite",
+  "published": "2026-11-01T19:58:21.178Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "54f7c89f8358ffc4e398ce27509ca82972ec10415d55448742c9a91ad015b94f",
+    "package.json": "e1c27a7d7eea26f0e38186c88f7df5b8ce888afb9dcad0c25d1c825ef733f742",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fca9a178a3ae691e6c27ad792e29f5ce289618d56c6e83f3db6eaa68e28c86e5",
     "src/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
     "src/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
-    "src/companion-bridge.js": "89be68e115db475c2fcf48841567f38405d8f8b27a4d54cc4150c7386911b17e",
-    "src/companion.js": "1a2ffc350052960cfff2bbd75edd52448788e9f4a18db19217b04757a9489aba",
+    "src/companion-bridge.js": "eeb607d9aea38d613a456511a2962fad78efb31ad60b164b7e58d559523847fd",
+    "src/companion.js": "d04c86b9f98f96a9192c7a934c1da6b6553d96111dfe8b81e2efaa38fd3651fc",
     "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
     "src/key.html": "b9c9c7a73913847b6d7f50fe238f4556bdaeece103b17868bbb71241331bb1a5",
-    "src/main.js": "08f65d194de1a8ad18fef260801f5a78fb1d8fc547751c8f800c58236a1b5393",
-    "src/preload.js": "204d6bdf0adac10efe0c29965e4a19d89ce5d3d817c970484a83d95beb0ff82c",
+    "src/main.js": "33349a982bda8bad4dffb20b5687f0ea0119c34034b36f48a185d17723dd39b6",
+    "src/preload.js": "16e218c7cb9f5988459610d680c64581ea0a7f0e8727f62433a7e4b87e3f60d8",
     "src/shim.js": "2443a4629e7a565eac36d438e0bb5a210d1dad3e100c9b79ab7f67d6025a0075",
     "src/updater.js": "73c926a09ed7b70d0e1c34dde1915f2ac257cd0b40f4114e254af943481d8d71",
+    "app/companion/backend.js": "9d26468f1f9ba7cca38018745983336e54bd18e338131a577b710e4ded25c3ca",
+    "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
+    "app/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
+    "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
+    "app/companion/index.html": "c89774fa5531efbab55052de7b71c675d60bc42cb0f1876caae6fb565abcf38c",
+    "app/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
     "app/index.html": "7e77d6a83abbbc9e688232d23d08300dde996d31b029b278631514a1bedf4c09"
   }
 }
