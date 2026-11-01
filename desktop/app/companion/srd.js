@@ -252,9 +252,11 @@ const ORIGIN_FEATS = ["Alert", "Magic Initiate", "Savage Attacker", "Skilled"];
 // Filled from the campaign's content library (the DM's books) at run time; see Engine.useContent.
 const SUBCLASSES = {};
 const SPELLS = [];
+const ITEMS = [];
+const FEATURES = [];
 const SOURCE = {};
 const POINT_COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
 g.SRD = { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, FULL_SLOTS, PACT, ARMOR, WEAPONS, CONDITIONS, STANDARD_ARRAY, POINT_COST,
-  LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SUBCLASSES, SPELLS, SOURCE };
+  LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SUBCLASSES, SPELLS, ITEMS, FEATURES, SOURCE };
 })(typeof window !== "undefined" ? window : globalThis);
