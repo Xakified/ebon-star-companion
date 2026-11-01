@@ -1,14 +1,14 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "minShell": "1.2.0",
-  "notes": "Player session notes: players write notes in the Companion and they're saved with each session here",
-  "published": "2026-11-01T20:11:54.919Z",
+  "notes": "End session no longer downloads an export: everything already saves to the campaign file",
+  "published": "2026-11-01T20:25:10.005Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "2ac64b8d65836bae98a196f4ed93ace40d2f18d270776615a40b1e40360ff6da",
+    "package.json": "282bc28783303a9d2538b967a52d26f154f1de35059bb5013e0361462cba803f",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
@@ -27,6 +27,6 @@
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
     "app/companion/index.html": "d7d1643e8f3f142d00d690ea5a5aafa69ec628d8e21d7cc1f66c94e0f8b6e73d",
     "app/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
-    "app/index.html": "9869c82c7f920c6fac66c5335f74461ff8e98a9939ae575b0b0447290477135b"
+    "app/index.html": "aee1ed46a4bb0b059093a0205ce7b22f806ee3307d0e5a23dd154d9ad8885f50"
   }
 }
