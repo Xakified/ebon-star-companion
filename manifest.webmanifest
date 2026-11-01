@@ -1,0 +1,16 @@
+{
+  "name": "Ebon Star Companion",
+  "short_name": "Ebon Star",
+  "description": "Your D&D character, connected to the DM's campaign.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f121a",
+  "theme_color": "#171b26",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
