@@ -1,32 +1,32 @@
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "minShell": "1.2.0",
-  "notes": "Summarize: Claude writes the player recap from your notes and the players' notes, and players read recaps in the Companion",
-  "published": "2026-11-01T20:36:25.570Z",
+  "notes": "Party notes and private notes; Summarize writes each player a private recap",
+  "published": "2026-11-01T20:53:10.217Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "cf154ec91f673e202b53bed2e38faba0818025c3ba907e9c12fc115a94b93432",
+    "package.json": "cadbbc78c13ba4317e371a334052f2edc8affb846ab02ed5ecdf45f4a89e9bfb",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
     "src/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
-    "src/companion-bridge.js": "bb24b8ee07fc0c4790f7d457fd37849e481e7d99ad229afa924bc71b57ebb9bd",
-    "src/companion.js": "5fadce042f60b3659e903bf31220c71784690d9444a30609aaee372c5f07889b",
+    "src/companion-bridge.js": "3af07f1283ab1f55999621a5fd14c88ac68fe513846941859092ac27fc8fcbe1",
+    "src/companion.js": "9a943e25438f7af50c2324b711145075c4c0373d4619195459c4bcdcb279ebb6",
     "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
     "src/key.html": "b9c9c7a73913847b6d7f50fe238f4556bdaeece103b17868bbb71241331bb1a5",
     "src/main.js": "eb000bf218d62128bbc1db40712d940beca32e6d1dc9656add6ad565610b47b3",
     "src/preload.js": "16e218c7cb9f5988459610d680c64581ea0a7f0e8727f62433a7e4b87e3f60d8",
     "src/shim.js": "81e9da1e2804c82a7a1156b023db201c47bb2f4e5f687d3ece24bb738be0c597",
     "src/updater.js": "73c926a09ed7b70d0e1c34dde1915f2ac257cd0b40f4114e254af943481d8d71",
-    "app/companion/backend.js": "4fd0a369400e4a87d947b7f8dde8db7ac1c4b19983491b6b714ec7fc4f8ff248",
+    "app/companion/backend.js": "ba0549b98bf52833e16a3f8c167c4ca5ddc6588b1443a1ce484104035072a9cb",
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "f6f4cc90db5df0ed3554a09f9ccf03ef9886628fe3b5a4fd3c072434ee6de508",
+    "app/companion/index.html": "85fd56e7fb01506405565b4eba6b4a23583e0d1155d0140d8f0c17d5f7d55546",
     "app/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
-    "app/index.html": "a4deb7e2bab5a4378a9bf152c8409277602b3784aac97e61456e17a85c444410"
+    "app/index.html": "6658e8a40223dc2139a48bb4d41d9b22f251fed1d1c9c1a64dc56c56c0a8f69e"
   }
 }

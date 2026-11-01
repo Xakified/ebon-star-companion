@@ -66,11 +66,11 @@ Open the app, create your campaign, and tap **Copy invite link**. The link fills
 - Linking an email so a player can move their character to a new phone. Anonymous sign-in is tied to the device.
 
 ## Session notes
-Players press **Sessions** (top right) to read the recap of each past session (and the notes that don't line up, which Claude flags when it summarizes) and to write notes on the session being played, or on any earlier one if they remember something later. They can edit or delete their own notes. Only the player and the DM see a note.
+Players press **Sessions** (top right) to read the recap of each past session (and the notes that don't line up, which Claude flags when it summarizes) and to write notes on the session being played, or on any earlier one if they remember something later. Each note is saved either to **Party notes** (everyone in the campaign sees it) or as **Private** (only the player and the DM). They can edit or delete their own notes, and switch a note between the two. When the DM summarizes, each player also gets a private recap of their private notes that only they and the DM see.
 
 The DM Suite decides which sessions exist: it publishes the played sessions and the one you've started with **Start session**, and it copies every note into the campaign file's session log. See the DM Screen README for that side.
 
-Recaps come from the DM Suite's **Summarize** button (or whatever you type as the player recap). Needs `supabase/fix-04-session-notes.sql` and `supabase/fix-05-session-recaps.sql` run once in the Supabase SQL Editor. Until then the button stays hidden. In demo mode every campaign gets a live "Session 1" to try it with.
+Recaps come from the DM Suite's **Summarize** button (or whatever you type as the player recap). Needs `supabase/fix-04-session-notes.sql` and `supabase/fix-05-session-recaps.sql` and `supabase/fix-06-party-and-private-notes.sql` run once in the Supabase SQL Editor. Until then the button stays hidden. In demo mode every campaign gets a live "Session 1" to try it with.
 
 ## Moving a character to a new phone
 A player's phone remembers them, so a new phone or cleared browser data makes them a new person. To give them their character back:

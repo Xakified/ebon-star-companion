@@ -17,7 +17,7 @@ class DemoBackend {
   db() {
     let db; try { db = JSON.parse(localStorage.getItem(this.key)); } catch (e) {}
     db = db || {};
-    for (const k of ["campaigns", "members", "characters", "grants", "homebrew", "sessions", "notes"]) db[k] = db[k] || [];
+    for (const k of ["campaigns", "members", "characters", "grants", "homebrew", "sessions", "notes", "privateRecaps"]) db[k] = db[k] || [];
     return db;
   }
   put(db) { localStorage.setItem(this.key, JSON.stringify(db)); }
@@ -111,21 +111,22 @@ class DemoBackend {
   }
   async listNotes(cid) {
     const db = this.db(), dm = this.isDM(db, cid);
-    return db.notes.filter(n => n.campaign_id === cid && !n.deleted && (dm || n.author === this.user)).sort((a, b) => b.created_at.localeCompare(a.created_at));
+    return db.notes.filter(n => n.campaign_id === cid && !n.deleted && (dm || n.author === this.user || n.visibility === "shared")).sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
   async addNote(cid, note) {
     const db = this.db(), t = new Date().toISOString();
-    const row = Object.assign({ id: Engine.uid(), campaign_id: cid, author: this.user, deleted: false, created_at: t, updated_at: t }, note);
+    const row = Object.assign({ id: Engine.uid(), campaign_id: cid, author: this.user, visibility: "private", deleted: false, created_at: t, updated_at: t }, note);
     db.notes.push(row); this.put(db); this.emit({ table: "session_notes", campaign_id: cid, id: row.id }); return row;
   }
-  async updateNote(id, body) {
+  async updateNote(id, body, visibility) {
     const db = this.db(), row = db.notes.find(n => n.id === id && n.author === this.user); if (!row) throw new Error("That note is gone.");
-    row.body = body; row.updated_at = new Date().toISOString(); this.put(db); this.emit({ table: "session_notes", campaign_id: row.campaign_id, id }); return row;
+    row.body = body; if (visibility) row.visibility = visibility; row.updated_at = new Date().toISOString(); this.put(db); this.emit({ table: "session_notes", campaign_id: row.campaign_id, id }); return row;
   }
   async deleteNote(id) {
     const db = this.db(), row = db.notes.find(n => n.id === id && n.author === this.user); if (!row) return;
     row.deleted = true; row.updated_at = new Date().toISOString(); this.put(db); this.emit({ table: "session_notes", campaign_id: row.campaign_id, id });
   }
+  async listPrivateRecaps(cid) { return this.db().privateRecaps.filter(r => r.campaign_id === cid && r.user_id === this.user); }
   subscribe(cid, cb) {
     const f = ev => { if (!ev.campaign_id || ev.campaign_id === cid) cb(ev); };
     this.listeners.add(f); return () => this.listeners.delete(f);
@@ -170,7 +171,9 @@ class SupabaseBackend {
   async listSessions(cid) { return this.ok(await this.sb.from("game_sessions").select("*").eq("campaign_id", cid).order("ord", { ascending: false })); }
   async listNotes(cid) { return this.ok(await this.sb.from("session_notes").select("*").eq("campaign_id", cid).eq("deleted", false).order("created_at", { ascending: false })); }
   async addNote(cid, note) { return this.ok(await this.sb.from("session_notes").insert(Object.assign({ campaign_id: cid, author: this.user }, note)).select().single()); }
-  async updateNote(id, body) { return this.ok(await this.sb.from("session_notes").update({ body, updated_at: new Date().toISOString() }).eq("id", id).select().single()); }
+  async updateNote(id, body, visibility) { return this.ok(await this.sb.from("session_notes").update(Object.assign({ body, updated_at: new Date().toISOString() }, visibility ? { visibility } : {})).eq("id", id).select().single()); }
+  // This player's private recaps (fix-06). Only theirs come back.
+  async listPrivateRecaps(cid) { return this.ok(await this.sb.from("session_private_recaps").select("*").eq("campaign_id", cid).eq("user_id", this.user)); }
   async deleteNote(id) { this.ok(await this.sb.from("session_notes").update({ deleted: true, updated_at: new Date().toISOString() }).eq("id", id)); }
   // One-time code that lets the desktop DM Suite join this campaign as a second DM device.
   async reassignCharacter(id, userId) { this.ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); }
@@ -196,7 +199,10 @@ class SupabaseBackend {
       .on("postgres_changes", { event: "*", schema: "public", table: "game_sessions", filter: "campaign_id=eq." + cid }, () => cb({ table: "game_sessions", campaign_id: cid }))
       .on("postgres_changes", { event: "*", schema: "public", table: "session_notes", filter: "campaign_id=eq." + cid }, p => cb({ table: "session_notes", campaign_id: cid, id: (p.new && p.new.id) || (p.old && p.old.id) }))
       .subscribe();
-    return () => { this.sb.removeChannel(ch); this.sb.removeChannel(notes); };
+    const recaps = this.sb.channel("recaps-" + cid)
+      .on("postgres_changes", { event: "*", schema: "public", table: "session_private_recaps", filter: "campaign_id=eq." + cid }, () => cb({ table: "session_private_recaps", campaign_id: cid }))
+      .subscribe();
+    return () => { this.sb.removeChannel(ch); this.sb.removeChannel(notes); this.sb.removeChannel(recaps); };
   }
 }
 
@@ -235,6 +241,7 @@ class SuiteBackend {
   // Player notes live in the DM Suite's Sessions tab, not in this view.
   async listSessions() { return []; }
   async listNotes() { return []; }
+  async listPrivateRecaps() { return []; }
   reassignCharacter(id, userId) { return this.ask("reassignCharacter", id, userId); }
   createDmInvite() { return this.ask("createDmInvite"); }
   // DM Suite extras

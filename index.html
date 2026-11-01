@@ -228,7 +228,7 @@ const LINEAGES = {
 };
 const ORIGIN_FEATS = ["Alert", "Magic Initiate", "Savage Attacker", "Skilled"];
 
-const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false, sessions: [], notes: [], notesOk: true, noteSess: null, noteDraft: "", notesBack: "camp", liveSeen: null };
+const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false, sessions: [], notes: [], privateRecaps: [], notesOk: true, noteSess: null, noteDraft: "", notesBack: "camp", liveSeen: null };
 
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2600); }
 function fail(e) { console.error(e); toast(e.message || String(e)); }
@@ -282,6 +282,7 @@ async function refresh() {
 async function refreshNotes() {
   try { [A.sessions, A.notes] = await Promise.all([A.be.listSessions(A.camp.id), A.be.listNotes(A.camp.id)]); A.notesOk = true; }
   catch (e) { console.warn(e); A.sessions = []; A.notes = []; A.notesOk = false; }
+  try { A.privateRecaps = A.notesOk ? await A.be.listPrivateRecaps(A.camp.id) : []; } catch (e) { A.privateRecaps = []; } // needs fix-06
 }
 const liveSession = () => A.sessions.find(x => x.live) || null;
 let liveTimer = null;
@@ -635,18 +636,34 @@ function miniMd(t) {
   }
   return out + (list ? "</ul>" : "");
 }
+function noteRow(n, x, other) {
+  const meta = [noteTime(n.created_at), other ? (n.character_name ? `${n.character_name}${n.author_name ? " (" + n.author_name + ")" : ""}` : n.author_name || "A player") : n.character_name,
+    x.ended_at && n.created_at > x.ended_at ? "added after the session" : "", n.updated_at && Date.parse(n.updated_at) - Date.parse(n.created_at) > 60000 ? "edited" : ""].filter(Boolean).join(" · ");
+  return `<div class="li" style="align-items:flex-start"><div class="grow"><div class="tiny muted">${esc(meta)}</div><div style="white-space:pre-wrap">${esc(n.body)}</div></div>${other ? "" : `<button class="btn sm ghost" data-a="editnote" data-id="${n.id}" aria-label="Edit">✎</button><button class="btn sm ghost danger" data-a="delnote" data-id="${n.id}" aria-label="Delete">✕</button>`}</div>`;
+}
 function vNotes() {
   if (!A.notesOk) return `<div class="card"><h2>Not set up yet</h2><p class="muted" style="margin:0">Session notes aren't switched on for this campaign yet. Ask your DM to finish setting them up.</p></div>`;
   if (!A.sessions.length) return `<div class="card"><h2>No sessions yet</h2><p class="muted" style="margin:0">Once your DM starts a session, you can write notes on it here. They go straight into the DM's session log.</p></div>`;
   if (!A.sessions.some(x => x.id === A.noteSess)) A.noteSess = (liveSession() || A.sessions[0]).id;
   const mine = A.chars.filter(c => c.owner === A.user), cur = mine.find(c => c.id === A.charId) || mine[0];
-  const bySess = A.sessions.map(x => ({ x, notes: A.notes.filter(n => n.session_id === x.id).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))) })).filter(g => g.notes.length || (g.x.recap || "").trim());
+  const byTime = (a, b) => String(a.created_at).localeCompare(String(b.created_at));
+  const groups = A.sessions.map(x => {
+    const ns = A.notes.filter(n => n.session_id === x.id).sort(byTime);
+    return { x, party: ns.filter(n => n.visibility === "shared"), own: ns.filter(n => n.visibility !== "shared" && n.author === A.user), priv: (A.privateRecaps.find(r => r.session_id === x.id) || {}).recap || "" };
+  }).filter(g => g.party.length || g.own.length || (g.x.recap || "").trim() || g.priv.trim());
+  const sub = t => `<div class="tiny muted" style="margin-top:12px;text-transform:uppercase;letter-spacing:.06em">${t}</div>`;
   return `<div class="card stack"><h2>Add a note</h2>
       <label class="f"><span>Session</span><select id="nSess">${A.sessions.map(x => `<option value="${esc(x.id)}" ${x.id === A.noteSess ? "selected" : ""}>${esc(sessLabel(x))}</option>`).join("")}</select></label>
       ${mine.length > 1 ? `<label class="f"><span>As</span><select id="nChar">${mine.map(c => `<option value="${c.id}" ${c === cur ? "selected" : ""}>${esc(c.data.name || "Unnamed")}</option>`).join("")}</select></label>` : ""}
       <label class="f"><span>Note</span><textarea id="nBody" style="min-height:120px" placeholder="What happened, what you noticed, who you don't trust, what you want to do next…">${esc(A.noteDraft)}</textarea></label>
-      <div class="row"><span class="grow tiny muted">Only you and your DM see your notes. You can add to past sessions any time.</span><button class="btn primary" data-a="addnote">Save note</button></div></div>
-    ${bySess.length ? bySess.map(g => `<div class="card"><h3>${esc(sessLabel(g.x))}</h3>${(g.x.recap || "").trim() ? `<div class="recap">${miniMd(g.x.recap)}</div>` : ""}${(g.x.contradictions || "").trim() && !/^none\.?$/i.test(g.x.contradictions.trim()) ? `<div class="banner"><b>Notes that don't line up</b><div class="recap">${miniMd(g.x.contradictions)}</div></div>` : ""}${g.notes.length ? `${(g.x.recap || "").trim() ? `<div class="tiny muted" style="margin-top:10px">Your notes</div>` : ""}<div class="list">${g.notes.map(n => `<div class="li" style="align-items:flex-start"><div class="grow"><div class="tiny muted">${esc(noteTime(n.created_at))}${n.character_name ? " · " + esc(n.character_name) : ""}${g.x.ended_at && n.created_at > g.x.ended_at ? " · added after the session" : ""}${n.updated_at && n.updated_at > n.created_at && Date.parse(n.updated_at) - Date.parse(n.created_at) > 60000 ? " · edited" : ""}</div><div style="white-space:pre-wrap">${esc(n.body)}</div></div><button class="btn sm ghost" data-a="editnote" data-id="${n.id}" aria-label="Edit">✎</button><button class="btn sm ghost danger" data-a="delnote" data-id="${n.id}" aria-label="Delete">✕</button></div>`).join("")}</div>` : ""}</div>`).join("") : `<div class="card empty">Session recaps from your DM and your own notes show up here.</div>`}`;
+      <div class="row"><span class="grow tiny muted"><b>Party notes</b> are seen by everyone in the campaign. <b>Private</b> notes only by you and your DM. You can add to past sessions any time.</span></div>
+      <div class="row"><button class="btn grow" data-a="addnote" data-v="private">Save as private</button><button class="btn primary grow" data-a="addnote" data-v="shared">Save to party notes</button></div></div>
+    ${groups.length ? groups.map(g => `<div class="card"><h3>${esc(sessLabel(g.x))}</h3>
+      ${(g.x.recap || "").trim() ? `<div class="recap">${miniMd(g.x.recap)}</div>` : ""}
+      ${(g.x.contradictions || "").trim() && !/^none\.?$/i.test(g.x.contradictions.trim()) ? `<div class="banner"><b>Notes that don't line up</b><div class="recap">${miniMd(g.x.contradictions)}</div></div>` : ""}
+      ${g.priv.trim() ? `<div class="banner"><b>Just for you</b> <span class="tiny muted">only you and your DM see this</span><div class="recap">${miniMd(g.priv)}</div></div>` : ""}
+      ${g.party.length ? sub("Party notes") + `<div class="list">${g.party.map(n => noteRow(n, g.x, n.author !== A.user)).join("")}</div>` : ""}
+      ${g.own.length ? sub("Your private notes") + `<div class="list">${g.own.map(n => noteRow(n, g.x, false)).join("")}</div>` : ""}</div>`).join("") : `<div class="card empty">Session recaps, party notes and your own notes show up here.</div>`}`;
 }
 
 // ---------- dialogs ----------
@@ -966,19 +983,28 @@ const ACT = {
   async addnote(el) {
     const body = val("nBody"); if (!body) return toast("Write something first");
     const mine = A.chars.filter(c => c.owner === A.user), ch = mine.find(c => c.id === (val("nChar") || A.charId)) || mine[0];
-    el.disabled = true;
+    const shared = el.dataset.v === "shared";
+    const note = { session_id: val("nSess") || A.noteSess, body, character_id: ch ? ch.id : null, character_name: ch ? ch.data.name || "" : "", author_name: memberName(A.user) || localStorage.getItem("esc-name") || "" };
+    document.querySelectorAll('[data-a="addnote"]').forEach(b => b.disabled = true);
     try {
-      const row = await A.be.addNote(A.camp.id, { session_id: val("nSess") || A.noteSess, body, character_id: ch ? ch.id : null, character_name: ch ? ch.data.name || "" : "", author_name: memberName(A.user) || localStorage.getItem("esc-name") || "" });
-      A.notes.unshift(row); A.noteDraft = ""; render(); toast("Note saved for your DM");
-    } finally { el.disabled = false; }
+      let row;
+      try { row = await A.be.addNote(A.camp.id, Object.assign({ visibility: shared ? "shared" : "private" }, note)); }
+      catch (e) {
+        if (!/visibility/i.test(e.message || "")) throw e;
+        if (shared) throw new Error("Party notes aren't switched on yet. Ask your DM to finish setting them up, or save it as private.");
+        row = await A.be.addNote(A.camp.id, note); // before fix-06 every note is private
+      }
+      A.notes.unshift(row); A.noteDraft = ""; render(); toast(shared ? "Saved to party notes" : "Saved. Only you and your DM see it.");
+    } finally { document.querySelectorAll('[data-a="addnote"]').forEach(b => b.disabled = false); }
   },
   editnote(el) {
     const n = A.notes.find(x => x.id === el.dataset.id); if (!n) return;
-    dialog("Edit note", `<textarea id="enBody" style="min-height:160px;width:100%">${esc(n.body)}</textarea>`, `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="savenote" data-id="${n.id}">Save</button>`);
+    dialog("Edit note", `<div class="stack"><textarea id="enBody" style="min-height:160px;width:100%">${esc(n.body)}</textarea><label class="row small"><input type="checkbox" id="enShared" ${n.visibility === "shared" ? "checked" : ""}> Party note (everyone in the campaign sees it)</label></div>`, `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="savenote" data-id="${n.id}">Save</button>`);
   },
   async savenote(el) {
     const n = A.notes.find(x => x.id === el.dataset.id), body = val("enBody"); if (!n) return closeDlg(); if (!body) return toast("A note can't be empty. Delete it instead.");
-    Object.assign(n, await A.be.updateNote(n.id, body) || { body }); closeDlg(); render(); toast("Note updated");
+    const vis = $("#enShared").checked ? "shared" : "private";
+    Object.assign(n, await A.be.updateNote(n.id, body, vis === (n.visibility || "private") ? null : vis) || { body }); closeDlg(); render(); toast("Note updated");
   },
   async delnote(el) {
     const n = A.notes.find(x => x.id === el.dataset.id); if (!n || !await ask({ title: "Delete this note?", text: "It's removed for your DM too.", ok: "Delete", danger: true })) return;
