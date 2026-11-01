@@ -90,6 +90,7 @@ class DemoBackend {
     if (row) Object.assign(row, { kind, data }); else { row = { id: Engine.uid(), campaign_id: cid, kind, data }; db.homebrew.push(row); }
     this.put(db); return row;
   }
+  async createDmInvite() { throw new Error("Connecting the DM Suite needs the live version of the app, not demo mode."); }
   async deleteHomebrew(id) { const db = this.db(); db.homebrew = db.homebrew.filter(h => h.id !== id); this.put(db); }
   subscribe(cid, cb) {
     const f = ev => { if (!ev.campaign_id || ev.campaign_id === cid) cb(ev); };
@@ -131,6 +132,12 @@ class SupabaseBackend {
     return this.ok(await this.sb.from("homebrew").insert({ campaign_id: cid, kind, data }).select().single());
   }
   async deleteHomebrew(id) { this.ok(await this.sb.from("homebrew").delete().eq("id", id)); }
+  // One-time code that lets the desktop DM Suite join this campaign as a second DM device.
+  async createDmInvite(cid) {
+    const code = this.ok(await this.sb.rpc("create_dm_invite", { p_campaign: cid }));
+    const cfg = window.APP_CONFIG;
+    return "ESC1." + btoa(JSON.stringify({ u: cfg.supabaseUrl, k: cfg.supabaseAnonKey, c: code }));
+  }
   subscribe(cid, cb) {
     const ch = this.sb.channel("camp-" + cid)
       .on("postgres_changes", { event: "*", schema: "public", table: "characters", filter: "campaign_id=eq." + cid }, p => cb({ table: "characters", campaign_id: cid, id: (p.new && p.new.id) || (p.old && p.old.id) }))
