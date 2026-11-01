@@ -91,8 +91,11 @@ A book file is JSON in this shape (every section is optional; something with the
       "weapons": "Simple weapons", "gold": 150, "caster": "half", "spellAbil": "int", "subAt": [3, 5, 9, 15],
       "f": [[1, "Feature", "summary"]], "res": [["Resource", [2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6], "long"]] } },
   "subclasses": { "Fighter": [{ "name": "Subclass", "text": "summary", "f": [[3, "Feature", "summary"]] }] },
-  "spells": [{ "name": "Spell", "level": 1, "school": "Evocation", "classes": ["Wizard"], "time": "Action", "range": "60 feet", "components": "V, S", "duration": "Instantaneous", "text": "summary" }] }
+  "spells": [{ "name": "Spell", "level": 1, "school": "Evocation", "classes": ["Wizard"], "time": "Action", "range": "60 feet", "components": "V, S", "duration": "Instantaneous", "text": "summary" }],
+  "items": [{ "name": "Item", "type": "Wondrous Item", "rarity": "rare", "attune": true, "attuneBy": "", "text": "summary" }],
+  "features": [{ "name": "Blessing", "kind": "Blessing", "text": "summary", "uses": 0, "reset": "long" }] }
 ```
+Items and features (blessings, charms and other gifts) don't go in the builder: in **Send**, start typing a name and pick one to fill in the form.
 A resource's count is a list of 20 numbers (one per level), a single number, or `"mod:cha"` for an ability modifier (at least 1).
 
 ## Moving a character to a new phone

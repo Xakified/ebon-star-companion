@@ -221,7 +221,10 @@ function fromSuiteItem(x) {
 //                    "gold": 150, "caster": "full"|"half"|"pact"|"", "spellAbil": "int", "unarmored": "con"|"wis", "subAt": [3,5,9,15],
 //                    "f": [[1, "Feature", "summary"]], "res": [["Resource", [20 values, one per level] | number | "mod:cha", "long"|"short"|"info"]] } },
 //   "subclasses":  { "Class": [{ "name": "Subclass", "text": "summary", "f": [[3, "Feature", "summary"]] }] },
-//   "spells":      [{ "name": "...", "level": 0, "school": "...", "classes": ["Wizard"], "time": "", "range": "", "components": "", "duration": "", "text": "summary" }] }
+//   "spells":      [{ "name": "...", "level": 0, "school": "...", "classes": ["Wizard"], "time": "", "range": "", "components": "", "duration": "", "text": "summary" }],
+//   "items":       [{ "name": "...", "type": "Wondrous Item", "rarity": "rare", "attune": true, "attuneBy": "", "bonus": 0, "acBonus": 0, "charges": 0, "text": "summary" }],
+//   "features":    [{ "name": "...", "kind": "Blessing", "text": "summary", "uses": 0, "reset": "long" }] }
+// Items and features (blessings, charms and the like) are for the DM's Send dialog, not the builder.
 // A class, species, background or feat with the same name as an SRD one replaces it while the book is on.
 const BASE = {};
 const KEEP = ["SPECIES", "BACKGROUNDS", "FEATS", "CLASSES", "LINEAGES", "LINEAGE_LABEL"];
@@ -261,7 +264,7 @@ function useContent(packs) {
   S.ORIGIN_FEATS.splice(0, S.ORIGIN_FEATS.length, ...BASE.ORIGIN_FEATS);
   for (const n of Object.keys(S.SUBCLASSES)) delete S.SUBCLASSES[n];
   for (const n of Object.keys(S.SOURCE)) delete S.SOURCE[n];
-  S.SPELLS.length = 0;
+  S.SPELLS.length = 0; S.ITEMS.length = 0; S.FEATURES.length = 0;
   const used = [];
   for (const p of packs || []) {
     if (!p || p.enabled === false) continue;
@@ -300,10 +303,22 @@ function useContent(packs) {
           time: str(x.time, 80), range: str(x.range, 80), components: str(x.components, 200), duration: str(x.duration, 80), text: str(x.text, 8000), src };
         const i = S.SPELLS.findIndex(o => o.name === sp.name); if (i >= 0) S.SPELLS[i] = sp; else S.SPELLS.push(sp);
       }
+      for (const x of Array.isArray(d.items) ? d.items : []) {
+        if (!x || !x.name) continue;
+        const it = { name: str(x.name, 120), type: str(x.type || "Wondrous Item", 40), rarity: str(x.rarity, 30).toLowerCase(), attune: !!x.attune, attuneBy: str(x.attuneBy, 120),
+          bonus: +x.bonus || 0, acBonus: +x.acBonus || 0, charges: +x.charges || 0, text: str(x.text, 8000), src };
+        const i = S.ITEMS.findIndex(o => o.name === it.name); if (i >= 0) S.ITEMS[i] = it; else S.ITEMS.push(it);
+      }
+      for (const x of Array.isArray(d.features) ? d.features : []) {
+        if (!x || !x.name) continue;
+        const f = { name: str(x.name, 120), kind: str(x.kind, 40), text: str(x.text, 8000), uses: Math.max(0, +x.uses || 0), reset: ["short", "long", "dawn"].includes(x.reset) ? x.reset : "long", src };
+        const i = S.FEATURES.findIndex(o => o.name === f.name); if (i >= 0) S.FEATURES[i] = f; else S.FEATURES.push(f);
+      }
       used.push(src);
     } catch (e) { if (g.console) console.warn("Couldn't use " + src, e); }
   }
   S.SPELLS.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  S.ITEMS.sort((a, b) => a.name.localeCompare(b.name)); S.FEATURES.sort((a, b) => a.name.localeCompare(b.name));
   return used;
 }
 // Every subclass a class can take: the SRD one plus any from the DM's books. [{ name, text, f?, src }]
@@ -320,9 +335,10 @@ function checkContent(d) {
   if (d.format !== "esc-content") throw new Error("That file isn't a content pack (it needs \"format\": \"esc-content\").");
   if (!d.name) throw new Error("The content pack needs a name.");
   const n = { species: Object.keys(d.species || {}).length, backgrounds: Object.keys(d.backgrounds || {}).length, feats: Object.keys(d.feats || {}).length,
-    classes: Object.keys(d.classes || {}).length, subclasses: Object.values(d.subclasses || {}).reduce((s, l) => s + (Array.isArray(l) ? l.length : 0), 0), spells: Array.isArray(d.spells) ? d.spells.length : 0 };
-  const one = { species: "species", backgrounds: "background", feats: "feat", classes: "class", subclasses: "subclass", spells: "spell" };
-  const parts = Object.entries(n).filter(([, v]) => v).map(([k, v]) => `${v} ${v === 1 ? one[k] : k}`);
+    classes: Object.keys(d.classes || {}).length, subclasses: Object.values(d.subclasses || {}).reduce((s, l) => s + (Array.isArray(l) ? l.length : 0), 0), spells: Array.isArray(d.spells) ? d.spells.length : 0,
+    items: Array.isArray(d.items) ? d.items.length : 0, features: Array.isArray(d.features) ? d.features.length : 0 };
+  const one = { species: "species", backgrounds: "background", feats: "feat", classes: "class", subclasses: "subclass", spells: "spell", items: "magic item", features: "gift" };
+  const parts = Object.entries(n).filter(([, v]) => v).map(([k, v]) => `${v} ${v === 1 ? one[k] : k === "items" ? "magic items" : k === "features" ? "gifts" : k}`);
   if (!parts.length) throw new Error("That content pack is empty.");
   return parts.join(" · ");
 }

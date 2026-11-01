@@ -223,7 +223,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const sg = E.sign;
 const RK = r => String(r || "").replace(/\s/g, "").toLowerCase();
 // Lineages, origin feats, subclasses and spells grow when the DM turns on books in the content library.
-const { LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SPELLS, SOURCE } = SRD;
+const { LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SPELLS, ITEMS, FEATURES, SOURCE } = SRD;
 const srcTag = (kind, name) => SOURCE[kind + ":" + name] ? ` <span class="src">${esc(SOURCE[kind + ":" + name])}</span>` : "";
 
 const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], content: [], contentOk: true, view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false, sessions: [], notes: [], privateRecaps: [], notesOk: true, noteSess: null, noteDraft: "", notesBack: "camp", liveSeen: null };
@@ -420,7 +420,7 @@ function bookList() {
   const rows = A.content.map(b => `<div class="li"><div class="grow"><b>${esc(b.name)}</b>${b.abbr ? ` <span class="src">${esc(b.abbr)}</span>` : ""}<div class="small muted">${esc(b.summary || (() => { try { return E.checkContent(b.data); } catch (e) { return ""; } })())}</div></div>
     <label class="row small" style="gap:6px"><input type="checkbox" data-a="togglebook" data-id="${b.id}" ${b.enabled !== false ? "checked" : ""}> Players can use</label>
     <button class="btn sm ghost danger" data-a="delbook" data-id="${b.id}" aria-label="Remove ${esc(b.name)}">✕</button></div>`).join("");
-  return `<p class="muted small" style="margin-top:0">Species, backgrounds, feats, classes, subclasses and spells from books you own, for your players' character builder. Only people in this campaign can see them.</p>${rows ? `<div class="list">${rows}</div>` : `<p class="small muted">No books yet. Add a book file (.json) made from your PDFs.</p>`}`;
+  return `<p class="muted small" style="margin-top:0">Species, backgrounds, feats, classes, subclasses and spells from books you own, for your players' character builder, plus magic items and gifts you can pick in Send. Only people in this campaign can see them.</p>${rows ? `<div class="list">${rows}</div>` : `<p class="small muted">No books yet. Add a book file (.json) made from your PDFs.</p>`}`;
 }
 // Characters using a class, species, background or subclass from this book.
 function bookUsers(b) {
@@ -724,7 +724,8 @@ const closeDlg = () => $("#dlg").open && $("#dlg").close();
 const val = id => { const el = $("#" + id); return el ? (el.type === "checkbox" ? el.checked : el.value.trim()) : ""; };
 
 function itemForm(i = {}) {
-  return `<div class="stack"><label class="f"><span>Name</span><input id="iName" value="${esc(i.name || "")}"></label>
+  return `<div class="stack"><label class="f"><span>Name${ITEMS.length ? " (start typing to pick one from your books)" : ""}</span><input id="iName" value="${esc(i.name || "")}" ${ITEMS.length ? `list="itemList" autocomplete="off"` : ""}></label>
+    ${ITEMS.length ? `<datalist id="itemList">${ITEMS.map(x => `<option value="${esc(x.name)}">${esc(x.type)}, ${esc(x.rarity)} · ${esc(x.src)}</option>`).join("")}</datalist>` : ""}
     <div class="grid2"><label class="f"><span>Type</span><select id="iType">${opt(["Wondrous Item", "Weapon", "Armor", "Shield", "Potion", "Scroll", "Ring", "Wand", "Staff", "Rod", "Gear", "Treasure"], i.type || "Wondrous Item")}</select></label>
     <label class="f"><span>Rarity</span><select id="iRarity"><option value="">–</option>${opt(["common", "uncommon", "rare", "very rare", "legendary", "artifact"], i.rarity || "")}</select></label></div>
     <div class="grid3"><label class="f"><span>Quantity</span><input id="iQty" type="number" class="num" value="${i.qty || 1}"></label><label class="f"><span>+ Attack/dmg</span><input id="iBonus" type="number" class="num" value="${i.bonus || 0}"></label><label class="f"><span>+ AC</span><input id="iAc" type="number" class="num" value="${i.acBonus || 0}"></label></div>
@@ -735,7 +736,8 @@ function readItem(base = {}) {
   return Object.assign(base, { name: val("iName") || "Unnamed item", type: val("iType"), rarity: val("iRarity"), qty: +val("iQty") || 1, bonus: +val("iBonus") || 0, acBonus: +val("iAc") || 0, attune: val("iAttune"), desc: val("iDesc") });
 }
 function featForm(f = {}) {
-  return `<div class="stack"><label class="f"><span>Name</span><input id="fName" value="${esc(f.name || "")}" placeholder="e.g. Starborn Sight"></label>
+  return `<div class="stack"><label class="f"><span>Name${FEATURES.length ? " (or pick a blessing, charm or other gift from your books)" : ""}</span><input id="fName" value="${esc(f.name || "")}" placeholder="e.g. Starborn Sight" ${FEATURES.length ? `list="featList" autocomplete="off"` : ""}></label>
+    ${FEATURES.length ? `<datalist id="featList">${FEATURES.map(x => `<option value="${esc(x.name)}">${esc(x.kind)} · ${esc(x.src)}</option>`).join("")}</datalist>` : ""}
     <label class="f"><span>What it does</span><textarea id="fText">${esc(f.text || "")}</textarea></label>
     <div class="grid2"><label class="f"><span>Uses (blank = unlimited)</span><input id="fUses" type="number" class="num" min="0" value="${f.uses ? f.uses.max : ""}"></label><label class="f"><span>Recharges on</span><select id="fReset">${opt(["short", "long", "dawn"], f.uses ? f.uses.reset : "long", v => v === "dawn" ? "Dawn" : v[0].toUpperCase() + v.slice(1) + " rest")}</select></label></div></div>`;
 }
@@ -748,6 +750,20 @@ function spellForm(s = {}) {
 }
 // Picking a spell from the books fills in the rest of the form.
 document.addEventListener("input", e => {
+  const pickedName = list => list.find(o => o.name.toLowerCase() === e.target.value.trim().toLowerCase());
+  if (e.target.id === "iName") {
+    const x = pickedName(ITEMS); if (!x) return;
+    const type = $("#iType"); type.value = [...type.options].some(o => o.value === x.type) ? x.type : "Wondrous Item";
+    $("#iRarity").value = ["common", "uncommon", "rare", "very rare", "legendary", "artifact"].includes(x.rarity) ? x.rarity : "";
+    $("#iBonus").value = x.bonus || 0; $("#iAc").value = x.acBonus || 0; $("#iAttune").checked = x.attune;
+    $("#iDesc").value = [x.attuneBy ? `Requires attunement by ${x.attuneBy}.` : "", x.charges ? `Charges: ${x.charges}.` : "", x.text].filter(Boolean).join(" ");
+    return;
+  }
+  if (e.target.id === "fName") {
+    const x = pickedName(FEATURES); if (!x) return;
+    $("#fText").value = x.text; $("#fUses").value = x.uses || ""; $("#fReset").value = x.reset;
+    return;
+  }
   if (e.target.id !== "sName") return;
   const x = SPELLS.find(o => o.name.toLowerCase() === e.target.value.trim().toLowerCase()); if (!x) return;
   $("#sLevel").value = String(x.level); $("#sSchool").value = x.school;
