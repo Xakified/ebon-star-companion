@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ebon Star Companion</title>
-<meta name="theme-color" content="#171b26">
+<meta name="theme-color" content="#2a68b6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,33 +14,42 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 :root {
-  --bg: #e9ebf0; --surface: #f8f9fb; --raised: #ffffff; --ink: #1a1e2b; --muted: #5b6275; --line: #d3d7e1;
-  --accent: #7d5f12; --accent-ink: #ffffff; --accent-soft: #f1e6c8; --active: #fff6dc;
-  --good: #2f7a3e; --warn: #a86b00; --bad: #b3261e; --pc: #2557a7;
-  --r-common: #6b7080; --r-uncommon: #2e7d32; --r-rare: #1f5fb8; --r-veryrare: #7b3fb0; --r-legendary: #c25e00; --r-artifact: #b3261e;
-  --display: "Alegreya SC", "Palatino Linotype", Palatino, Georgia, serif;
+  /* Sky and gold: pale sky pages, deep navy ink, royal blue and burnished gold accents. Light only, whatever the system setting. */
+  --bg: #dbe9f4;
+  --surface: #f4f9fd;
+  --raised: #ffffff;
+  --ink: #142a4c;
+  --muted: #4b6584;
+  --line: #bcd2e6;
+  --gold: #b8862a;
+  --gilt: #e0b44a;
+  --royal: #1d4f91;
+  --royal-2: #2f6fbf;
+  --accent: #1f5ca8;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbefc8;
+  --active: #fff4d3;
+  --good: #2e7a3a;
+  --warn: #a06200;
+  --bad: #b02a1f;
+  --pc: #1f5ca8;
+  --npc: #6a3f9a;
+  --mon: #a3301f;
+  --r-common: #5f6b7c;
+  --r-uncommon: #2e7a3a;
+  --r-rare: #1f5ca8;
+  --r-veryrare: #7038a0;
+  --r-legendary: #b4600a;
+  --r-artifact: #b02a1f;
+  --display: "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, serif;
   --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --book: "Alegreya", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 6px;
   color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f121a; --surface: #171b26; --raised: #1e2330; --ink: #e6e8ef; --muted: #9aa1b4; --line: #2c3243;
-    --accent: #d9b45c; --accent-ink: #1a1405; --accent-soft: #3a3020; --active: #2a2615;
-    --good: #6fca7e; --warn: #e3a83a; --bad: #f2776c; --pc: #7fa8ee;
-    --r-common: #a3a8b8; --r-uncommon: #6fcf73; --r-rare: #6aa5f5; --r-veryrare: #be8af0; --r-legendary: #f5a04a; --r-artifact: #f2776c;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0f121a; --surface: #171b26; --raised: #1e2330; --ink: #e6e8ef; --muted: #9aa1b4; --line: #2c3243;
-  --accent: #d9b45c; --accent-ink: #1a1405; --accent-soft: #3a3020; --active: #2a2615;
-  --good: #6fca7e; --warn: #e3a83a; --bad: #f2776c; --pc: #7fa8ee;
-  --r-common: #a3a8b8; --r-uncommon: #6fcf73; --r-rare: #6aa5f5; --r-veryrare: #be8af0; --r-legendary: #f5a04a; --r-artifact: #f2776c;
-  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -152,6 +161,43 @@ dialog .df { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 1
 .sec-title { display: flex; align-items: center; gap: 8px; margin: 20px 0 4px; }
 .sec-title h2 { flex: 1; }
 @media (max-width: 420px) { .stats { grid-template-columns: repeat(2, 1fr); } .grid3 { grid-template-columns: 1fr 1fr; } }
+
+/* ---- sky and gold theme ---- */
+body { background-color: var(--bg); background-image: radial-gradient(ellipse 60% 40% at 15% 8%, rgb(255 255 255 / .65), transparent 70%), radial-gradient(ellipse 50% 35% at 85% 20%, rgb(255 255 255 / .5), transparent 70%), radial-gradient(ellipse 120% 60% at 50% 110%, rgb(224 180 74 / .18), transparent 70%), linear-gradient(#cfe3f3, #e8f2fa 55%, #eef3ef); background-attachment: fixed; }
+h1, h2, h3 { font-weight: 600; letter-spacing: .03em; }
+::selection { background: #f6dc8e; color: var(--ink); }
+:root { accent-color: var(--accent); }
+.btn.primary { background: linear-gradient(var(--royal-2), var(--royal)); border-color: var(--gold); color: #fff; box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 1px 3px rgb(20 42 76 / .3); text-shadow: 0 1px 0 rgb(0 0 0 / .25); }
+.btn.primary:hover { filter: brightness(1.1); }
+a.btn { color: var(--ink); }
+.toast, #toast { background: #142a4c; color: #fff; border: 1px solid var(--gilt); }
+.toast .btn { color: #fff; border-color: #fff; }
+dialog::backdrop { background: rgb(10 30 60 / .45); }
+input[type=text], input[type=number], input:not([type]), select, textarea { box-shadow: inset 0 1px 2px rgb(20 42 76 / .07); }
+input:focus, select:focus, textarea:focus { border-color: var(--gilt); outline: none; box-shadow: 0 0 0 3px rgb(224 180 74 / .35); }
+
+header.top { --ink: #ffffff; --muted: #cfe0f4; --line: rgb(255 255 255 / .28); --raised: rgb(255 255 255 / .14); --surface: rgb(255 255 255 / .1); --bg: rgb(10 30 70 / .25); --accent: var(--gilt); --accent-ink: #142a4c; color: #fff; background: linear-gradient(#2a68b6, #1b4a8a); border-bottom: 3px solid var(--gilt); box-shadow: 0 1px 0 #8a6418, 0 4px 14px rgb(20 42 76 / .25); }
+header.top .title h1 { color: #fff; text-shadow: 0 1px 0 rgb(0 0 0 / .25); }
+header.top .btn.primary { background: linear-gradient(#ffe7a0, #e0b44a); color: #142a4c; border-color: #8a6418; text-shadow: none; }
+.card, .stat, .pc { border-color: #bcd2e6; box-shadow: 0 2px 12px rgb(29 79 145 / .09); }
+.card { outline: 1px solid rgb(184 134 42 / .35); outline-offset: -5px; }
+.card > h2:first-child, .card > h3:first-child, .sec-title h2, .card .row > h2 { color: var(--royal); }
+.tabs { background: rgb(219 233 244 / .92); backdrop-filter: blur(4px); }
+.tabs button { font-family: var(--display); letter-spacing: .04em; }
+.tabs button.on { color: var(--royal); border-bottom: 3px solid var(--gilt); }
+.stat .v, .abil .m, .hpbig { color: var(--royal); }
+.abil { background: linear-gradient(#ffffff, #eaf3fb); }
+.pc .nm, .pick button b { color: var(--royal); }
+.pill { background: #fbefc8; }
+.banner { background: #e3eefa; border: 1px solid #c6d9ea; }
+.inbox { border-color: var(--gilt); }
+.dot.on, .dot.ex, .pip { }
+.feat p { font-family: var(--book); font-size: 1rem; }
+.feat .h b { font-family: var(--book); font-size: 1.05rem; }
+.code { color: var(--royal); }
+dialog { border-color: var(--gold); background: var(--raised); box-shadow: 0 12px 40px rgb(10 30 60 / .35); }
+dialog .dh h2 { color: var(--royal); }
+.row > .grow:is(h1, h2, h3) { min-width: min(100%, max-content); }
 </style>
 </head>
 <body>
@@ -258,7 +304,7 @@ function header() {
   if (A.view === "sheet") { const r = charRow(A.charId); back = `<button class="btn icon ghost" data-a="camp" aria-label="Back">‹</button>`; title = r ? r.data.name || "Unnamed" : ""; if (r) { const d = r.data; sub = `${d.species} ${d.cls} ${d.level}${d.subclass ? " · " + d.subclass : ""}${isDM() ? " · " + (memberName(r.owner) || "player") : ""}`; } if (isDM()) right = `<button class="btn sm primary" data-a="send" data-id="${A.charId}">Send</button>`; }
   if (A.view === "build") { back = `<button class="btn icon ghost" data-a="camp" aria-label="Cancel">‹</button>`; title = "New character"; sub = A.camp ? A.camp.name : ""; }
   if (A.view === "camp" && isDM()) right = `<button class="btn sm primary" data-a="send">Send</button>`;
-  h.innerHTML = `${back}<div class="title"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>${right}<button class="btn icon ghost" data-a="theme" aria-label="Toggle theme">◐</button>`;
+  h.innerHTML = `${back}<div class="title"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>${right}`;
 }
 
 function render() {

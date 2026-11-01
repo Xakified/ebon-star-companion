@@ -6,52 +6,43 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: one long DM screen. Sticky bar with tabs, the last roll, and a dice tray (die buttons, count, modifier, adv/disadv, custom expression), then three stacked panels: Initiative, Loot, Magic Items. */
 :root {
-  --bg: #e9ebf0;
-  --surface: #f8f9fb;
+  /* Sky and gold: pale sky pages, deep navy ink, royal blue and burnished gold accents. Light only, whatever the system setting. */
+  --bg: #dbe9f4;
+  --surface: #f4f9fd;
   --raised: #ffffff;
-  --ink: #1a1e2b;
-  --muted: #5b6275;
-  --line: #d3d7e1;
-  --accent: #7d5f12;
+  --ink: #142a4c;
+  --muted: #4b6584;
+  --line: #bcd2e6;
+  --gold: #b8862a;
+  --gilt: #e0b44a;
+  --royal: #1d4f91;
+  --royal-2: #2f6fbf;
+  --accent: #1f5ca8;
   --accent-ink: #ffffff;
-  --accent-soft: #f1e6c8;
-  --active: #fff6dc;
-  --good: #2f7a3e;
-  --warn: #a86b00;
-  --bad: #b3261e;
-  --pc: #2557a7;
-  --npc: #6b4fa0;
-  --mon: #9a3324;
-  --r-common: #6b7080;
-  --r-uncommon: #2e7d32;
-  --r-rare: #1f5fb8;
-  --r-veryrare: #7b3fb0;
-  --r-legendary: #c25e00;
-  --r-artifact: #b3261e;
-  --display: "Alegreya SC", "Palatino Linotype", Palatino, Georgia, serif;
+  --accent-soft: #fbefc8;
+  --active: #fff4d3;
+  --good: #2e7a3a;
+  --warn: #a06200;
+  --bad: #b02a1f;
+  --pc: #1f5ca8;
+  --npc: #6a3f9a;
+  --mon: #a3301f;
+  --r-common: #5f6b7c;
+  --r-uncommon: #2e7a3a;
+  --r-rare: #1f5ca8;
+  --r-veryrare: #7038a0;
+  --r-legendary: #b4600a;
+  --r-artifact: #b02a1f;
+  --display: "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, serif;
   --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --book: "Alegreya", "Palatino Linotype", Palatino, Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --radius: 6px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f121a; --surface: #171b26; --raised: #1e2330; --ink: #e6e8ef; --muted: #9aa1b4; --line: #2c3243;
-    --accent: #d9b45c; --accent-ink: #1a1405; --accent-soft: #3a3020; --active: #2a2615;
-    --good: #6fca7e; --warn: #e3a83a; --bad: #f2776c; --pc: #7fa8ee; --npc: #b39ae6; --mon: #ec8a77;
-    --r-common: #a3a8b8; --r-uncommon: #6fcf73; --r-rare: #6aa5f5; --r-veryrare: #be8af0; --r-legendary: #f5a04a; --r-artifact: #f2776c;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0f121a; --surface: #171b26; --raised: #1e2330; --ink: #e6e8ef; --muted: #9aa1b4; --line: #2c3243;
-  --accent: #d9b45c; --accent-ink: #1a1405; --accent-soft: #3a3020; --active: #2a2615;
-  --good: #6fca7e; --warn: #e3a83a; --bad: #f2776c; --pc: #7fa8ee; --npc: #b39ae6; --mon: #ec8a77;
-  --r-common: #a3a8b8; --r-uncommon: #6fcf73; --r-rare: #6aa5f5; --r-veryrare: #be8af0; --r-legendary: #f5a04a; --r-artifact: #f2776c;
-  color-scheme: dark;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
 html { scroll-padding-top: 72px; }
@@ -369,6 +360,74 @@ body.pmode > header, body.pmode > main, body.pmode > footer { display: none; }
 .pv-hp.t4 i.f { background: var(--good); } .pv-hp.t3 i.f { background: var(--good); } .pv-hp.t2 i.f { background: var(--warn); } .pv-hp.t1 i.f { background: var(--bad); }
 .pv-hp.t2 span { color: var(--warn); } .pv-hp.t1 span, .pv-hp.t0 span { color: var(--bad); }
 .pv-empty { color: var(--muted); font-size: 1.2em; padding: 2em 0; }
+
+/* ---- sky and gold theme ---- */
+body { background-color: var(--bg); background-image: radial-gradient(ellipse 60% 40% at 15% 8%, rgb(255 255 255 / .65), transparent 70%), radial-gradient(ellipse 50% 35% at 85% 20%, rgb(255 255 255 / .5), transparent 70%), radial-gradient(ellipse 120% 60% at 50% 110%, rgb(224 180 74 / .18), transparent 70%), linear-gradient(#cfe3f3, #e8f2fa 55%, #eef3ef); background-attachment: fixed; }
+h1, h2, h3 { font-weight: 600; letter-spacing: .03em; }
+::selection { background: #f6dc8e; color: var(--ink); }
+:root { accent-color: var(--accent); }
+.btn.primary { background: linear-gradient(var(--royal-2), var(--royal)); border-color: var(--gold); color: #fff; box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 1px 3px rgb(20 42 76 / .3); text-shadow: 0 1px 0 rgb(0 0 0 / .25); }
+.btn.primary:hover { filter: brightness(1.1); }
+a.btn { color: var(--ink); }
+.toast, #toast { background: #142a4c; color: #fff; border: 1px solid var(--gilt); }
+.toast .btn { color: #fff; border-color: #fff; }
+dialog::backdrop { background: rgb(10 30 60 / .45); }
+input[type=text], input[type=number], input:not([type]), select, textarea { box-shadow: inset 0 1px 2px rgb(20 42 76 / .07); }
+input:focus, select:focus, textarea:focus { border-color: var(--gilt); outline: none; box-shadow: 0 0 0 3px rgb(224 180 74 / .35); }
+
+/* panels: white-blue tablets with a thin gold rule inside */
+.panel, .jmain { background: linear-gradient(#ffffff, var(--surface) 260px); border-color: #a9c4dd; box-shadow: 0 4px 18px rgb(29 79 145 / .12); outline: 1px solid rgb(184 134 42 / .4); outline-offset: -6px; }
+.jside { background: rgb(244 249 253 / .92); border-color: #a9c4dd; box-shadow: 0 4px 18px rgb(29 79 145 / .1); }
+.panel { padding: 22px; }
+.panel-head { padding-bottom: 10px; border-bottom: 1px solid var(--line); position: relative; }
+.panel-head::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 14px; height: 11px; transform: translateX(-50%); background: var(--gilt); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.panel-head h2, .jhead h2 { color: var(--royal); }
+.panel-head h2::before { content: ""; display: inline-block; width: .5em; height: .42em; margin: 0 .45em .12em 0; background: var(--gilt); clip-path: polygon(50% 0, 100% 100%, 0 100%); vertical-align: middle; }
+/* header band: royal blue with a gold edge */
+.bar { --ink: #ffffff; --muted: #cfe0f4; --line: rgb(255 255 255 / .28); --raised: rgb(255 255 255 / .14); --surface: rgb(255 255 255 / .1); --bg: rgb(10 30 70 / .25); --accent: var(--gilt); --accent-ink: #142a4c; color: #fff; background: linear-gradient(#2a68b6, #1b4a8a); border-bottom: 3px solid var(--gilt); box-shadow: 0 1px 0 #8a6418, 0 4px 14px rgb(20 42 76 / .25); }
+body::before { background: #2a68b6; }
+.brand { color: #fff; letter-spacing: .06em; text-shadow: 0 1px 0 rgb(0 0 0 / .25); }
+.brand svg { color: var(--gilt); }
+.tabs button { font-family: var(--display); letter-spacing: .04em; font-size: 15px; }
+.bar .tabs { background: rgb(10 30 70 / .3); }
+.bar .tabs button { color: #d6e5f7; }
+.bar .tabs button:hover { color: #fff; }
+.bar .tabs button.on { background: linear-gradient(#fff3cf, #f2d27e); color: #142a4c; box-shadow: 0 1px 2px rgb(0 0 0 / .25); }
+.dtray { border-top-color: rgb(255 255 255 / .2); }
+.die { background: linear-gradient(rgb(255 255 255 / .2), rgb(255 255 255 / .08)); border-color: rgb(255 255 255 / .35); color: #fff; }
+.die.d20 { border-color: var(--gilt); color: #ffe39a; }
+.die:hover { border-color: var(--gilt); color: #ffe39a; }
+.bar input { color: #fff; }
+.bar input::placeholder { color: #b5cbe6; }
+.dice-out b { font-family: var(--display); color: #ffe39a; }
+.seg.adv button.on[data-adv="adv"] { color: #fff; }
+.seg.adv button.on[data-adv="normal"], .bar .seg button.on { color: #142a4c; }
+/* rows and cards */
+.cbt, .litem, .lib, .prop, .side, .export, .prepcard, .combat-bar, .coin { border-color: #c6d9ea; }
+.cbt.active { background: linear-gradient(90deg, #ffe9a8, var(--active) 45%); border-color: var(--gold); box-shadow: inset 4px 0 0 var(--gilt), 0 2px 10px rgb(184 134 42 / .2); }
+.cname, .pv-name { font-family: var(--book); }
+.round b { color: var(--royal); }
+.card { box-shadow: 0 2px 12px rgb(29 79 145 / .1); }
+.card h3 { font-family: var(--display); }
+.card .desc, .card .sub { font-family: var(--book); }
+.prepcard h3 { color: var(--royal); }
+.catchip { color: var(--gold); }
+.jitem.on { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--gilt); }
+.banner, .jnotice { background: #e3eefa; border: 1px solid #c6d9ea; }
+.cond { background: #fbefc8; border-color: #ecd391; }
+/* reading lore: book face, a little larger */
+.prose { font-family: var(--book); font-size: 18px; line-height: 1.65; }
+.prose h2, .prose h3, .prose h4 { color: var(--royal); }
+.prose blockquote { border-left-color: var(--gilt); font-style: italic; }
+.prose hr { border: 0; height: 12px; margin: 1.2em 0; background: linear-gradient(var(--gold), var(--gold)) center / 40% 1px no-repeat; }
+.wl { color: var(--accent); }
+.updbox { border-color: var(--gilt); background: rgb(255 248 225 / .6); }
+.empty { border-color: #a9c4dd; font-family: var(--book); font-style: italic; }
+/* player screen on the TV */
+.pv-head h1 { color: var(--royal); }
+.pv-head .pv-now b { color: var(--gold); }
+.pv-row { background: rgb(255 255 255 / .9); border-color: #bcd2e6; box-shadow: 0 2px 8px rgb(29 79 145 / .08); }
+.pv-row.on { background: linear-gradient(90deg, #ffe9a8, var(--active)); border-color: var(--gold); box-shadow: 0 0 0 1px var(--gilt), 0 4px 16px rgb(184 134 42 / .3); }
 </style>
 
 <header class="bar">

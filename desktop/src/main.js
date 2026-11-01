@@ -63,7 +63,7 @@ async function inviteDevice() {
 function askForCompanion() {
   if (!current) return;
   if (connectWin && !connectWin.isDestroyed()) { connectWin.focus(); return; }
-  connectWin = new BrowserWindow({ width: 540, height: 400, resizable: false, minimizable: false, maximizable: false, parent: dmWin || undefined, modal: !!dmWin, title: "Connect to Companion", autoHideMenuBar: true, backgroundColor: "#171b26", webPreferences });
+  connectWin = new BrowserWindow({ width: 540, height: 400, resizable: false, minimizable: false, maximizable: false, parent: dmWin || undefined, modal: !!dmWin, title: "Connect to Companion", autoHideMenuBar: true, backgroundColor: "#f4f9fd", webPreferences });
   guard(connectWin);
   connectWin.on("closed", () => { connectWin = null; });
   connectWin.loadFile(path.join(__dirname, "connect.html"));
@@ -224,7 +224,7 @@ function guard(win) {
 }
 function showDm() {
   if (dmWin && !dmWin.isDestroyed()) { dmWin.loadFile(PAGE); refreshTitle(); return; }
-  dmWin = new BrowserWindow({ width: 1320, height: 900, minWidth: 720, minHeight: 500, title: title(), backgroundColor: "#0f121a", webPreferences });
+  dmWin = new BrowserWindow({ width: 1320, height: 900, minWidth: 720, minHeight: 500, title: title(), backgroundColor: "#dbe9f4", webPreferences });
   guard(dmWin);
   dmWin.on("page-title-updated", e => { e.preventDefault(); refreshTitle(); });
   dmWin.on("closed", () => { dmWin = null; if (playersWin && !playersWin.isDestroyed()) playersWin.close(); });
@@ -232,7 +232,7 @@ function showDm() {
 }
 function openPlayers() {
   if (playersWin && !playersWin.isDestroyed()) { playersWin.show(); playersWin.focus(); return; }
-  playersWin = new BrowserWindow({ width: 1100, height: 760, title: "Player Screen", backgroundColor: "#0f121a", autoHideMenuBar: true, webPreferences });
+  playersWin = new BrowserWindow({ width: 1100, height: 760, title: "Player Screen", backgroundColor: "#dbe9f4", autoHideMenuBar: true, webPreferences });
   guard(playersWin);
   playersWin.on("page-title-updated", e => e.preventDefault());
   playersWin.on("closed", () => { playersWin = null; });
@@ -244,7 +244,7 @@ function broadcast(sender, col) {
 
 function askForKey() {
   if (keyWin && !keyWin.isDestroyed()) { keyWin.focus(); return; }
-  keyWin = new BrowserWindow({ width: 520, height: 330, resizable: false, minimizable: false, maximizable: false, parent: dmWin || undefined, modal: !!dmWin, title: "Claude API key", autoHideMenuBar: true, backgroundColor: "#171b26", webPreferences });
+  keyWin = new BrowserWindow({ width: 520, height: 330, resizable: false, minimizable: false, maximizable: false, parent: dmWin || undefined, modal: !!dmWin, title: "Claude API key", autoHideMenuBar: true, backgroundColor: "#f4f9fd", webPreferences });
   guard(keyWin);
   keyWin.on("closed", () => { keyWin = null; });
   keyWin.loadFile(path.join(__dirname, "key.html"), { hash: getKey() ? "has" : "" });
