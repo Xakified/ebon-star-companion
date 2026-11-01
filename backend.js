@@ -91,6 +91,7 @@ class DemoBackend {
     this.put(db); return row;
   }
   async createDmInvite() { throw new Error("Connecting the DM Suite needs the live version of the app, not demo mode."); }
+  async redeemDmInvite() { throw new Error("DM codes need the live version of the app, not demo mode."); }
   async deleteHomebrew(id) { const db = this.db(); db.homebrew = db.homebrew.filter(h => h.id !== id); this.put(db); }
   subscribe(cid, cb) {
     const f = ev => { if (!ev.campaign_id || ev.campaign_id === cid) cb(ev); };
@@ -137,6 +138,13 @@ class SupabaseBackend {
     const code = this.ok(await this.sb.rpc("create_dm_invite", { p_campaign: cid }));
     const cfg = window.APP_CONFIG;
     return "ESC1." + btoa(JSON.stringify({ u: cfg.supabaseUrl, k: cfg.supabaseAnonKey, c: code }));
+  }
+  // Redeem a DM code (from the Companion or the DM Suite): this browser becomes a DM of that campaign.
+  async redeemDmInvite(code, display) {
+    let c = String(code || "").replace(/\s+/g, "");
+    const m = /^ESC1\.(.+)$/.exec(c);
+    if (m) { try { c = JSON.parse(atob(m[1].replace(/-/g, "+").replace(/_/g, "/"))).c; } catch (e) { throw new Error("That DM code is incomplete. Copy the whole thing and try again."); } }
+    return this.ok(await this.sb.rpc("redeem_dm_invite", { p_code: c, p_display: display || "DM" }));
   }
   subscribe(cid, cb) {
     const ch = this.sb.channel("camp-" + cid)
