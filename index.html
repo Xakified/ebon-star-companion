@@ -275,7 +275,7 @@ function vHome() {
   return `
   ${A.camps.length ? `<div class="card"><h2>Your campaigns</h2><div class="list">${list}</div></div>` : `<div class="card"><h2>Welcome</h2><p class="muted">Join your DM's campaign with the code they gave you, or start one if you're running the game.</p></div>`}
   <div class="card stack"><h2>Join a campaign</h2>
-    <label class="f"><span>Campaign code</span><input id="jCode" autocapitalize="characters" autocomplete="off" value="${esc(A.prefillCode || "")}" placeholder="ABC123" class="num"></label>
+    <label class="f"><span>Campaign code, or a DM code to get back in as the DM</span><input id="jCode" autocapitalize="characters" autocomplete="off" value="${esc(A.prefillCode || "")}" placeholder="ABC123" class="num"></label>
     <label class="f"><span>Your name</span><input id="jName" value="${esc(localStorage.getItem("esc-name") || "")}" placeholder="e.g. Sam"></label>
     <button class="btn primary" data-a="join">Join</button></div>
   <div class="card stack"><h2>Run a campaign</h2>
@@ -305,7 +305,7 @@ function vCamp() {
     const recent = A.grants.slice(0, 12).map(g => { const r = charRow(g.character_id); return `<div class="grant"><div class="grow"><b>${esc(E.grantLabel(g))}</b> <span class="muted small">to ${esc(r ? r.data.name : "?")}</span></div><span class="pill ${g.status === "accepted" ? "good" : g.status === "declined" ? "bad" : ""}">${g.status}</span></div>`; }).join("");
     return `
       <div class="card row"><div class="grow"><div class="small muted">Players join with this code</div><div class="code">${esc(A.camp.join_code)}</div></div><button class="btn sm" data-a="copylink">Copy invite link</button></div>
-      <div class="card row"><div class="grow"><b>DM Suite (desktop app)</b><div class="small muted">Bring these characters into your DM Suite's party list and initiative tracker, with HP and conditions synced both ways.</div></div><button class="btn sm" data-a="suitecode">Connect DM Suite</button></div>
+      <div class="card row"><div class="grow"><b>DM Suite and other devices</b><div class="small muted">Bring these characters into your DM Suite's party list and initiative tracker, with HP and conditions synced both ways. The same code makes another phone or browser a DM of this campaign.</div></div><button class="btn sm" data-a="suitecode">Make DM code</button></div>
       <div class="sec-title"><h2>Party</h2><span class="small muted">${A.chars.length} character${A.chars.length === 1 ? "" : "s"} · live</span></div>
       ${A.chars.length ? `<div class="party">${cards}</div>` : `<div class="card empty">No characters yet. When players join and build characters, they'll appear here.</div>`}
       <div class="grid2" style="margin-top:4px">
@@ -654,8 +654,9 @@ const ACT = {
   async join() {
     const code = val("jCode"), name = val("jName"); if (!code || !name) return toast("Enter the code and your name");
     localStorage.setItem("esc-name", name);
-    const c = await A.be.joinCampaign(code, name); A.camps = await A.be.myCampaigns(); history.replaceState(null, "", location.pathname + location.search);
-    await openCamp(c.id); render(); toast("Joined " + c.name);
+    const dm = /^ESC1\./.test(code.replace(/\s+/g, ""));
+    const c = dm ? await A.be.redeemDmInvite(code, name) : await A.be.joinCampaign(code, name); A.camps = await A.be.myCampaigns(); history.replaceState(null, "", location.pathname + location.search);
+    await openCamp(c.id); render(); toast((dm ? "You're a DM of " : "Joined ") + c.name);
   },
   async create() { const c = await A.be.createCampaign(val("cName") || "Campaign", "DM"); A.camps = await A.be.myCampaigns(); await openCamp(c.id); render(); },
   async sample() {
@@ -815,8 +816,8 @@ const ACT = {
   },
   async suitecode() {
     const code = await A.be.createDmInvite(A.camp.id);
-    dialog("Connect your DM Suite", `<div class="stack">
-      <p style="margin:0">In the DM Suite desktop app, choose <b>Companion &gt; Connect to Companion…</b> and paste this code. It works once and expires in 30 minutes.</p>
+    dialog("DM code", `<div class="stack">
+      <p style="margin:0">In the DM Suite desktop app, choose <b>Companion &gt; Connect to Companion…</b> and paste this code. Or, to be the DM in this app on another phone or browser, paste it into <b>Join a campaign</b> there. It works once and expires in 30 minutes.</p>
       <textarea id="suiteCode" readonly class="num small" style="min-height:110px;word-break:break-all">${esc(code)}</textarea>
       <p class="small muted" style="margin:0">Keep it to yourself: whoever uses it becomes a DM of this campaign.</p></div>`,
       `<button class="btn" data-a="close">Done</button><button class="btn primary" data-a="copysuite">Copy code</button>`);

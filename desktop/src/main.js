@@ -1,6 +1,6 @@
 // Ebon Star DM Screen: desktop shell. The page itself is app/index.html (built from the web version);
 // this process owns the campaign file, backups, the player window and the Claude API key.
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage, clipboard } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -49,6 +49,16 @@ function startCompanion() {
   companion.stop();
   const link = current && current.camp.companion;
   if (link && link.url) companion.start(link).catch(() => {});
+}
+async function inviteDevice() {
+  let code;
+  try { code = await companion.makeInvite(); } catch (e) { dialog.showErrorBox("Couldn't make a code", e.message); return; }
+  clipboard.writeText(code);
+  dialog.showMessageBox(dmWin, {
+    type: "info", buttons: ["OK"], title: "DM code",
+    message: "A DM code is on your clipboard",
+    detail: `Use it on the other device. It works once and expires in 30 minutes.\n\n• Another DM Suite: Companion > Connect to Companion…, then paste.\n• The Companion on a phone or browser: paste it into Join a campaign. That browser becomes a DM of ${current.camp.companion.name}.\n\nKeep it to yourself: whoever uses it becomes a DM.\n\n${code}`,
+  });
 }
 function askForCompanion() {
   if (!current) return;
@@ -271,6 +281,7 @@ function buildMenu() {
     { label: "Companion", submenu: [
       { label: current && current.camp.companion ? companionStatus.state === "unlinked" ? `${current.camp.companion.name}: not connected on this computer yet` : `Connected to ${current.camp.companion.name} (${companionStatus.state === "live" ? "live" : companionStatus.state})` : "Not connected", enabled: false },
       { label: current && current.camp.companion ? "Connect with a New Code…" : "Connect to Companion…", enabled: !!current, click: askForCompanion },
+      { label: "Code for Another Device…", enabled: !!(current && current.camp.companion) && companionStatus.state !== "unlinked", click: inviteDevice },
       { label: "Refresh Party Now", enabled: !!(current && current.camp.companion), click: () => companion.refresh().catch(e => dialog.showErrorBox("Couldn't reach the Companion", e.message)) },
       { label: "Disconnect", enabled: !!(current && current.camp.companion), click: disconnectCompanion },
     ] },

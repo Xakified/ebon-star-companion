@@ -61,6 +61,13 @@ class Companion {
     await this.start(link);
     return link;
   }
+  // A one-time DM code for another device: the laptop's DM Suite, or the Companion in a browser.
+  async makeInvite() {
+    if (!this.link || this.state === "unlinked") throw new Error("This computer isn't connected to the Companion, so it can't make a code.");
+    const r = await this.sb.rpc("create_dm_invite", { p_campaign: this.link.campaignId });
+    if (r.error) throw new Error(r.error.message);
+    return "ESC1." + Buffer.from(JSON.stringify({ u: this.link.url, k: this.link.key, c: r.data })).toString("base64");
+  }
   async start(link) {
     this.stop();
     this.link = link;
