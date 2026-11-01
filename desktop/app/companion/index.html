@@ -458,7 +458,7 @@ function vBuild() {
   if (s === 1) {
     const b = BACKGROUNDS[d.background];
     body = `<h2>Choose a background</h2><div class="pick" style="margin-top:10px">${Object.entries(BACKGROUNDS).map(([k, x]) => `<button class="${d.background === k ? "on" : ""}" data-a="bset" data-k="background" data-v="${esc(k)}"><b>${esc(k)}${srcTag("background", k)}</b><span>${esc(x.skills.join(", "))} · ${esc(x.feat)}</span></button>`).join("")}</div>
-      ${b ? `<div class="card stack"><div class="small">Skills: <b>${esc(b.skills.join(", "))}</b> · Tool: <b>${esc(b.tool)}</b> · Feat: <b>${esc(b.feat)}${b.featNote ? " (" + esc(b.featNote) + ")" : ""}</b></div>${FEATS[b.feat] ? `<div class="small muted">${esc(FEATS[b.feat])}</div>` : ""}
+      ${b ? `<div class="card stack"><div class="small">Skills: <b>${esc(b.skills.join(", "))}</b>${b.tool ? ` · Tool: <b>${esc(b.tool)}</b>` : ""} · Feat: <b>${esc(b.feat)}${b.featNote ? " (" + esc(b.featNote) + ")" : ""}</b></div>${FEATS[b.feat] ? `<div class="small muted">${esc(FEATS[b.feat])}</div>` : ""}
         <div><div class="small muted">Ability increases (choose from ${b.abil.map(a => ABIL_NAME[a]).join(", ")})</div>
         <div class="chips" style="margin:6px 0"><button class="chip ${d.bgMode === "21" ? "on" : ""}" data-a="bset" data-k="bgMode" data-v="21">+2 and +1</button><button class="chip ${d.bgMode === "111" ? "on" : ""}" data-a="bset" data-k="bgMode" data-v="111">+1 to all three</button></div>
         ${d.bgMode === "21" ? `<div class="grid2"><label class="f"><span>+2 to</span><select data-b="bg2">${opt(b.abil, d.bg2, a => ABIL_NAME[a])}</select></label><label class="f"><span>+1 to</span><select data-b="bg1">${opt(b.abil.filter(a => a !== d.bg2), d.bg1, a => ABIL_NAME[a])}</select></label></div>` : ""}</div></div>` : ""}
@@ -537,7 +537,7 @@ function finishDraft(d) {
   d.bgBonus = {};
   if (b) { if (d.bgMode === "111") b.abil.forEach(a => d.bgBonus[a] = 1); else { if (d.bg2) d.bgBonus[d.bg2] = 2; if (d.bg1) d.bgBonus[d.bg1] = (d.bgBonus[d.bg1] || 0) + 1; } }
   d.skills = [...new Set([...(b ? b.skills : []), ...d.classSkills, ...d.extraSkills.filter(Boolean)])];
-  d.tools = b ? [b.tool] : [];
+  d.tools = b && b.tool ? [b.tool] : [];
   d.feats = [];
   if (b) d.feats.push({ id: E.uid(), name: b.feat + (b.featNote ? ` (${b.featNote})` : ""), text: FEATS[b.feat] || "", source: d.background });
   if (d.originFeat2) d.feats.push({ id: E.uid(), name: d.originFeat2, text: FEATS[d.originFeat2] || "", source: "Human (Versatile)" });
