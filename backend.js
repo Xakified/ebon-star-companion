@@ -90,6 +90,11 @@ class DemoBackend {
     if (row) Object.assign(row, { kind, data }); else { row = { id: Engine.uid(), campaign_id: cid, kind, data }; db.homebrew.push(row); }
     this.put(db); return row;
   }
+  async reassignCharacter(id, userId) {
+    const db = this.db(), row = db.characters.find(c => c.id === id);
+    if (!row || !this.isDM(db, row.campaign_id)) throw new Error("Only the DM can move characters.");
+    row.owner = userId; row.version++; this.put(db); this.emit({ table: "characters", campaign_id: row.campaign_id, id });
+  }
   async createDmInvite() { throw new Error("Connecting the DM Suite needs the live version of the app, not demo mode."); }
   async redeemDmInvite() { throw new Error("DM codes need the live version of the app, not demo mode."); }
   async deleteHomebrew(id) { const db = this.db(); db.homebrew = db.homebrew.filter(h => h.id !== id); this.put(db); }
@@ -134,6 +139,7 @@ class SupabaseBackend {
   }
   async deleteHomebrew(id) { this.ok(await this.sb.from("homebrew").delete().eq("id", id)); }
   // One-time code that lets the desktop DM Suite join this campaign as a second DM device.
+  async reassignCharacter(id, userId) { this.ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); }
   async createDmInvite(cid) {
     const code = this.ok(await this.sb.rpc("create_dm_invite", { p_campaign: cid }));
     const cfg = window.APP_CONFIG;
