@@ -336,8 +336,8 @@ function checkContent(d) {
   if (!d.name) throw new Error("The content pack needs a name.");
   const n = { species: Object.keys(d.species || {}).length, backgrounds: Object.keys(d.backgrounds || {}).length, feats: Object.keys(d.feats || {}).length,
     classes: Object.keys(d.classes || {}).length, subclasses: Object.values(d.subclasses || {}).reduce((s, l) => s + (Array.isArray(l) ? l.length : 0), 0), spells: Array.isArray(d.spells) ? d.spells.length : 0,
-    items: Array.isArray(d.items) ? d.items.length : 0, features: Array.isArray(d.features) ? d.features.length : 0 };
-  const one = { species: "species", backgrounds: "background", feats: "feat", classes: "class", subclasses: "subclass", spells: "spell", items: "magic item", features: "gift" };
+    items: Array.isArray(d.items) ? d.items.length : 0, features: Array.isArray(d.features) ? d.features.length : 0, monsters: Array.isArray(d.monsters) ? d.monsters.length : 0 };
+  const one = { species: "species", backgrounds: "background", feats: "feat", classes: "class", subclasses: "subclass", spells: "spell", items: "magic item", features: "gift", monsters: "monster" };
   const parts = Object.entries(n).filter(([, v]) => v).map(([k, v]) => `${v} ${v === 1 ? one[k] : k === "items" ? "magic items" : k === "features" ? "gifts" : k}`);
   if (!parts.length) throw new Error("That content pack is empty.");
   return parts.join(" · ");

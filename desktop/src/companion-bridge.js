@@ -208,5 +208,22 @@
     setInterval(pullNotes, 60000);                                                    // safety net for a missed live update
   }
 
-  D.companionGet().then(r => { if (hasJournal) notesStatus(r.status); status = r.status || status; party = r.party || []; if (party.length) applyRemote(); else badge(); });
+  // Monsters from the DM's books go into the tracker's monster list.
+  let monTimer = null;
+  async function pullMonsters() {
+    const r = await D.companionCall("listContent", []).catch(e => ({ error: e.message }));
+    if (!r || r.error) return;
+    const list = [];
+    for (const b of r.value || []) {
+      if (!b.enabled || !b.data || !Array.isArray(b.data.monsters)) continue;
+      for (const m of b.data.monsters) if (m && m.name) list.push([String(m.name), String(m.cr ?? "?"), +m.ac || 10, String(m.hd || m.hp || "10"), +m.init || 0]);
+    }
+    window.BOOK_MONSTERS = list;
+    if (typeof fillMonsterList === "function") fillMonsterList();
+  }
+  const monSoon = () => { clearTimeout(monTimer); monTimer = setTimeout(pullMonsters, 300); };
+  D.onCompanionStatus(st => { if (st && st.state === "live") monSoon(); });
+  if (D.onCompanionEvent) D.onCompanionEvent(ev => { if (ev && ev.table === "content_packs") monSoon(); });
+
+  D.companionGet().then(r => { if (r.status && r.status.state === "live") monSoon(); if (hasJournal) notesStatus(r.status); status = r.status || status; party = r.party || []; if (party.length) applyRemote(); else badge(); });
 })();

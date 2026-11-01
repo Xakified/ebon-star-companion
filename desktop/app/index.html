@@ -939,7 +939,8 @@ $("#diceForm").addEventListener("submit", e => {
 syncDiceUI();
 
 /* ================= INITIATIVE ================= */
-const allMonsters = () => [...S.customMonsters, ...SRD_MONSTERS];
+// Monsters from the DM's books (sent over by the Companion link in the desktop app) come before the SRD ones and replace any with the same name.
+const allMonsters = () => { const book = window.BOOK_MONSTERS || [], names = new Set(book.map(m => m[0].toLowerCase())); return [...S.customMonsters, ...book, ...SRD_MONSTERS.filter(m => !names.has(m[0].toLowerCase()))]; };
 function fillMonsterList() {
   $("#monsterList").innerHTML = allMonsters().map(m => `<option value="${esc(m[0])}">CR ${esc(m[1])} · AC ${m[2]} · HP ${esc(m[3])}</option>`).join("");
 }
