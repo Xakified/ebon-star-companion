@@ -31,8 +31,8 @@ function summarize(row, members) {
 
 class Companion {
   // storage: {getItem,setItem,removeItem} for the sign-in session; onParty(list); onStatus({state, message})
-  constructor({ storage, onParty, onStatus, createClientFn }) {
-    this.storage = storage; this.onParty = onParty || (() => {}); this.onStatus = onStatus || (() => {});
+  constructor({ storage, onParty, onStatus, onChange, createClientFn }) {
+    this.storage = storage; this.onParty = onParty || (() => {}); this.onStatus = onStatus || (() => {}); this.onChange = onChange || (() => {});
     this.make = createClientFn || createClient;
     this.sb = null; this.link = null; this.party = []; this.chan = null; this.timer = null; this.state = "off";
   }
@@ -43,10 +43,10 @@ class Companion {
   }
   async signIn() {
     const { data } = await this.sb.auth.getSession();
-    if (data && data.session) return data.session.user.id;
+    if (data && data.session) return (this.userId = data.session.user.id);
     const r = await this.sb.auth.signInAnonymously();
     if (r.error) throw new Error("Couldn't sign in to the Companion: " + r.error.message);
-    return r.data.user.id;
+    return (this.userId = r.data.user.id);
   }
   status(state, message = "") { this.state = state; this.onStatus({ state, message, name: this.link && this.link.name, count: this.party.length }); }
 
@@ -77,7 +77,9 @@ class Companion {
       await this.signIn();
       await this.refresh();
       this.chan = this.sb.channel("suite-" + link.campaignId)
-        .on("postgres_changes", { event: "*", schema: "public", table: "characters", filter: "campaign_id=eq." + link.campaignId }, () => this.soon())
+        .on("postgres_changes", { event: "*", schema: "public", table: "characters", filter: "campaign_id=eq." + link.campaignId }, p => { this.soon(); this.onChange({ table: "characters", id: (p.new && p.new.id) || (p.old && p.old.id) }); })
+        .on("postgres_changes", { event: "*", schema: "public", table: "grants", filter: "campaign_id=eq." + link.campaignId }, p => this.onChange({ table: "grants", id: (p.new && p.new.id) || (p.old && p.old.id) }))
+        .on("postgres_changes", { event: "*", schema: "public", table: "members", filter: "campaign_id=eq." + link.campaignId }, () => this.onChange({ table: "members" }))
         .subscribe(s => { if (s === "SUBSCRIBED") { if (!this.notMember) this.status("live"); } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") this.status("error", "Live updates paused; retrying."); });
       // safety net in case a live update is missed
       this.poll = setInterval(() => this.refresh().catch(() => {}), 60000);
@@ -128,5 +130,35 @@ class Companion {
     throw new Error("Couldn't save: the sheet kept changing.");
   }
 }
+
+// Everything the Players tab (the Companion's DM view running inside the DM Suite) asks for.
+const ok = r => { if (r.error) throw new Error(r.error.message); return r.data; };
+const CALLS = {
+  async campaign() { const r = ok(await this.sb.from("campaigns").select("*").eq("id", this.cid()).maybeSingle()); return r; },
+  async members() { return ok(await this.sb.from("members").select("*").eq("campaign_id", this.cid())); },
+  async listCharacters() { return ok(await this.sb.from("characters").select("*").eq("campaign_id", this.cid()).order("updated_at")); },
+  async getCharacter(id) { return ok(await this.sb.from("characters").select("*").eq("id", id).maybeSingle()); },
+  async saveCharacter(id, version, data) { return ok(await this.sb.rpc("save_character", { p_id: id, p_version: version, p_data: data })); },
+  async deleteCharacter(id) { ok(await this.sb.from("characters").delete().eq("id", id)); return true; },
+  async sendGrant(characterId, kind, payload, note) { return ok(await this.sb.from("grants").insert({ campaign_id: this.cid(), character_id: characterId, kind, payload, note: note || "" }).select().single()); },
+  async listGrants() { return ok(await this.sb.from("grants").select("*").eq("campaign_id", this.cid()).order("created_at", { ascending: false })); },
+  async setGrantStatus(id, status) { ok(await this.sb.from("grants").update({ status }).eq("id", id)); return true; },
+  async listHomebrew() { return ok(await this.sb.from("homebrew").select("*").eq("campaign_id", this.cid())); },
+  async saveHomebrew(kind, data, id) {
+    if (id) return ok(await this.sb.from("homebrew").update({ kind, data, updated_at: new Date().toISOString() }).eq("id", id).select().single());
+    return ok(await this.sb.from("homebrew").insert({ campaign_id: this.cid(), kind, data }).select().single());
+  },
+  async deleteHomebrew(id) { ok(await this.sb.from("homebrew").delete().eq("id", id)); return true; },
+  async reassignCharacter(id, userId) { ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); return true; },
+  async createDmInvite() { return this.makeInvite(); },
+};
+Companion.prototype.cid = function () { if (!this.link || !this.sb) throw new Error("This campaign isn't connected to the Companion."); return this.link.campaignId; };
+Companion.prototype.call = async function (method, args) {
+  const f = Object.prototype.hasOwnProperty.call(CALLS, method) && CALLS[method];
+  if (!f) throw new Error("Unknown request: " + method);
+  const out = await f.apply(this, Array.isArray(args) ? args : []);
+  if (/^(save|delete|send|set|reassign)/.test(method)) this.soon(); // keep the tracker's party list current too
+  return out;
+};
 
 module.exports = { Companion, parseCode, summarize };

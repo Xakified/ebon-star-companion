@@ -7,6 +7,8 @@ const dbListeners = new Set();
 const compParty = new Set(), compStatus = new Set();
 ipcRenderer.on("companion:party", (_e, list) => compParty.forEach(fn => fn(list)));
 ipcRenderer.on("companion:status", (_e, st) => compStatus.forEach(fn => fn(st)));
+const compEvents = new Set();
+ipcRenderer.on("companion:event", (_e, ev) => compEvents.forEach(fn => fn(ev)));
 ipcRenderer.on("db:changed", (_e, col, data) => dbListeners.forEach(fn => fn(col, data)));
 
 contextBridge.exposeInMainWorld("desktop", {
@@ -27,6 +29,8 @@ contextBridge.exposeInMainWorld("desktop", {
   cancelKey: () => ipcRenderer.send("key:cancel"),
   companionGet: () => ipcRenderer.invoke("companion:get"),
   companionPatch: (id, patch) => ipcRenderer.invoke("companion:patch", id, patch),
+  companionCall: (method, args) => ipcRenderer.invoke("companion:call", method, args),
+  onCompanionEvent: fn => { compEvents.add(fn); },
   onCompanionParty: fn => { compParty.add(fn); },
   onCompanionStatus: fn => { compStatus.add(fn); },
   companionConnect: code => ipcRenderer.invoke("companion:connect", code),

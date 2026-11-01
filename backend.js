@@ -161,6 +161,49 @@ class SupabaseBackend {
   }
 }
 
+// ---------- Inside the DM Suite desktop app ----------
+// The Companion runs in a frame of the DM Suite's Players tab. Every call goes to the DM Suite, which talks to
+// Supabase with its own DM sign-in, so the DM never has to sign in here.
+class SuiteBackend {
+  constructor() {
+    this.mode = "suite"; this.n = 0; this.wait = new Map(); this.listeners = new Set();
+    window.addEventListener("message", e => {
+      if (e.source !== window.parent || !e.data || typeof e.data !== "object") return;
+      const m = e.data;
+      if (m.esc === "result" && this.wait.has(m.id)) { const w = this.wait.get(m.id); this.wait.delete(m.id); m.ok ? w.ok(m.value) : w.no(new Error(m.error || "The DM Suite couldn't do that.")); }
+      else if (m.esc === "event") this.listeners.forEach(f => f(m.ev || {}));
+      else if (m.esc === "theme") { if (m.theme) document.documentElement.dataset.theme = m.theme; else delete document.documentElement.dataset.theme; }
+      else if (m.esc === "reload") location.reload();
+    });
+  }
+  ask(method, ...args) {
+    const id = ++this.n;
+    return new Promise((ok, no) => { this.wait.set(id, { ok, no }); window.parent.postMessage({ esc: "call", id, method, args }, "*"); });
+  }
+  async init() { const st = await this.ask("status"); this.user = st.user || "suite"; this.linked = !!st.linked; this.statusMessage = st.message || ""; return this.user; }
+  async myCampaigns() { if (!this.linked) return []; const c = await this.ask("campaign"); return c ? [Object.assign(c, { role: "dm" })] : []; }
+  members() { return this.ask("members"); }
+  listCharacters() { return this.ask("listCharacters"); }
+  getCharacter(id) { return this.ask("getCharacter", id); }
+  saveCharacter(id, version, data) { return this.ask("saveCharacter", id, version, data); }
+  deleteCharacter(id) { return this.ask("deleteCharacter", id); }
+  sendGrant(_cid, characterId, kind, payload, note) { return this.ask("sendGrant", characterId, kind, payload, note); }
+  listGrants() { return this.ask("listGrants"); }
+  setGrantStatus(id, status) { return this.ask("setGrantStatus", id, status); }
+  listHomebrew() { return this.ask("listHomebrew"); }
+  saveHomebrew(_cid, kind, data, id) { return this.ask("saveHomebrew", kind, data, id); }
+  deleteHomebrew(id) { return this.ask("deleteHomebrew", id); }
+  reassignCharacter(id, userId) { return this.ask("reassignCharacter", id, userId); }
+  createDmInvite() { return this.ask("createDmInvite"); }
+  // DM Suite extras
+  suiteItems() { return this.ask("suiteItems"); }
+  openConnect() { return this.ask("openConnect"); }
+  copy(text) { return this.ask("copy", text); }
+  async createCampaign() { throw new Error("Create the campaign in the Companion, then connect the DM Suite with a DM code."); }
+  async joinCampaign() { throw new Error("Use Companion > Connect to Companion in the menu."); }
+  subscribe(_cid, cb) { this.listeners.add(cb); return () => this.listeners.delete(cb); }
+}
+
 // Read-modify-write with a version check, retried if someone else saved first.
 async function updateCharacter(be, id, mutate) {
   for (let i = 0; i < 5; i++) {
@@ -175,6 +218,7 @@ async function updateCharacter(be, id, mutate) {
 
 g.makeBackend = function () {
   const cfg = g.APP_CONFIG || {};
+  if (/(^|[#&])suite\b/.test(location.hash.slice(1)) && window.parent !== window) return new SuiteBackend();
   const forceDemo = /[?&]demo\b/.test(location.search);
   if (!forceDemo && cfg.supabaseUrl && cfg.supabaseAnonKey && g.supabase) return new SupabaseBackend(cfg.supabaseUrl, cfg.supabaseAnonKey);
   return new DemoBackend();
