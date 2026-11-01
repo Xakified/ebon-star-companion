@@ -71,7 +71,7 @@ class Companion {
       await this.refresh();
       this.chan = this.sb.channel("suite-" + link.campaignId)
         .on("postgres_changes", { event: "*", schema: "public", table: "characters", filter: "campaign_id=eq." + link.campaignId }, () => this.soon())
-        .subscribe(s => { if (s === "SUBSCRIBED") this.status("live"); else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") this.status("error", "Live updates paused; retrying."); });
+        .subscribe(s => { if (s === "SUBSCRIBED") { if (!this.notMember) this.status("live"); } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") this.status("error", "Live updates paused; retrying."); });
       // safety net in case a live update is missed
       this.poll = setInterval(() => this.refresh().catch(() => {}), 60000);
     } catch (e) { this.status("error", e.message); throw e; }
@@ -91,7 +91,9 @@ class Companion {
     ]);
     if (c.error) throw new Error(c.error.message);
     const members = m.data || [];
-    if (!members.some(x => x.role === "dm")) { /* rules hide members if we're not in the campaign */ }
+    // The rules hide a campaign's members from anyone not in it: this computer hasn't been added as a DM device yet.
+    this.notMember = !members.length;
+    if (this.notMember) { this.party = []; this.onParty(this.party); this.status("unlinked", "This computer isn't connected to the Companion yet. In the Companion, press Connect DM Suite, then here choose Companion > Connect with a New Code."); return this.party; }
     this.party = (c.data || []).map(r => summarize(r, members));
     this.onParty(this.party);
     if (this.state !== "live") this.status(this.chan ? "live" : this.state);

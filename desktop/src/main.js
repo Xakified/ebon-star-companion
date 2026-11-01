@@ -269,7 +269,7 @@ function buildMenu() {
       { type: "separator" }, { role: "toggleDevTools" },
     ] },
     { label: "Companion", submenu: [
-      { label: current && current.camp.companion ? `Connected to ${current.camp.companion.name} (${companionStatus.state === "live" ? "live" : companionStatus.state})` : "Not connected", enabled: false },
+      { label: current && current.camp.companion ? companionStatus.state === "unlinked" ? `${current.camp.companion.name}: not connected on this computer yet` : `Connected to ${current.camp.companion.name} (${companionStatus.state === "live" ? "live" : companionStatus.state})` : "Not connected", enabled: false },
       { label: current && current.camp.companion ? "Connect with a New Code…" : "Connect to Companion…", enabled: !!current, click: askForCompanion },
       { label: "Refresh Party Now", enabled: !!(current && current.camp.companion), click: () => companion.refresh().catch(e => dialog.showErrorBox("Couldn't reach the Companion", e.message)) },
       { label: "Disconnect", enabled: !!(current && current.camp.companion), click: disconnectCompanion },

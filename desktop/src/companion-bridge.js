@@ -83,7 +83,7 @@
     if (status.state === "off") { if (b) b.remove(); add.title = ""; return; }
     if (!b) { b = document.createElement("span"); b.id = "compPill"; b.style.cssText = "font-size:.8rem;padding:2px 9px;border-radius:999px;background:var(--accent-soft);white-space:nowrap;align-self:center"; add.after(b); }
     const live = status.state === "live";
-    b.textContent = live ? `Companion · ${party.length} live` : status.state === "connecting" ? "Companion · connecting…" : "Companion · offline";
+    b.textContent = live ? `Companion · ${party.length} live` : status.state === "connecting" ? "Companion · connecting…" : status.state === "unlinked" ? "Companion · connect this computer" : "Companion · offline";
     b.title = status.message || (live ? `Party and HP sync with ${status.name || "the Companion"}.` : "");
     b.style.color = live ? "" : "var(--warn)";
     add.title = live ? "Adds your players' Companion characters with their current HP, AC and initiative bonus." : "";
