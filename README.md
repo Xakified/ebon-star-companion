@@ -65,6 +65,13 @@ Open the app, create your campaign, and tap **Copy invite link**. The link fills
 - A Party tab inside the DM Suite desktop app. Right now the DM side lives in this app.
 - Linking an email so a player can move their character to a new phone. Anonymous sign-in is tied to the device.
 
+## Moving a character to a new phone
+A player's phone remembers them, so a new phone or cleared browser data makes them a new person. To give them their character back:
+1. They open the Companion on the new device and join again with the campaign code.
+2. You open their character, go to the **Notes** tab, and press **Move to another player**. Pick their new entry.
+
+Needs `supabase/fix-03-move-character.sql` run once in the Supabase SQL Editor.
+
 ## Files
 - `index.html`: the app (player and DM views)
 - `srd.js`: rules data from SRD 5.2 (CC-BY-4.0)

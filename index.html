@@ -584,7 +584,8 @@ function tNotes(r, d) {
     <label class="f"><span>Languages</span><input data-field="languages" value="${esc(d.languages)}"></label>
     <div class="grid3"><label class="f"><span>Extra max HP</span><input type="number" class="num" data-numfield="hpBonus" value="${d.hpBonus || 0}"></label><label class="f"><span>Extra AC</span><input type="number" class="num" data-numfield="acBonus" value="${d.acBonus || 0}"></label><label class="f"><span>Extra speed</span><input type="number" class="num" data-numfield="speedBonus" value="${d.speedBonus || 0}"></label></div></div>
     <div class="card"><h3>History</h3><div class="list">${(d.log || []).slice(0, 40).map(l => `<div class="li small"><span class="muted num tiny" style="min-width:6.5em">${new Date(l.t).toLocaleDateString()}</span><span>${esc(l.text)}</span></div>`).join("") || `<p class="muted small">Nothing yet.</p>`}</div></div>
-    ${!isDM() || true ? `<button class="btn danger" style="margin-top:12px" data-a="delchar">Delete character</button>` : ""}`;
+    ${isDM() ? `<div class="card row"><div class="grow"><b>Player</b><div class="small muted">${esc(memberName(r.owner) || "Unknown player")}. If they're on a new phone or lost their browser data, have them join again with the campaign code, then move this character to them.</div></div><button class="btn sm" data-a="movechar">Move to another player</button></div>` : ""}
+    <button class="btn danger" style="margin-top:12px" data-a="delchar">Delete character</button>`;
 }
 
 // ---------- dialogs ----------
@@ -807,6 +808,24 @@ const ACT = {
     dialog("Edit feature", featForm(f), `<button class="btn danger" data-a="delfeat" data-id="${f.id}">Remove</button><span class="grow"></span><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveFeat" data-id="${f.id}">Save</button>`);
   },
   delfeat(el) { const id = el.dataset.id; edit(A.charId, d => { d.features = d.features.filter(f => f.id !== id); d.feats = d.feats.filter(f => f.id !== id); }); closeDlg(); },
+  async movechar() {
+    const r = charRow(A.charId); if (!r) return;
+    A.members = await A.be.members(A.camp.id);
+    const owned = uid => A.chars.filter(c => c.owner === uid).length;
+    const others = A.members.filter(m => m.role === "player" && m.user_id !== r.owner)
+      .sort((a, b) => (owned(a.user_id) - owned(b.user_id)) || String(b.joined_at || "").localeCompare(String(a.joined_at || "")));
+    if (!others.length) return ask({ title: "No one to move it to yet", text: `Have the player open the Companion on their new device and join with code ${A.camp.join_code}. Then come back here and move ${r.data.name} to them.`, ok: "OK" });
+    dialog(`Move ${r.data.name}`, `<div class="stack"><p style="margin:0" class="small muted">Pick who should own this character now. They'll see it on their device right away, and ${esc(memberName(r.owner) || "the old device")} will no longer have it.</p>
+      <div class="list">${others.map((m, i) => `<label class="li" style="cursor:pointer"><input type="radio" name="moveTo" value="${m.user_id}" ${i ? "" : "checked"}><span class="grow"><b>${esc(m.display_name || "Player")}</b><span class="small muted"> · ${owned(m.user_id) ? owned(m.user_id) + " character" + (owned(m.user_id) > 1 ? "s" : "") : "no character yet"}${m.joined_at ? " · joined " + new Date(m.joined_at).toLocaleDateString() : ""}</span></span></label>`).join("")}</div></div>`,
+      `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="doMove">Move character</button>`);
+  },
+  async doMove() {
+    const to = document.querySelector("input[name=moveTo]:checked"); if (!to) return toast("Pick a player");
+    const r = charRow(A.charId), name = (A.members.find(m => m.user_id === to.value) || {}).display_name || "them";
+    await A.be.reassignCharacter(r.id, to.value);
+    await edit(r.id, d => { d.log.unshift({ t: Date.now(), text: `Moved to ${name} by the DM` }); });
+    closeDlg(); await refresh(); render(); toast(`${r.data.name} now belongs to ${name}`);
+  },
   async delchar() {
     const r = charRow(A.charId); if (!r) return; const typed = await ask({ title: "Delete character", text: `This can't be undone. Type ${r.data.name} to confirm.`, input: "text", ok: "Delete", danger: true }); if (typed == null || typed.trim() !== r.data.name) { if (typed != null) toast("The name didn't match"); return; }
     await A.be.deleteCharacter(r.id); A.chars = A.chars.filter(c => c.id !== r.id); A.view = "camp"; render(); toast("Character deleted");
