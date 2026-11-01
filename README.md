@@ -93,9 +93,10 @@ A book file is JSON in this shape (every section is optional; something with the
   "subclasses": { "Fighter": [{ "name": "Subclass", "text": "summary", "f": [[3, "Feature", "summary"]] }] },
   "spells": [{ "name": "Spell", "level": 1, "school": "Evocation", "classes": ["Wizard"], "time": "Action", "range": "60 feet", "components": "V, S", "duration": "Instantaneous", "text": "summary" }],
   "items": [{ "name": "Item", "type": "Wondrous Item", "rarity": "rare", "attune": true, "attuneBy": "", "text": "summary" }],
-  "features": [{ "name": "Blessing", "kind": "Blessing", "text": "summary", "uses": 0, "reset": "long" }] }
+  "features": [{ "name": "Blessing", "kind": "Blessing", "text": "summary", "uses": 0, "reset": "long" }],
+  "monsters": [{ "name": "Monster", "cr": "1/2", "ac": 13, "hp": 22, "hd": "4d8+4", "init": 1, "type": "Medium Beast, Unaligned" }] }
 ```
-Items and features (blessings, charms and other gifts) don't go in the builder: in **Send**, start typing a name and pick one to fill in the form.
+Items and features (blessings, charms and other gifts) don't go in the builder: in **Send**, start typing a name and pick one to fill in the form. Monsters only go to the DM Suite: they join the combat tracker's monster list (a book monster replaces an SRD one with the same name).
 A resource's count is a list of 20 numbers (one per level), a single number, or `"mod:cha"` for an ability modifier (at least 1).
 
 ## Moving a character to a new phone

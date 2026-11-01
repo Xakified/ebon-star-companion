@@ -1,19 +1,19 @@
 {
-  "version": "1.9.1",
+  "version": "1.9.2",
   "minShell": "1.2.0",
-  "notes": "Books can hold magic items and gifts to pick in Send",
-  "published": "2026-11-01T22:01:00.498Z",
+  "notes": "Monsters from your books (like the Monster Manual) show up in the combat tracker",
+  "published": "2026-11-01T22:26:21.235Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "0c379f8b3a6cdde66e8c5de7056c8af47fb31124075fbef61dbc9cab3464b674",
+    "package.json": "f983f82971bf37c72f9eb7d40da96b123cce068073d17d329c922b5c210a5dcb",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
-    "src/companion/engine.js": "02ec0ee2834bb6b4a5de15b224ae034df9b728d0003007ce92468e3081a9f614",
+    "src/companion/engine.js": "ad14b8a147360c1a99e5708ff91460b5a3ba05229cfae9024f68b5a1cd45c2db",
     "src/companion/srd.js": "d9844ae816c0e6abeec2cdaa4ef8253b65ae356d0b5aa79dd2556a967a767276",
-    "src/companion-bridge.js": "3af07f1283ab1f55999621a5fd14c88ac68fe513846941859092ac27fc8fcbe1",
+    "src/companion-bridge.js": "11ceb46d7f83522d54c9a4b1bbc4117bc441875eb769e92c770dcdabe3a6eb09",
     "src/companion.js": "4149acffc4b88e2715663bc52eae8bbd1e0f4560b4f78866bfa663a1706dea1f",
     "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
     "src/key.html": "b9c9c7a73913847b6d7f50fe238f4556bdaeece103b17868bbb71241331bb1a5",
@@ -23,10 +23,10 @@
     "src/updater.js": "73c926a09ed7b70d0e1c34dde1915f2ac257cd0b40f4114e254af943481d8d71",
     "app/companion/backend.js": "18a1dabdaf0ff0aa02bd8054a90d4ff5afe2ff822717d37c7d2e546624bac2e8",
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
-    "app/companion/engine.js": "02ec0ee2834bb6b4a5de15b224ae034df9b728d0003007ce92468e3081a9f614",
+    "app/companion/engine.js": "ad14b8a147360c1a99e5708ff91460b5a3ba05229cfae9024f68b5a1cd45c2db",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
     "app/companion/index.html": "8f14d5eb14855379c5e18e71e9efac4483b611d0f3cc6f843765c3d02762b1c5",
     "app/companion/srd.js": "d9844ae816c0e6abeec2cdaa4ef8253b65ae356d0b5aa79dd2556a967a767276",
-    "app/index.html": "6658e8a40223dc2139a48bb4d41d9b22f251fed1d1c9c1a64dc56c56c0a8f69e"
+    "app/index.html": "6fb54e2a5dcad23f32728d9a3cb536e801f25d468dce3aba8834f246b3378f78"
   }
 }
