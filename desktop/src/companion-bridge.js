@@ -160,7 +160,8 @@
   function noteFixed() { if (window.PLAYER_NOTES_PROBLEM) { delete window.PLAYER_NOTES_PROBLEM; if (typeof paintPlayerNotes === "function") paintPlayerNotes(); } }
   function publishedSessions() {
     return Object.entries(J.sessions).filter(([, x]) => x.status === "played" || x.live)
-      .map(([id, x]) => ({ id, title: x.title || "", played_on: x.date || "", live: !!x.live, ord: x.order || 0, ended_at: x.ended ? new Date(x.ended).toISOString() : null, recap: x.recap || "", contradictions: x.contradictions || "" }))
+      .map(([id, x]) => ({ id, title: x.title || "", played_on: x.date || "", live: !!x.live, ord: x.order || 0, ended_at: x.ended ? new Date(x.ended).toISOString() : null, recap: x.recap || "", contradictions: x.contradictions || "",
+        privateRecaps: Object.entries(x.privateRecaps || {}).map(([user_id, v]) => ({ user_id, recap: (v && v.recap) || "" })).filter(v => v.recap) }))
       .sort((a, b) => a.ord - b.ord);
   }
   async function publishSessions(force) {
@@ -173,6 +174,7 @@
     if (r && r.error) { pubSig = ""; noteProblem(r.error); return; }
     pubSig = sig; noteFixed();
     if (r && r.value === "no-recap" && !recapWarned) { recapWarned = true; toast("Players can't see session recaps yet: run fix-05-session-recaps.sql from the Companion repo in the Supabase SQL Editor.", null, null, 9000); }
+    if (r && r.value === "no-private" && !recapWarned) { recapWarned = true; toast("Players can't see their private recaps yet: run fix-06-party-and-private-notes.sql from the Companion repo in the Supabase SQL Editor.", null, null, 9000); }
   }
   async function pullNotes() {
     if (!notesOn || pulling || !J.ready || !J.db) return;
@@ -186,7 +188,7 @@
         const have = J.notes[n.id];
         if (n.deleted) { if (have) { delete J.notes[n.id]; deleteDoc(`notes/${n.id}`).catch(() => {}); changed = true; } continue; }
         const at = Date.parse(n.created_at) || Date.now(), up = Date.parse(n.updated_at) || at;
-        const doc = { session: n.session_id, by: n.author_name || "", character: n.character_name || "", body: n.body || "", at, edited: up - at > 60000 ? up : 0 };
+        const doc = { session: n.session_id, by: n.author_name || "", character: n.character_name || "", body: n.body || "", at, edited: up - at > 60000 ? up : 0, author: n.author, private: n.visibility !== "shared" };
         if (JSON.stringify(have) !== JSON.stringify(doc)) { J.notes[n.id] = doc; writeDoc(`notes/${n.id}`, () => J.notes[n.id], 0); changed = true; }
       }
       if (changed) paintPlayerNotes();

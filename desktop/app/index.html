@@ -1989,7 +1989,7 @@ function renderSessions(fromSnapshot) {
   if (!s) { main.innerHTML = `<div class="jhead"><h2>Sessions</h2></div><p class="hint">No sessions yet. Plan one on the Prep tab.</p>`; return; }
   const prepFilled = PREP_FIELDS.filter(([k]) => (s.prep || {})[k]);
   if (!J.sessEdit) {
-    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span>${s.live ? `<span class="livepill" title="Players can add notes to this session from the Companion">● Live</span>` : ""}<button class="btn sm" data-ses="edit">Edit</button>${s.live ? `<button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="End the session and have Claude write your DM update (NPCs, plot, hooks, what the players are thinking). Everything is already saved.">End session</button>` : `<button class="btn sm" data-ses="end" ${J.ending ? "disabled" : ""} title="Have Claude write your DM-only update for this session: NPCs, plot points, hooks and what the players are thinking">${s.update ? "Redo DM update" : "DM update"}</button><button class="btn sm primary" data-ses="summarize" ${J.summing ? "disabled" : ""} title="Claude writes the player recap from your notes and every player's notes, and flags notes that don't line up">${s.recap ? "Summarize again" : "Summarize"}</button>`}</div>
+    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span>${s.live ? `<span class="livepill" title="Players can add notes to this session from the Companion">● Live</span>` : ""}<button class="btn sm" data-ses="edit">Edit</button>${s.live ? `<button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="End the session and have Claude write your DM update (NPCs, plot, hooks, what the players are thinking). Everything is already saved.">End session</button>` : `<button class="btn sm" data-ses="end" ${J.ending ? "disabled" : ""} title="Have Claude write your DM-only update for this session: NPCs, plot points, hooks and what the players are thinking">${s.update ? "Redo DM update" : "DM update"}</button><button class="btn sm primary" data-ses="summarize" ${J.summing ? "disabled" : ""} title="Claude writes the player recap from your notes and the party notes, flags notes that don't line up, and writes each player a private recap from their private notes">${s.recap ? "Summarize again" : "Summarize"}</button>`}</div>
       <h2 style="font-size:34px">${esc(s.title)}</h2>
       ${endBoxHtml(J.sessId, s)}
       ${sumBoxHtml(J.sessId, s)}
@@ -2133,19 +2133,24 @@ $("#sessMain").addEventListener("click", e => {
 
 /* ---------- player notes: what players write in the Companion, copied into the campaign file ----------
    notes/{id}: { session, by, character, body, at, edited }. The desktop app's Companion link fills these in. */
-function notesFor(sid) { return Object.entries(J.notes).map(([id, n]) => ({ id, ...n })).filter(n => n.session === sid).sort((a, b) => (a.at || 0) - (b.at || 0)); }
+// which: "shared" (party notes, every player sees them), "private" (only the writer and the DM), or all.
+function notesFor(sid, which) { return Object.entries(J.notes).map(([id, n]) => ({ id, ...n })).filter(n => n.session === sid && (!which || (which === "private") === !!n.private)).sort((a, b) => (a.at || 0) - (b.at || 0)); }
 function noteWho(n) { return n.character ? `${n.character}${n.by && n.by !== n.character ? ` (${n.by})` : ""}` : (n.by || "A player"); }
 function fmtTime(t) { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
-function notesMd(sid) {
+function notesMd(sid, which) {
   const s = J.sessions[sid];
-  return notesFor(sid).map(n => `- **${noteWho(n)}**${s && s.ended && n.at > s.ended ? " (added after the session)" : ""}: ${String(n.body || "").trim().replace(/\s*\n\s*/g, " / ")}`).join("\n");
+  return notesFor(sid, which).map(n => `- **${noteWho(n)}**${!which && n.private ? " (private)" : ""}${s && s.ended && n.at > s.ended ? " (added after the session)" : ""}: ${String(n.body || "").trim().replace(/\s*\n\s*/g, " / ")}`).join("\n");
 }
 function playerNotesHtml(sid) {
   const s = J.sessions[sid], list = notesFor(sid);
   if (!list.length) return `<p class="hint">${window.PLAYER_NOTES_PROBLEM ? esc(window.PLAYER_NOTES_PROBLEM) : s && s.live ? "This session is live: notes your players write in the Companion show up here as they write them." : "None yet. Players can add notes to this session from the Companion at any time."}</p>`;
-  const groups = {};
-  list.forEach(n => (groups[noteWho(n)] ||= []).push(n));
-  return Object.entries(groups).map(([who, ns]) => `<div><div class="eyebrow" style="color:var(--pc)">${esc(who)} · ${ns.length}</div>${ns.map(n => `<div class="pn"><small class="hint">${esc(fmtTime(n.at))}${s && s.ended && n.at > s.ended ? " · added after the session" : ""}${n.edited ? " · edited" : ""}</small><div class="prose">${md(n.body)}</div></div>`).join("")}</div>`).join("");
+  const part = (ns, title, hint) => {
+    if (!ns.length) return "";
+    const groups = {};
+    ns.forEach(n => (groups[noteWho(n)] ||= []).push(n));
+    return `<div><div class="eyebrow">${title}</div><small class="hint">${hint}</small></div>` + Object.entries(groups).map(([who, g]) => `<div><div class="eyebrow" style="color:var(--pc)">${esc(who)} · ${g.length}</div>${g.map(n => `<div class="pn"><small class="hint">${esc(fmtTime(n.at))}${s && s.ended && n.at > s.ended ? " · added after the session" : ""}${n.edited ? " · edited" : ""}</small><div class="prose">${md(n.body)}</div></div>`).join("")}</div>`).join("");
+  };
+  return part(list.filter(n => !n.private), "Party notes", "Every player sees these.") + part(list.filter(n => n.private), "Private notes", "Only the player who wrote each one, and you.");
 }
 function playerNotesBox(sid) {
   const s = J.sessions[sid], n = notesFor(sid).length;
@@ -2176,12 +2181,17 @@ A recap of the session for the players, written to them in the second person plu
 
 ## Contradictions
 A bullet list of places where the notes seem to disagree with each other (who said what, what happened, names, numbers, order of events), each naming whose notes say what. Also list anything a player seems to believe that the DM's notes contradict. Players read this list too, so the same rule applies: never reveal a secret, hidden motive or unrevealed twist from the DM's notes. Keep it neutral and friendly, as a reference, not a correction. Write "None." if the notes line up.`;
+const PRIV_PROMPT = `You are helping a D&D Dungeon Master. After the session below, one player wrote private notes that only they and the DM can see. Write that player a short private recap, addressed to them as "you": what their private notes say they noticed, suspect, plan or want, in a few bullets, and then, if any, a "Doesn't line up" bullet list of places where their private notes disagree with the DM's notes or the shared recap. Never reveal a secret, hidden motive or unrevealed twist from the DM's notes. Reply with just the Markdown, no heading.`;
+function privateRecapsHtml(s) {
+  const list = Object.values(s.privateRecaps || {}).filter(x => (x.recap || "").trim());
+  if (!list.length) return "";
+  return `<div class="secretbox" style="border-color:var(--pc);background:transparent"><div class="eyebrow" style="color:var(--pc)">Private recaps · each player sees only their own</div>${list.map(x => `<div class="pn"><div class="eyebrow">${esc(x.who || "A player")}</div><div class="prose">${md(x.recap)}</div></div>`).join("")}</div>`;
+}
 function sumBoxHtml(id, s) {
   const e = J.summing && J.summing.id === id ? J.summing : null;
   if (e) return `<div class="updbox"><div class="row"><div class="eyebrow">Summarizing</div><div class="spacer"></div><button class="btn sm" data-ses="stopsum">Stop</button></div><div class="prose" id="sumText">${e.text ? md(e.text) : `<p class="hint">${esc(e.status)}</p>`}</div></div>`;
   const c = String(s.contradictions || "").trim();
-  if (c && !/^none\.?$/i.test(c)) return `<div class="secretbox"><div class="eyebrow">Notes that don't line up · players see this too</div><div class="prose">${md(c)}</div></div>`;
-  return "";
+  return (c && !/^none\.?$/i.test(c) ? `<div class="secretbox"><div class="eyebrow">Notes that don't line up · players see this too</div><div class="prose">${md(c)}</div></div>` : "") + privateRecapsHtml(s);
 }
 function splitSummary(text) {
   const t = String(text || "");
@@ -2197,7 +2207,9 @@ async function summarizeSession(id) {
   let sample = null; try { sample = await window.claude?.use?.("sample"); } catch (e) {}
   if (!sample) { toast("Claude isn't available here. In the desktop app, add your API key under Claude > Set API Key.", null, null, 7000); return; }
   const clip = (t, n) => { t = String(t || "").trim(); return t.length > n ? t.slice(0, n) + " […]" : t; };
-  const input = `${SUM_PROMPT}\n\n---\n\n# ${s.title}${s.date ? ` (${s.date})` : ""}\n\n## DM's session notes\n${clip(s.notes, 60000) || "(none)"}\n\n## Players' notes\n${clip(notesMd(id), 60000) || "(none)"}`;
+  // Private notes never go into the shared recap: it's built from the DM's notes and the party notes only.
+  const head = `# ${s.title}${s.date ? ` (${s.date})` : ""}\n\n## DM's session notes\n${clip(s.notes, 60000) || "(none)"}`;
+  const input = `${SUM_PROMPT}\n\n---\n\n${head}\n\n## Players' notes\n${clip(notesMd(id, "shared"), 60000) || "(none)"}`;
   J.summing = { id, text: "", status: "Asking Claude to summarize the session…", ctl: new AbortController() };
   renderSessions();
   const paint = () => { const box = $("#sumText"); if (box && J.summing) box.innerHTML = J.summing.text ? md(J.summing.text) : `<p class="hint">${esc(J.summing.status)}</p>`; };
@@ -2206,8 +2218,18 @@ async function summarizeSession(id) {
     const r = await sample(input, { signal: J.summing.ctl.signal, cache: false, onText: ({ text }) => { J.summing.text = text; paint(); } });
     const out = splitSummary(r.text);
     if (!out.recap) throw new Error("empty");
-    const prev = { recap: s.recap || "", contradictions: s.contradictions || "" };
-    s.recap = out.recap; s.contradictions = out.contradictions; s.summarized = now();
+    // Then one private recap per player who wrote private notes, each from only that player's private notes.
+    const byAuthor = {};
+    notesFor(id, "private").filter(n => n.author).forEach(n => (byAuthor[n.author] ||= []).push(n));
+    const priv = {};
+    for (const [uid, ns] of Object.entries(byAuthor)) {
+      J.summing.status = `Writing ${noteWho(ns[0])}'s private recap…`; J.summing.text = ""; paint();
+      const mine = ns.map(n => `- ${String(n.body || "").trim().replace(/\s*\n\s*/g, " / ")}`).join("\n");
+      const pr = await sample(`${PRIV_PROMPT}\n\n---\n\n${head}\n\n## Shared recap\n${out.recap}\n\n## ${noteWho(ns[0])}'s private notes\n${clip(mine, 30000)}`, { signal: J.summing.ctl.signal, cache: false, onText: ({ text }) => { J.summing.text = text; paint(); } });
+      if (pr.text.trim()) priv[uid] = { who: noteWho(ns[ns.length - 1]), recap: pr.text.trim() };
+    }
+    const prev = { recap: s.recap || "", contradictions: s.contradictions || "", privateRecaps: s.privateRecaps || {} };
+    s.recap = out.recap; s.contradictions = out.contradictions; s.privateRecaps = priv; s.summarized = now();
     sessWrite(id);
     J.summing = null; renderSessions();
     if (prev.recap.trim()) toast("Recap replaced with Claude's summary.", "Undo", () => { Object.assign(s, prev); sessWrite(id); renderSessions(); }, 9000);

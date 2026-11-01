@@ -172,6 +172,14 @@ const CALLS = {
     const have = ok(await this.sb.from("game_sessions").select("id").eq("campaign_id", cid)) || [];
     const keep = new Set(rows.map(r => r.id)), gone = have.map(r => r.id).filter(id => !keep.has(id));
     if (gone.length) ok(await this.sb.from("game_sessions").delete().eq("campaign_id", cid).in("id", gone));
+    // Private recaps (fix-06): one row per player per session, readable only by that player and the DM.
+    const priv = [];
+    for (const x of Array.isArray(list) ? list : []) for (const p of x.privateRecaps || []) if (p.user_id && p.recap) priv.push({ campaign_id: cid, session_id: String(x.id), user_id: p.user_id, recap: String(p.recap).slice(0, 20000), updated_at: new Date().toISOString() });
+    const old = await this.sb.from("session_private_recaps").select("session_id, user_id").eq("campaign_id", cid);
+    if (old.error) return priv.length ? "no-private" : out;
+    if (priv.length) ok(await this.sb.from("session_private_recaps").upsert(priv, { onConflict: "campaign_id,session_id,user_id" }));
+    const want = new Set(priv.map(p => p.session_id + "/" + p.user_id));
+    for (const r of old.data || []) if (!want.has(r.session_id + "/" + r.user_id)) ok(await this.sb.from("session_private_recaps").delete().eq("campaign_id", cid).eq("session_id", r.session_id).eq("user_id", r.user_id));
     return out;
   },
   // Every note in the campaign, including ones players deleted (so this computer can drop its copy).
