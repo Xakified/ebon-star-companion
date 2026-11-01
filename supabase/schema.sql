@@ -193,6 +193,8 @@ create table if not exists game_sessions (
   live boolean not null default false,       -- being played right now
   ord int not null default 0,
   ended_at timestamptz,
+  recap text not null default '',            -- the player recap (fix-05)
+  contradictions text not null default '',   -- notes that don't line up (fix-05)
   updated_at timestamptz not null default now(),
   primary key (campaign_id, id)
 );

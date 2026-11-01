@@ -1,20 +1,20 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "minShell": "1.2.0",
-  "notes": "End session no longer downloads an export: everything already saves to the campaign file",
-  "published": "2026-11-01T20:25:10.005Z",
+  "notes": "Summarize: Claude writes the player recap from your notes and the players' notes, and players read recaps in the Companion",
+  "published": "2026-11-01T20:36:25.570Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "282bc28783303a9d2538b967a52d26f154f1de35059bb5013e0361462cba803f",
+    "package.json": "cf154ec91f673e202b53bed2e38faba0818025c3ba907e9c12fc115a94b93432",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
     "src/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
-    "src/companion-bridge.js": "63e8fe22568155a6cf5fb0fc0effef899d0e61fd21a3f7d5f08a44b700077278",
-    "src/companion.js": "bd8c20a434efcdc00d65366c943c010848acf9dd373cd8ae7e99a9746af51180",
+    "src/companion-bridge.js": "bb24b8ee07fc0c4790f7d457fd37849e481e7d99ad229afa924bc71b57ebb9bd",
+    "src/companion.js": "5fadce042f60b3659e903bf31220c71784690d9444a30609aaee372c5f07889b",
     "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
     "src/key.html": "b9c9c7a73913847b6d7f50fe238f4556bdaeece103b17868bbb71241331bb1a5",
     "src/main.js": "eb000bf218d62128bbc1db40712d940beca32e6d1dc9656add6ad565610b47b3",
@@ -25,8 +25,8 @@
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "bb1a6e57e80ed9beba8ea129f2810109b4b4d01ca24e1a628ed41b1ef3d5d903",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "d7d1643e8f3f142d00d690ea5a5aafa69ec628d8e21d7cc1f66c94e0f8b6e73d",
+    "app/companion/index.html": "f6f4cc90db5df0ed3554a09f9ccf03ef9886628fe3b5a4fd3c072434ee6de508",
     "app/companion/srd.js": "48acaa2d2a22e1b12cfc05d32d7064a6394c77354f23ae169a1b41909a7bd66d",
-    "app/index.html": "aee1ed46a4bb0b059093a0205ce7b22f806ee3307d0e5a23dd154d9ad8885f50"
+    "app/index.html": "a4deb7e2bab5a4378a9bf152c8409277602b3784aac97e61456e17a85c444410"
   }
 }

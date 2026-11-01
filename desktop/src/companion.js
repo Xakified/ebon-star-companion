@@ -157,16 +157,22 @@ const CALLS = {
   async reassignCharacter(id, userId) { ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); return true; },
   async createDmInvite() { return this.makeInvite(); },
   // Player session notes (supabase/fix-04-session-notes.sql in the Companion repo).
-  // The sessions players may write on: [{ id, title, played_on, live, ord, ended_at }]. Anything not in the list is removed.
+  // The sessions players may write on: [{ id, title, played_on, live, ord, ended_at, recap, contradictions }]. Anything not in the list is removed.
+  // Returns "no-recap" when the Supabase project doesn't have fix-05 yet (sessions still publish, without recaps).
   async publishSessions(list) {
     const cid = this.cid(), rows = (Array.isArray(list) ? list : []).map(x => ({
       campaign_id: cid, id: String(x.id), title: String(x.title || "").slice(0, 200), played_on: String(x.played_on || ""),
-      live: !!x.live, ord: x.ord | 0, ended_at: x.ended_at || null, updated_at: new Date().toISOString() }));
-    if (rows.length) ok(await this.sb.from("game_sessions").upsert(rows, { onConflict: "campaign_id,id" }));
+      live: !!x.live, ord: x.ord | 0, ended_at: x.ended_at || null, recap: String(x.recap || "").slice(0, 20000), contradictions: String(x.contradictions || "").slice(0, 10000), updated_at: new Date().toISOString() }));
+    let out = true;
+    if (rows.length) {
+      let r = await this.sb.from("game_sessions").upsert(rows, { onConflict: "campaign_id,id" });
+      if (r.error && /recap|contradictions/i.test(r.error.message)) { out = "no-recap"; r = await this.sb.from("game_sessions").upsert(rows.map(({ recap, contradictions, ...x }) => x), { onConflict: "campaign_id,id" }); }
+      ok(r);
+    }
     const have = ok(await this.sb.from("game_sessions").select("id").eq("campaign_id", cid)) || [];
     const keep = new Set(rows.map(r => r.id)), gone = have.map(r => r.id).filter(id => !keep.has(id));
     if (gone.length) ok(await this.sb.from("game_sessions").delete().eq("campaign_id", cid).in("id", gone));
-    return true;
+    return out;
   },
   // Every note in the campaign, including ones players deleted (so this computer can drop its copy).
   async listNotes() { return ok(await this.sb.from("session_notes").select("*").eq("campaign_id", this.cid()).order("created_at")); },
