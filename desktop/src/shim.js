@@ -24,7 +24,7 @@
   }
 
   // db: the subset of the artifact database API the page uses.
-  const cols = { pages: camp.pages || {}, sessions: camp.sessions || {}, items: camp.items || {} };
+  const cols = { pages: camp.pages || {}, sessions: camp.sessions || {}, items: camp.items || {}, notes: camp.notes || {} };
   const listeners = {};
   const snap = col => ({ docs: Object.entries(cols[col] || {}).map(([id, d]) => ({ id, data: () => clone(d) })) });
   const emit = col => (listeners[col] || []).forEach(fn => { try { fn(snap(col)); } catch (e) { console.error(e); } });

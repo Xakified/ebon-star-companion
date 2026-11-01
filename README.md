@@ -65,6 +65,13 @@ Open the app, create your campaign, and tap **Copy invite link**. The link fills
 - A Party tab inside the DM Suite desktop app. Right now the DM side lives in this app.
 - Linking an email so a player can move their character to a new phone. Anonymous sign-in is tied to the device.
 
+## Session notes
+Players press **Session notes** (top right) to write notes on the session being played, or on any earlier one if they remember something later. They can edit or delete their own notes. Only the player and the DM see a note.
+
+The DM Suite decides which sessions exist: it publishes the played sessions and the one you've started with **Start session**, and it copies every note into the campaign file's session log. See the DM Screen README for that side.
+
+Needs `supabase/fix-04-session-notes.sql` run once in the Supabase SQL Editor. Until then the button stays hidden. In demo mode every campaign gets a live "Session 1" to try it with.
+
 ## Moving a character to a new phone
 A player's phone remembers them, so a new phone or cleared browser data makes them a new person. To give them their character back:
 1. They open the Companion on the new device and join again with the campaign code.

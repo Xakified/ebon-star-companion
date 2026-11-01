@@ -10,12 +10,12 @@ const KEEP_RECENT = 40;                 // newest backups always kept
 const KEEP_DAILY_DAYS = 90;             // plus the last copy of each day for this many days
 
 function emptyCampaign(name) {
-  return { format: FORMAT, version: 1, name, created: Date.now(), savedAt: null, pages: {}, sessions: {}, items: {}, table: null, ui: {} };
+  return { format: FORMAT, version: 1, name, created: Date.now(), savedAt: null, pages: {}, sessions: {}, items: {}, notes: {}, table: null, ui: {} };
 }
 
 function validate(obj) {
   if (!obj || typeof obj !== "object" || obj.format !== FORMAT) throw new Error("This file isn't a DM Screen campaign.");
-  for (const k of ["pages", "sessions", "items"]) if (!obj[k] || typeof obj[k] !== "object") obj[k] = {};
+  for (const k of ["pages", "sessions", "items", "notes"]) if (!obj[k] || typeof obj[k] !== "object") obj[k] = {};
   if (!obj.ui || typeof obj.ui !== "object") obj.ui = {};
   if (obj.table === undefined) obj.table = null;
   return obj;
@@ -71,7 +71,7 @@ function write(file, camp) {
    the other computer's edits are merged in instead of being overwritten: per lore page, session and item, and per
    section for everything else. Where both computers changed the same thing, this computer's version wins and the
    other one is kept as a backup. */
-const DOC_COLS = ["pages", "sessions", "items"];
+const DOC_COLS = ["pages", "sessions", "items", "notes"];
 const SKIP = new Set(["savedAt", "savedBy"]);
 const J = v => (v === undefined ? undefined : JSON.stringify(v));
 const clone = v => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
@@ -108,7 +108,7 @@ function merge(base, ours, theirs) {
   return { camp: validate(out), conflicts };
 }
 const SECTION = { table: "the initiative tracker, loot and party", ui: "screen layout", companion: "the Companion link", name: "the campaign name" };
-const COL_NAME = { pages: "lore page", sessions: "session", items: "item" };
+const COL_NAME = { pages: "lore page", sessions: "session", items: "item", notes: "player note" };
 function docLabel(col, id, d) {
   const n = d && (d.title || d.name);
   return `${COL_NAME[col] || col} "${n || id}"`;

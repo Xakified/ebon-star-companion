@@ -294,6 +294,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .updbox { border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; display: grid; gap: 8px; }
 .updbox .eyebrow { color: var(--accent); }
 .updbox .prose { max-height: 420px; overflow: auto; }
+.pnotes { border: 1px solid var(--pc); border-radius: 8px; padding: 12px 16px; display: grid; gap: 10px; }
+.pnotes .pn + .pn { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 6px; }
+.pnotes .prose p { margin: 2px 0; }
+.livepill { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); white-space: nowrap; align-self: center; }
 .jfield { display: grid; gap: 4px; }
 .jfield > span { font-size: 13px; color: var(--muted); font-weight: 600; }
 .jfield textarea { min-height: 90px; font-size: 15px; line-height: 1.5; field-sizing: content; max-height: 70vh; }
@@ -1717,7 +1721,7 @@ const PREP_FIELDS = [
   ["treasure", "Treasure", "Rewards. The loot generator on the Table tab can help."],
   ["threads", "Open threads", "Hooks still dangling from earlier sessions."]
 ];
-const J = { db: null, ready: false, failed: false, pages: {}, sessions: {}, items: {}, loreId: null, loreEdit: false, sessId: null, sessEdit: false, search: "", cat: "all" };
+const J = { db: null, ready: false, failed: false, pages: {}, sessions: {}, items: {}, notes: {}, loreId: null, loreEdit: false, sessId: null, sessEdit: false, search: "", cat: "all" };
 window.currentTab = "table";
 const now = () => Date.now();
 const lc = s => String(s || "").trim().toLowerCase();
@@ -1810,6 +1814,7 @@ async function startJournal() {
   watch("pages", "pages", () => renderJournal(true));
   watch("sessions", "sessions", () => renderJournal(true));
   watch("items", "items", syncLibraryFromDb);
+  watch("notes", "notes", paintPlayerNotes);
 }
 
 /* ---------- item library mirror ---------- */
@@ -1984,12 +1989,13 @@ function renderSessions(fromSnapshot) {
   if (!s) { main.innerHTML = `<div class="jhead"><h2>Sessions</h2></div><p class="hint">No sessions yet. Plan one on the Prep tab.</p>`; return; }
   const prepFilled = PREP_FIELDS.filter(([k]) => (s.prep || {})[k]);
   if (!J.sessEdit) {
-    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span><button class="btn sm" data-ses="edit">Edit</button><button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="Write the session update with Claude, then download the full campaign export">End session &amp; export</button></div>
+    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span>${s.live ? `<span class="livepill" title="Players can add notes to this session from the Companion">● Live</span>` : ""}<button class="btn sm" data-ses="edit">Edit</button><button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="Write the session update with Claude, then download the full campaign export">End session &amp; export</button></div>
       <h2 style="font-size:34px">${esc(s.title)}</h2>
       ${endBoxHtml(J.sessId, s)}
       ${s.recap ? `<div class="secretbox" style="border-color:var(--pc);background:transparent"><div class="row"><div class="eyebrow" style="color:var(--pc)">Recap for players</div><div class="spacer"></div><button class="btn sm primary" data-ses="copyrecap">Copy for Discord</button></div><div class="prose">${md(s.recap)}</div></div>` : `<div class="hint">No player recap yet. Press Edit to write one you can paste into Discord.</div>`}
       <div class="eyebrow">Session notes</div>
       <div class="prose">${s.notes ? md(s.notes) : `<p class="hint">No notes.</p>`}</div>
+      ${playerNotesBox(J.sessId)}
       ${prepFilled.length ? `<details><summary class="eyebrow" style="cursor:pointer">What you prepped</summary><div class="prose">${prepFilled.map(([k, label]) => `<h3>${label}</h3>${md(s.prep[k])}`).join("")}</div></details>` : ""}
       <div class="row"><div class="spacer"></div><button class="btn sm" data-ses="reopen">Move back to Prep</button></div>`;
     return;
@@ -2006,6 +2012,7 @@ $("#newSess").addEventListener("click", () => {
   const order = Math.max(0, ...Object.values(J.sessions).map(s => s.order ?? 0)) + 1;
   const n = sessionsSorted("played").length + 1;
   J.sessions[id] = { order, title: `Session ${n}`, date: localDay(), started: now(), status: "played", notes: "", recap: "", prep: {}, created: now(), updated: now() };
+  setLive(id, true);
   J.sessId = id; J.sessEdit = true; writeDoc(`sessions/${id}`, () => J.sessions[id], 0); renderSessions();
   $('#sessMain [data-sf="notes"]')?.focus();
 });
@@ -2013,6 +2020,7 @@ $("#newSess").addEventListener("click", () => {
 const END_PROMPT = `Session is over. Please generate a concise Markdown update block summarizing:
 1. New NPCs or altered NPC relationships.
 2. Major plot points, player decisions, and lingering quest hooks to append.
+3. If player notes are included: what the players are thinking. Their theories, suspicions, plans and what caught their attention, by character, and anything they noticed that the DM's notes missed.
 Use clean bullet points without extra conversational fluff.`;
 const TABLE_RULES = `- **Rules edition:** the table plays 5e with the **2024 rules**. Exhaustion levels 1 to 6: each level gives −2 to every d20 roll and −5 ft speed, a long rest removes one level, level 6 is death.
 - **Currency:** gold and copper only.
@@ -2030,7 +2038,7 @@ function buildExport() {
   const played = sessionsSorted("played").reverse();
   out.push("## Sessions\n\n" + (played.map(x => [`### ${x.title}${x.date ? ` (${x.date})` : ""}`,
     x.update && `**Session update**\n\n${rebaseMd(x.update, 4)}`, x.recap && `**Player recap**\n\n${demoteMd(x.recap, 3)}`,
-    x.notes && `**DM notes**\n\n${demoteMd(x.notes, 3)}`].filter(Boolean).join("\n\n")).join("\n\n") || "None yet."));
+    x.notes && `**DM notes**\n\n${demoteMd(x.notes, 3)}`, notesFor(x.id).length && `**Player notes**\n\n${notesMd(x.id)}`].filter(Boolean).join("\n\n")).join("\n\n") || "None yet."));
   const planned = sessionsSorted("planned");
   if (planned.length) out.push("## Next session prep\n\n" + planned.map(x => `### ${x.title}\n\n` + PREP_FIELDS.filter(([k]) => (x.prep || {})[k]).map(([k, lab]) => `**${lab}**\n\n${demoteMd(x.prep[k], 3)}`).join("\n\n") + (x.notes ? `\n\n**Notes**\n\n${x.notes.trim()}` : "")).join("\n\n"));
   const pages = Object.values(J.pages).filter(p => (p.body || p.secret || "").trim()), cats = {};
@@ -2061,11 +2069,14 @@ function paintEnd() { const e = J.ending; if (!e || e.id !== J.sessId || J.sessE
 const SAMPLE_ERR = { not_granted: "Claude needs your API key (Claude menu > Set API Key), so the export went out without a session update.", rate_limited: "Claude is busy right now. The export went out without a session update; try again in a minute.", sampling_disabled: "Asking Claude is turned off for this page, so the export went out without a session update.", prompt_too_large: "This session had too much text to send in one go, so the export went out without a session update." };
 async function endSession(id) {
   const s = J.sessions[id]; if (!s || J.ending) return;
+  s.live = false; s.ended = now(); sessWrite(id);
+  const pnotes = notesFor(id);
   const since = s.started || s.created || 0;
   const changed = Object.values(J.pages).filter(p => (p.updated || 0) > since && (p.body || p.secret || "").trim());
   const clip = (t, n) => { t = String(t || "").trim(); return t.length > n ? t.slice(0, n) + " […]" : t; };
   const ctx = [`# Session: ${s.title}${s.date ? ` (${s.date})` : ""}`,
     s.notes && `## DM session notes\n${clip(s.notes, 60000)}`, s.recap && `## Player recap\n${clip(s.recap, 8000)}`,
+    pnotes.length && `## Player notes (written by the players in their phone app, during or after the session)\n${clip(notesMd(id), 40000)}`,
     PREP_FIELDS.filter(([k]) => (s.prep || {})[k]).map(([k, lab]) => `## Prepped: ${lab}\n${clip(s.prep[k], 6000)}`).join("\n\n"),
     changed.length && `## Lore pages added or edited during this session\n\n` + changed.map(p => `### ${p.title} (${p.category || "Lore"})\n${clip(p.body, 5000)}${(p.secret || "").trim() ? `\nDM secret: ${clip(p.secret, 5000)}` : ""}`).join("\n\n"),
     `## NPCs already known before this session (names only)\n${Object.values(J.pages).filter(p => p.category === "NPC" && !changed.includes(p)).map(p => p.title).sort().join(", ")}`].filter(Boolean).join("\n\n");
@@ -2074,7 +2085,7 @@ async function endSession(id) {
   renderSessions();
   let sample = null; try { sample = await window.claude?.use?.("sample"); } catch (e) {}
   if (!sample) { J.ending.status = "Claude isn't available in this view."; }
-  else if (!(s.notes || "").trim() && !changed.length) { J.ending.status = "This session has no notes or new lore yet, so there's nothing for Claude to summarize."; }
+  else if (!(s.notes || "").trim() && !changed.length && !pnotes.length) { J.ending.status = "This session has no notes or new lore yet, so there's nothing for Claude to summarize."; }
   else {
     try {
       const r = await sample(input, { signal: J.ending.ctl.signal, cache: false, onText: ({ text }) => { J.ending.text = text; paintEnd(); } });
@@ -2107,6 +2118,7 @@ $("#sessMain").addEventListener("click", e => {
   if (a === "end") endSession(id);
   if (a === "stopend") J.ending?.ctl.abort();
   if (a === "copyupdate") copyChunked(s.update || "", null, "upd" + id);
+  if (a === "copypnotes") copyChunked(`## Player notes: ${s.title}\n${notesMd(id)}`, null, "pn" + id);
   if (a === "redownload") downloadExport();
   if (a === "askdel") b.closest("[data-delzone]").innerHTML = `<span class="confirm">Delete this session? <button class="btn sm danger" data-ses="del">Delete</button><button class="btn sm" data-ses="nodel">Keep</button></span>`;
   if (a === "nodel") renderSessions();
@@ -2117,6 +2129,41 @@ $("#sessMain").addEventListener("click", e => {
     toast(`Deleted ${copy.title}.`, "Undo", () => { J.sessions[id] = copy; writeDoc(`sessions/${id}`, () => J.sessions[id], 0); J.sessId = id; renderSessions(); }, 8000);
   }
 });
+
+/* ---------- player notes: what players write in the Companion, copied into the campaign file ----------
+   notes/{id}: { session, by, character, body, at, edited }. The desktop app's Companion link fills these in. */
+function notesFor(sid) { return Object.entries(J.notes).map(([id, n]) => ({ id, ...n })).filter(n => n.session === sid).sort((a, b) => (a.at || 0) - (b.at || 0)); }
+function noteWho(n) { return n.character ? `${n.character}${n.by && n.by !== n.character ? ` (${n.by})` : ""}` : (n.by || "A player"); }
+function fmtTime(t) { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
+function notesMd(sid) {
+  const s = J.sessions[sid];
+  return notesFor(sid).map(n => `- **${noteWho(n)}**${s && s.ended && n.at > s.ended ? " (added after the session)" : ""}: ${String(n.body || "").trim().replace(/\s*\n\s*/g, " / ")}`).join("\n");
+}
+function playerNotesHtml(sid) {
+  const s = J.sessions[sid], list = notesFor(sid);
+  if (!list.length) return `<p class="hint">${window.PLAYER_NOTES_PROBLEM ? esc(window.PLAYER_NOTES_PROBLEM) : s && s.live ? "This session is live: notes your players write in the Companion show up here as they write them." : "None yet. Players can add notes to this session from the Companion at any time."}</p>`;
+  const groups = {};
+  list.forEach(n => (groups[noteWho(n)] ||= []).push(n));
+  return Object.entries(groups).map(([who, ns]) => `<div><div class="eyebrow" style="color:var(--pc)">${esc(who)} · ${ns.length}</div>${ns.map(n => `<div class="pn"><small class="hint">${esc(fmtTime(n.at))}${s && s.ended && n.at > s.ended ? " · added after the session" : ""}${n.edited ? " · edited" : ""}</small><div class="prose">${md(n.body)}</div></div>`).join("")}</div>`).join("");
+}
+function playerNotesBox(sid) {
+  const s = J.sessions[sid], n = notesFor(sid).length;
+  if (!n && !(s && s.live) && !window.PLAYER_NOTES_ON) return "";
+  return `<div class="row"><div class="eyebrow" style="color:var(--pc)">Player notes</div><div class="spacer"></div>${n ? `<button class="btn sm" data-ses="copypnotes">Copy</button>` : ""}</div><div class="pnotes" data-pnotes="${sid}">${playerNotesHtml(sid)}</div>`;
+}
+// Called when notes arrive: update the boxes in place so nobody's typing gets interrupted.
+function paintPlayerNotes() {
+  $$("[data-pnotes]").forEach(el => { el.innerHTML = playerNotesHtml(el.dataset.pnotes); });
+  if (window.currentTab === "sessions" && !J.sessEdit && J.sessId && !$("[data-pnotes]") && notesFor(J.sessId).length) renderSessions(true);
+  if (window.currentTab === "prep" && !$("[data-pnotes]") && notesFor(currentPrepId()).length) renderPrep(true);
+}
+// One session at a time is live: the one players' notes go to by default.
+function setLive(id, on) {
+  Object.entries(J.sessions).forEach(([k, x]) => { if (x.live && k !== id) { x.live = false; sessWrite(k); } });
+  const s = J.sessions[id]; if (!s) return;
+  s.live = !!on; if (on) { s.started = now(); delete s.ended; }
+  sessWrite(id);
+}
 
 /* ================= PREP ================= */
 function currentPrepId() { const p = sessionsSorted("planned"); return (J.sessions[J.sessId]?.status === "planned" ? J.sessId : p[0]?.id) || null; }
@@ -2139,12 +2186,14 @@ function renderPrep(fromSnapshot) {
   body.innerHTML = `<div class="row end" style="margin-bottom:12px">
       <label class="jfield" style="flex:2;min-width:200px"><span>Session title</span><input data-pf="title" type="text" value="${esc(s.title)}" style="font-size:20px;font-family:var(--display);font-weight:700"></label>
       <label class="jfield"><span>Planned date</span><input data-pf="date" type="date" value="${esc(s.date || "")}"></label>
+      ${s.live ? `<span class="livepill" title="Players can add notes to this session from the Companion">● Live</span><button class="btn" data-prep="unlive" title="Players can still add notes to it afterwards">Stop live notes</button>` : window.PLAYER_NOTES_ON ? `<button class="btn" data-prep="live" title="Your players' Companion picks this session for their notes while you play">Start session</button>` : ""}
       <button class="btn primary" data-prep="played">Mark as played</button>
     </div>
     ${others.length ? `<div class="hint" style="margin-bottom:8px">Also in prep: ${others.map(o => `<button class="wl" data-sess-open="${o.id}">${esc(o.title)}</button>`).join(", ")}</div>` : ""}
     <div class="prepgrid">
       ${PREP_FIELDS.map(([k, label, hint]) => `<div class="prepcard ${["goals", "start", "scenes", "secrets", "threads"].includes(k) ? "wide" : ""} ${k === "goals" ? "goals" : ""}"><div class="phead"><h3>${label}</h3>${SUGGEST[k] ? suggBtn(id, k) : ""}</div><p class="hint">${hint}</p><textarea data-prepf="${k}" aria-label="${label}">${esc((s.prep || {})[k] || "")}</textarea><div class="links" data-links="${k}">${linkChips((s.prep || {})[k])}</div><div data-sugg="${k}">${suggHtml(id, k)}</div></div>`).join("")}
       <div class="prepcard wide"><h3>Session notes</h3><p class="hint">Jot what happens during play. These become the session's notes in the log.</p><textarea data-pf="notes" style="min-height:200px">${esc(s.notes || "")}</textarea><div class="links" data-links="notes">${linkChips(s.notes)}</div></div>
+      ${s.live || notesFor(id).length ? `<div class="prepcard wide"><h3>Player notes</h3><div data-pnotes="${id}">${playerNotesHtml(id)}</div></div>` : ""}
     </div>`;
 }
 /* ---------- storyboard: Claude suggests, the DM edits or picks, and later steps build on what was kept ---------- */
@@ -2253,6 +2302,7 @@ $("#prepBody").addEventListener("click", e => {
   if (g) { prepSuggestClick(g); return; }
   const b = e.target.closest("[data-prep]"); if (!b) return;
   if (b.dataset.prep === "new") newPrep();
+  if (b.dataset.prep === "live" || b.dataset.prep === "unlive") { const id = currentPrepId(); if (id) { setLive(id, b.dataset.prep === "live"); renderPrep(); toast(b.dataset.prep === "live" ? "Session started. Players' notes now go to this session." : "Live notes stopped. Players can still add notes to this session later."); } }
   if (b.dataset.prep === "played") {
     const id = currentPrepId(), s = J.sessions[id]; if (!s) return;
     s.status = "played"; if (!s.date) s.date = localDay();

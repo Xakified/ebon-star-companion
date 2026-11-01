@@ -14,7 +14,12 @@ class DemoBackend {
     if (this.chan) this.chan.onmessage = e => this.listeners.forEach(f => f(e.data));
     g.addEventListener && g.addEventListener("storage", e => { if (e.key === this.key + "-ping" && e.newValue) this.listeners.forEach(f => f(JSON.parse(e.newValue))); });
   }
-  db() { try { return JSON.parse(localStorage.getItem(this.key)) || { campaigns: [], members: [], characters: [], grants: [], homebrew: [] }; } catch (e) { return { campaigns: [], members: [], characters: [], grants: [], homebrew: [] }; } }
+  db() {
+    let db; try { db = JSON.parse(localStorage.getItem(this.key)); } catch (e) {}
+    db = db || {};
+    for (const k of ["campaigns", "members", "characters", "grants", "homebrew", "sessions", "notes"]) db[k] = db[k] || [];
+    return db;
+  }
   put(db) { localStorage.setItem(this.key, JSON.stringify(db)); }
   emit(ev) {
     this.listeners.forEach(f => f(ev));
@@ -98,6 +103,29 @@ class DemoBackend {
   async createDmInvite() { throw new Error("Connecting the DM Suite needs the live version of the app, not demo mode."); }
   async redeemDmInvite() { throw new Error("DM codes need the live version of the app, not demo mode."); }
   async deleteHomebrew(id) { const db = this.db(); db.homebrew = db.homebrew.filter(h => h.id !== id); this.put(db); }
+  // Session notes. With no DM Suite in demo mode, every campaign gets a "Session 1" being played now.
+  async listSessions(cid) {
+    const db = this.db();
+    if (!db.sessions.some(x => x.campaign_id === cid)) { db.sessions.push({ campaign_id: cid, id: "demo-1", title: "Session 1", played_on: new Date().toISOString().slice(0, 10), live: true, ord: 1, ended_at: null }); this.put(db); }
+    return db.sessions.filter(x => x.campaign_id === cid).sort((a, b) => b.ord - a.ord);
+  }
+  async listNotes(cid) {
+    const db = this.db(), dm = this.isDM(db, cid);
+    return db.notes.filter(n => n.campaign_id === cid && !n.deleted && (dm || n.author === this.user)).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }
+  async addNote(cid, note) {
+    const db = this.db(), t = new Date().toISOString();
+    const row = Object.assign({ id: Engine.uid(), campaign_id: cid, author: this.user, deleted: false, created_at: t, updated_at: t }, note);
+    db.notes.push(row); this.put(db); this.emit({ table: "session_notes", campaign_id: cid, id: row.id }); return row;
+  }
+  async updateNote(id, body) {
+    const db = this.db(), row = db.notes.find(n => n.id === id && n.author === this.user); if (!row) throw new Error("That note is gone.");
+    row.body = body; row.updated_at = new Date().toISOString(); this.put(db); this.emit({ table: "session_notes", campaign_id: row.campaign_id, id }); return row;
+  }
+  async deleteNote(id) {
+    const db = this.db(), row = db.notes.find(n => n.id === id && n.author === this.user); if (!row) return;
+    row.deleted = true; row.updated_at = new Date().toISOString(); this.put(db); this.emit({ table: "session_notes", campaign_id: row.campaign_id, id });
+  }
   subscribe(cid, cb) {
     const f = ev => { if (!ev.campaign_id || ev.campaign_id === cid) cb(ev); };
     this.listeners.add(f); return () => this.listeners.delete(f);
@@ -138,6 +166,12 @@ class SupabaseBackend {
     return this.ok(await this.sb.from("homebrew").insert({ campaign_id: cid, kind, data }).select().single());
   }
   async deleteHomebrew(id) { this.ok(await this.sb.from("homebrew").delete().eq("id", id)); }
+  // Session notes (supabase/fix-04-session-notes.sql). The DM Suite publishes the sessions; players write notes on them.
+  async listSessions(cid) { return this.ok(await this.sb.from("game_sessions").select("*").eq("campaign_id", cid).order("ord", { ascending: false })); }
+  async listNotes(cid) { return this.ok(await this.sb.from("session_notes").select("*").eq("campaign_id", cid).eq("deleted", false).order("created_at", { ascending: false })); }
+  async addNote(cid, note) { return this.ok(await this.sb.from("session_notes").insert(Object.assign({ campaign_id: cid, author: this.user }, note)).select().single()); }
+  async updateNote(id, body) { return this.ok(await this.sb.from("session_notes").update({ body, updated_at: new Date().toISOString() }).eq("id", id).select().single()); }
+  async deleteNote(id) { this.ok(await this.sb.from("session_notes").update({ deleted: true, updated_at: new Date().toISOString() }).eq("id", id)); }
   // One-time code that lets the desktop DM Suite join this campaign as a second DM device.
   async reassignCharacter(id, userId) { this.ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); }
   async createDmInvite(cid) {
@@ -157,7 +191,12 @@ class SupabaseBackend {
       .on("postgres_changes", { event: "*", schema: "public", table: "characters", filter: "campaign_id=eq." + cid }, p => cb({ table: "characters", campaign_id: cid, id: (p.new && p.new.id) || (p.old && p.old.id) }))
       .on("postgres_changes", { event: "*", schema: "public", table: "grants", filter: "campaign_id=eq." + cid }, p => cb({ table: "grants", campaign_id: cid, id: (p.new && p.new.id) || (p.old && p.old.id) }))
       .subscribe();
-    return () => this.sb.removeChannel(ch);
+    // Its own channel, so a Supabase project without the notes tables yet still gets live character updates.
+    const notes = this.sb.channel("notes-" + cid)
+      .on("postgres_changes", { event: "*", schema: "public", table: "game_sessions", filter: "campaign_id=eq." + cid }, () => cb({ table: "game_sessions", campaign_id: cid }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "session_notes", filter: "campaign_id=eq." + cid }, p => cb({ table: "session_notes", campaign_id: cid, id: (p.new && p.new.id) || (p.old && p.old.id) }))
+      .subscribe();
+    return () => { this.sb.removeChannel(ch); this.sb.removeChannel(notes); };
   }
 }
 
@@ -193,6 +232,9 @@ class SuiteBackend {
   listHomebrew() { return this.ask("listHomebrew"); }
   saveHomebrew(_cid, kind, data, id) { return this.ask("saveHomebrew", kind, data, id); }
   deleteHomebrew(id) { return this.ask("deleteHomebrew", id); }
+  // Player notes live in the DM Suite's Sessions tab, not in this view.
+  async listSessions() { return []; }
+  async listNotes() { return []; }
   reassignCharacter(id, userId) { return this.ask("reassignCharacter", id, userId); }
   createDmInvite() { return this.ask("createDmInvite"); }
   // DM Suite extras
