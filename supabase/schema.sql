@@ -113,8 +113,11 @@ declare c campaigns; code text;
 begin
   if auth.uid() is null then raise exception 'not signed in'; end if;
   loop
-    code := upper(substr(translate(encode(gen_random_bytes(6), 'base64'), '+/=0O1Il', ''), 1, 6));
-    exit when length(code) = 6 and not exists(select 1 from campaigns where join_code = code);
+    code := '';
+    for i in 1..6 loop
+      code := code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1);
+    end loop;
+    exit when not exists(select 1 from campaigns where join_code = code);
   end loop;
   insert into campaigns(name, join_code, dm_user) values (p_name, code, auth.uid()) returning * into c;
   insert into members(campaign_id, user_id, role, display_name) values (c.id, auth.uid(), 'dm', coalesce(p_display, 'DM'));
