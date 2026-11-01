@@ -1,0 +1,2214 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../src/shim.js"></script>
+</head><body>
+<title>Ebon Star DM Screen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one long DM screen. Sticky bar with tabs, the last roll, and a dice tray (die buttons, count, modifier, adv/disadv, custom expression), then three stacked panels: Initiative, Loot, Magic Items. */
+:root {
+  --bg: #e9ebf0;
+  --surface: #f8f9fb;
+  --raised: #ffffff;
+  --ink: #1a1e2b;
+  --muted: #5b6275;
+  --line: #d3d7e1;
+  --accent: #7d5f12;
+  --accent-ink: #ffffff;
+  --accent-soft: #f1e6c8;
+  --active: #fff6dc;
+  --good: #2f7a3e;
+  --warn: #a86b00;
+  --bad: #b3261e;
+  --pc: #2557a7;
+  --npc: #6b4fa0;
+  --mon: #9a3324;
+  --r-common: #6b7080;
+  --r-uncommon: #2e7d32;
+  --r-rare: #1f5fb8;
+  --r-veryrare: #7b3fb0;
+  --r-legendary: #c25e00;
+  --r-artifact: #b3261e;
+  --display: "Alegreya SC", "Palatino Linotype", Palatino, Georgia, serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f121a; --surface: #171b26; --raised: #1e2330; --ink: #e6e8ef; --muted: #9aa1b4; --line: #2c3243;
+    --accent: #d9b45c; --accent-ink: #1a1405; --accent-soft: #3a3020; --active: #2a2615;
+    --good: #6fca7e; --warn: #e3a83a; --bad: #f2776c; --pc: #7fa8ee; --npc: #b39ae6; --mon: #ec8a77;
+    --r-common: #a3a8b8; --r-uncommon: #6fcf73; --r-rare: #6aa5f5; --r-veryrare: #be8af0; --r-legendary: #f5a04a; --r-artifact: #f2776c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f121a; --surface: #171b26; --raised: #1e2330; --ink: #e6e8ef; --muted: #9aa1b4; --line: #2c3243;
+  --accent: #d9b45c; --accent-ink: #1a1405; --accent-soft: #3a3020; --active: #2a2615;
+  --good: #6fca7e; --warn: #e3a83a; --bad: #f2776c; --pc: #7fa8ee; --npc: #b39ae6; --mon: #ec8a77;
+  --r-common: #a3a8b8; --r-uncommon: #6fcf73; --r-rare: #6aa5f5; --r-veryrare: #be8af0; --r-legendary: #f5a04a; --r-artifact: #f2776c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 72px; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num, input[type=number] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar-in { max-width: 1120px; margin: 0 auto; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.brand { font-family: var(--display); font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.brand svg { color: var(--accent); }
+.jump { display: flex; gap: 4px; flex-wrap: wrap; }
+.jump a { color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 999px; font-weight: 500; }
+.jump a:hover { color: var(--ink); background: var(--bg); }
+.dtray { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 8px; border-top: 1px solid var(--line); }
+.dgrp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.dgrp .lbl { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; }
+.die { min-width: 46px; padding: 5px 8px; border: 1px solid var(--line); background: var(--raised); border-radius: var(--radius); font-family: var(--mono); font-weight: 700; cursor: pointer; }
+.die:hover { border-color: var(--accent); color: var(--accent); }
+.die:active { transform: translateY(1px); }
+.die.d20 { border-color: var(--accent); }
+.dnum { width: 52px; text-align: center; }
+.dstep { width: 28px; padding: 5px 0; border: 1px solid var(--line); background: var(--raised); border-radius: var(--radius); cursor: pointer; font-weight: 700; }
+.seg.adv button { padding: 5px 10px; font-size: 14px; }
+.seg.adv button.on[data-adv="dis"] { background: var(--bad); border-color: var(--bad); color: #fff; }
+.seg.adv button.on[data-adv="adv"] { background: var(--good); color: #0d1a10; }
+.dexpr { display: flex; gap: 4px; }
+.dexpr input { width: 120px; }
+.dice-out { margin-left: auto; display: flex; align-items: baseline; gap: 10px; min-width: 0; font-family: var(--mono); }
+.dice-out b { font-size: 28px; line-height: 1; min-width: 2ch; text-align: right; }
+.dice-out b.crit { color: var(--good); } .dice-out b.fumble { color: var(--bad); }
+.dice-out small { color: var(--muted); font-size: 12px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dhist { display: flex; gap: 4px; }
+.dhist span { font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; cursor: default; }
+@media (max-width: 860px) { .dhist { display: none; } }
+@media (max-width: 520px) { .die { min-width: 40px; padding: 5px 4px; } .dexpr { flex: 1; } .dexpr input { flex: 1; width: auto; } }
+
+main { max-width: 1120px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 16px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.panel-head h2 { font-size: 28px; }
+.panel-head p { margin: 0; color: var(--muted); }
+
+/* controls */
+.btn { border: 1px solid var(--line); background: var(--raised); border-radius: var(--radius); padding: 6px 12px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--ink); background: var(--bg); }
+.btn.sm { padding: 3px 8px; font-size: 14px; }
+.btn.icon { padding: 4px 8px; line-height: 1; }
+.btn.danger:hover { color: var(--bad); border-color: var(--bad); }
+.btn:disabled { opacity: .45; cursor: default; }
+input[type=text], input[type=number], input:not([type]), select, textarea { background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 8px; min-width: 0; }
+textarea { width: 100%; resize: vertical; }
+label.f { display: grid; gap: 3px; font-size: 13px; color: var(--muted); font-weight: 500; min-width: 0; }
+label.f > input, label.f > select, label.f > textarea { color: var(--ink); font-size: 15px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row.end { align-items: end; }
+.spacer { flex: 1; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+.hint { color: var(--muted); font-size: 13px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 4px; border: 1px solid currentColor; }
+.tag.pc { color: var(--pc); } .tag.npc { color: var(--npc); } .tag.monster { color: var(--mon); }
+
+/* initiative */
+.combat-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; }
+.round { display: flex; align-items: baseline; gap: 6px; padding-right: 8px; }
+.round b { font-family: var(--display); font-size: 26px; line-height: 1; }
+.round span { color: var(--muted); font-size: 13px; }
+.now { font-size: 14px; color: var(--muted); }
+.now b { color: var(--ink); }
+.add-form { display: grid; grid-template-columns: 2.2fr 1fr .6fr .8fr .8fr .7fr 1.1fr auto; gap: 8px; align-items: end; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; }
+.add-form .opts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+@media (max-width: 860px) { .add-form { grid-template-columns: 1fr 1fr 1fr; } .add-form .name-f { grid-column: 1 / -1; } }
+.init-list { display: grid; gap: 6px; }
+.cbt { display: grid; grid-template-columns: 58px minmax(0, 1fr) 54px 150px 224px auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); position: relative; }
+.cbt.active { border-color: var(--accent); background: var(--active); box-shadow: inset 4px 0 0 var(--accent); }
+.cbt.down { opacity: .55; }
+.cbt.down .cname { text-decoration: line-through; }
+.cbt .init { width: 58px; text-align: center; font-size: 18px; font-weight: 600; padding: 4px; }
+.who { min-width: 0; display: grid; gap: 4px; }
+.who-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cname { font-weight: 700; font-size: 17px; border: 1px solid transparent; background: transparent; padding: 0 2px; border-radius: 4px; min-width: 6ch; width: 14ch; field-sizing: content; max-width: 240px; }
+.cname:hover, .cname:focus { border-color: var(--line); background: var(--surface); }
+.cond { font-size: 11px; font-weight: 600; line-height: 16px; padding: 0 5px; border-radius: 4px; background: var(--accent-soft); border: 1px solid var(--line); cursor: pointer; white-space: nowrap; }
+.cond:hover { text-decoration: line-through; }
+.cond.conc { background: transparent; border-color: var(--npc); color: var(--npc); }
+.cadd { width: 18px; height: 18px; padding: 0; line-height: 14px; font-size: 14px; border-radius: 4px; border: 1px dashed var(--muted); background: transparent; color: var(--muted); cursor: pointer; }
+.cadd:hover, .cadd.on { border-style: solid; color: var(--accent); border-color: var(--accent); }
+.cpick { position: absolute; left: 70px; top: calc(100% - 4px); z-index: 6; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18); width: min(360px, calc(100vw - 48px)); display: grid; gap: 6px; }
+.cpick .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
+.cpick .grid button { font-size: 12px; padding: 3px 4px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cpick .grid button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.cpick .exh { display: flex; align-items: center; gap: 3px; font-size: 12px; color: var(--muted); }
+.cpick .exh span { margin-right: 4px; }
+.cpick .exh button { width: 26px; padding: 3px 0; font-size: 12px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-family: var(--mono); }
+.cpick .exh button.on { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+.cpick .rd { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.cpick .rd input { width: 52px; padding: 2px 4px; }
+@media (max-width: 860px) { .cpick { left: 8px; } }
+.ac { text-align: center; }
+.ac .shield { font-size: 11px; color: var(--muted); display: block; text-transform: uppercase; letter-spacing: .06em; }
+.ac input { width: 50px; text-align: center; font-weight: 600; padding: 3px; }
+.hp { display: grid; gap: 4px; }
+.hp-nums { display: flex; align-items: baseline; gap: 4px; font-family: var(--mono); }
+.hp-nums input { width: 54px; padding: 2px 4px; text-align: right; font-weight: 600; }
+.hp-nums .max { width: 50px; font-weight: 400; color: var(--muted); }
+.hp-nums .tmp { color: var(--pc); font-size: 13px; }
+.hpbar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.hpbar i { display: block; height: 100%; background: var(--good); transition: width .2s; }
+.hpbar i.mid { background: var(--warn); } .hpbar i.low { background: var(--bad); }
+.dmg { display: flex; gap: 4px; }
+.dmg input { width: 56px; text-align: center; }
+.dmg .btn { padding: 4px 7px; font-size: 13px; }
+.acts { display: flex; gap: 2px; }
+.stress { display: flex; gap: 3px; align-items: center; font-size: 12px; color: var(--muted); }
+.pip { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid var(--bad); background: transparent; padding: 0; cursor: pointer; }
+.pip.on { background: var(--bad); }
+.pip.ex { width: auto; height: 15px; padding: 0 4px; font-size: 10px; line-height: 1; color: var(--bad); border-style: dashed; }
+.saves { display: flex; gap: 3px; align-items: center; font-size: 12px; color: var(--muted); }
+.saves .pip.s { border-color: var(--good); border-radius: 50%; } .saves .pip.s.on { background: var(--good); }
+.saves .pip.f { border-radius: 50%; }
+.menu { position: absolute; right: 8px; top: calc(100% - 4px); z-index: 5; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); display: grid; gap: 8px; width: min(320px, calc(100vw - 48px)); }
+.menu .row select { flex: 1; }
+.menu textarea { min-height: 56px; font-size: 14px; }
+.note { font-size: 13px; color: var(--muted); font-style: italic; }
+@media (max-width: 860px) {
+  .cbt { grid-template-columns: 54px minmax(0, 1fr) auto; grid-template-areas: "init who acts" "ac hp hp" "dmg dmg dmg"; }
+  .cbt .init { grid-area: init; } .cbt .who { grid-area: who; } .cbt .acts { grid-area: acts; } .cbt .ac { grid-area: ac; } .cbt .hp { grid-area: hp; } .cbt .dmg { grid-area: dmg; }
+  .dmg input { flex: 1; }
+}
+.empty { padding: 22px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+.banner { display: flex; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 8px; background: var(--accent-soft); font-size: 14px; flex-wrap: wrap; }
+
+/* loot */
+.loot-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .loot-grid { grid-template-columns: 1fr; } }
+.side { display: grid; gap: 10px; padding: 12px; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.seg button { border: 0; background: var(--raised); padding: 6px 12px; cursor: pointer; font-weight: 500; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: var(--accent-ink); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chks { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; }
+.loot-out { display: grid; gap: 12px; min-width: 0; }
+.coins { display: flex; flex-wrap: wrap; gap: 8px; }
+.coin { display: flex; align-items: baseline; gap: 5px; padding: 6px 12px; border-radius: 999px; background: var(--raised); border: 1px solid var(--line); font-family: var(--mono); font-weight: 600; }
+.coin small { font-family: var(--body); color: var(--muted); font-weight: 500; }
+.coin input { width: 84px; padding: 0 4px; border: 0; background: transparent; text-align: right; font-weight: 600; }
+.lgroup { display: grid; gap: 4px; }
+.litem { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); }
+.litem.locked { border-color: var(--accent); }
+@media (max-width: 560px) { .litem { grid-template-columns: minmax(0, 1fr) auto; } .litem .acts { grid-column: 1 / -1; justify-content: flex-end; } .lib { grid-template-columns: 1fr; } }
+.litem .nm { min-width: 0; }
+.litem .nm b { font-weight: 600; }
+.litem .val { font-family: var(--mono); color: var(--muted); font-size: 14px; white-space: nowrap; }
+.litem .acts .btn.on { color: var(--accent); }
+.rar { font-size: 12px; font-weight: 700; }
+.rar.common { color: var(--r-common); } .rar.uncommon { color: var(--r-uncommon); } .rar.rare { color: var(--r-rare); } .rar.veryrare { color: var(--r-veryrare); } .rar.legendary { color: var(--r-legendary); } .rar.artifact { color: var(--r-artifact); }
+.totals { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--muted); }
+.totals b { color: var(--ink); font-family: var(--mono); }
+
+/* export box */
+.export { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); min-width: 0; }
+.export textarea { font-family: var(--mono); font-size: 13px; min-height: 160px; background: var(--surface); }
+.export .count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.export .count.over { color: var(--bad); font-weight: 600; }
+
+/* items */
+.forge { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 920px) { .forge { grid-template-columns: 1fr; } }
+.fields { display: grid; gap: 10px; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .three { grid-template-columns: 1fr 1fr; } }
+.with-btn { display: flex; gap: 4px; }
+.with-btn > input, .with-btn > textarea { flex: 1; }
+.props { display: grid; gap: 8px; }
+.prop { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); }
+.prop .row input { flex: 1; font-weight: 600; }
+.prop textarea { min-height: 54px; font-size: 14px; }
+.secret { padding: 10px; border: 1px dashed var(--bad); border-radius: 8px; display: grid; gap: 6px; }
+.secret .eyebrow { color: var(--bad); }
+.card { border-radius: 8px; border: 1px solid var(--line); background: var(--raised); padding: 16px 18px; display: grid; gap: 8px; border-top: 4px solid var(--rc, var(--r-common)); }
+.card h3 { font-size: 24px; color: var(--rc); }
+.card .sub { font-style: italic; color: var(--muted); margin-top: -6px; }
+.card p { margin: 0; }
+.card .desc { font-style: italic; }
+.card .q { font-size: 14px; color: var(--muted); }
+.rc-common { --rc: var(--r-common); } .rc-uncommon { --rc: var(--r-uncommon); } .rc-rare { --rc: var(--r-rare); } .rc-veryrare { --rc: var(--r-veryrare); } .rc-legendary { --rc: var(--r-legendary); } .rc-artifact { --rc: var(--r-artifact); }
+.library { display: grid; gap: 6px; }
+.lib { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); border-left: 4px solid var(--rc); }
+.lib .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib .nm b { font-weight: 700; }
+
+.toast-wrap { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 20; display: grid; gap: 6px; width: min(460px, calc(100vw - 32px)); }
+.toast { background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 8px; display: flex; gap: 10px; align-items: center; box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 15px; }
+.toast .btn { background: transparent; color: var(--bg); border-color: var(--bg); }
+footer { max-width: 1120px; margin: 0 auto; padding-block: 0 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); color: var(--muted); font-size: 12px; }
+footer a { color: inherit; }
+kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* tabs + journal */
+.tabs { display: flex; gap: 2px; background: var(--bg); padding: 3px; border-radius: 8px; }
+.tabs button { border: 0; background: transparent; padding: 5px 14px; border-radius: 6px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.tabs button:hover { color: var(--ink); }
+.tabs button.on { background: var(--raised); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.tabview { display: grid; gap: 28px; min-width: 0; }
+[hidden] { display: none !important; }
+.savestate { font-size: 13px; color: var(--muted); }
+.jgrid { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .jgrid { grid-template-columns: 1fr; } }
+.jside { position: sticky; top: calc(64px + env(safe-area-inset-top, 0px)); display: grid; gap: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; max-height: calc(100vh - 88px); overflow: auto; }
+@media (max-width: 860px) { .jside { position: static; max-height: 46vh; } }
+.jlist { display: grid; gap: 2px; }
+.jlist details summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; padding: 6px 4px 4px; list-style: none; display: flex; gap: 6px; }
+.jlist details summary::-webkit-details-marker { display: none; }
+.jlist details summary::before { content: "▸"; transition: transform .15s; }
+.jlist details[open] summary::before { transform: rotate(90deg); }
+.jlist details summary span { margin-left: auto; font-family: var(--mono); font-weight: 400; }
+.jitem { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 4px 8px; border-radius: 5px; cursor: pointer; color: var(--ink); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jitem:hover { background: var(--bg); }
+.jitem.on { background: var(--accent-soft); font-weight: 600; }
+.jitem small { color: var(--muted); display: block; font-size: 12px; white-space: normal; }
+.jitem .lock { color: var(--bad); font-size: 11px; margin-left: 4px; }
+.jmain { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; min-width: 0; display: grid; gap: 14px; align-content: start; min-height: 60vh; }
+.jhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.jhead h2 { font-size: 32px; line-height: 1.1; }
+.catchip { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+.tagchip { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.prose { max-width: 72ch; font-size: 17px; line-height: 1.6; }
+.prose > :first-child { margin-top: 0; }
+.prose h2, .prose h3, .prose h4 { margin: 1.2em 0 .3em; }
+.prose h2 { font-size: 22px; } .prose h3 { font-size: 19px; } .prose h4 { font-size: 17px; }
+.prose p { margin: .5em 0; }
+.prose ul, .prose ol { margin: .4em 0; padding-left: 1.4em; }
+.prose blockquote { margin: .6em 0; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); }
+.prose hr { border: 0; border-top: 1px solid var(--line); margin: 1em 0; }
+.wl { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; cursor: pointer; background: none; border-top: 0; border-left: 0; border-right: 0; padding: 0; font: inherit; }
+.wl.missing { color: var(--muted); border-bottom-style: dashed; }
+.secretbox { border: 1px dashed var(--bad); border-radius: 8px; padding: 12px 16px; background: color-mix(in srgb, var(--bad) 6%, transparent); }
+.secretbox > .eyebrow { color: var(--bad); margin-bottom: 4px; }
+.updbox { border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; display: grid; gap: 8px; }
+.updbox .eyebrow { color: var(--accent); }
+.updbox .prose { max-height: 420px; overflow: auto; }
+.jfield { display: grid; gap: 4px; }
+.jfield > span { font-size: 13px; color: var(--muted); font-weight: 600; }
+.jfield textarea { min-height: 90px; font-size: 15px; line-height: 1.5; field-sizing: content; max-height: 70vh; }
+.jfield textarea.big { min-height: 260px; }
+.backlinks { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.prepgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .prepgrid { grid-template-columns: 1fr; } }
+.prepcard { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); }
+.prepcard h3 { font-size: 17px; }
+.prepcard p.hint { margin: 0; }
+.prepcard textarea { min-height: 110px; font-size: 15px; line-height: 1.5; field-sizing: content; border-color: transparent; background: var(--surface); }
+.prepcard .links { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; }
+.prepcard.wide { grid-column: 1 / -1; }
+.prepcard.goals { border-color: var(--accent); }
+.prepcard .phead { display: flex; align-items: center; gap: 8px; }
+.prepcard .phead h3 { flex: 1; }
+.sugg { display: grid; gap: 6px; padding: 8px; border: 1px dashed var(--accent); border-radius: 8px; }
+.sugg .srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; }
+.sugg textarea { min-height: 0; font-size: 14px; field-sizing: content; background: var(--surface); }
+.sugg .sacts { display: flex; gap: 4px; }
+.prepgrid { align-items: start; }
+.jnotice { padding: 10px 14px; border-radius: 8px; background: var(--accent-soft); font-size: 14px; }
+.confirm { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; }
+.cbt.hidp { border-style: dashed; }
+.cbt.hidp .cname, .cbt.hidp .init { opacity: .6; }
+.eye { color: var(--muted); }
+.eye.off { color: var(--bad); }
+.eye svg { display: block; }
+.tag.hid { color: var(--muted); }
+/* player screen */
+body.pmode > header, body.pmode > main, body.pmode > footer { display: none; }
+#pv { padding-block: 3vh; padding-left: max(3vw, env(safe-area-inset-left, 0px)); padding-right: max(3vw, env(safe-area-inset-right, 0px)); display: grid; align-content: start; gap: 2vh; font-size: clamp(18px, 2.2vw, 34px); }
+.pv-head { display: flex; align-items: baseline; gap: 1.2em; flex-wrap: wrap; }
+.pv-head h1 { font-size: 2.2em; line-height: 1; }
+.pv-head .pv-now { color: var(--muted); }
+.pv-head .pv-now b { color: var(--accent); font-family: var(--display); }
+.pv-tools { margin-left: auto; display: flex; gap: 6px; opacity: .25; transition: opacity .2s; }
+.pv-tools:hover, .pv-tools:focus-within { opacity: 1; }
+.pv-list { display: grid; gap: .45em; }
+.pv-list.cols2 { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .8em; grid-auto-flow: column; }
+.pv-row { display: grid; grid-template-columns: 1.6em minmax(0, 1fr) auto; align-items: center; gap: .3em .8em; padding: .3em .8em; border-radius: 10px; background: var(--surface); border: 2px solid var(--line); }
+.pv-row.on { border-color: var(--accent); background: var(--active); }
+.pv-row.out { opacity: .45; }
+.pv-row.out .pv-name { text-decoration: line-through; }
+.pv-n { font-family: var(--mono); color: var(--muted); font-size: .8em; }
+.pv-main { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .25em .6em; }
+.pv-name { font-family: var(--display); font-weight: 700; font-size: 1.15em; }
+.pv-row.pc .pv-name { color: var(--pc); }
+.pv-conds { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: .3em; margin-top: -.1em; }
+.pv-cond { font-size: .6em; padding: .15em .6em; border-radius: 6px; background: var(--accent-soft); border: 1px solid var(--line); }
+.pv-cond b { font-weight: 700; }
+.pv-cond span { color: var(--muted); }
+.pv-cond.conc { background: transparent; color: var(--npc); border-color: var(--npc); }
+.pv-stress { display: inline-flex; gap: .18em; align-items: center; font-size: .6em; color: var(--muted); }
+.pv-stress svg { width: 1.7em; height: 1.7em; display: block; }
+.pv-stress svg .head { fill: var(--bad); }
+.pv-stress svg .feat { fill: none; stroke: var(--surface); stroke-width: 2; stroke-linecap: round; }
+.pv-stress svg .eye { fill: var(--surface); }
+.pv-stress svg .drop { fill: var(--pc); }
+.pv-stress .lbl { margin-left: .3em; }
+.pv-hp { display: flex; align-items: center; gap: .5em; font-size: .75em; white-space: nowrap; }
+.pv-hp .pips { display: inline-flex; gap: 3px; }
+.pv-hp .pips i { width: 1.1em; height: .5em; border-radius: 2px; background: var(--line); display: inline-block; }
+.pv-hp.t4 i.f { background: var(--good); } .pv-hp.t3 i.f { background: var(--good); } .pv-hp.t2 i.f { background: var(--warn); } .pv-hp.t1 i.f { background: var(--bad); }
+.pv-hp.t2 span { color: var(--warn); } .pv-hp.t1 span, .pv-hp.t0 span { color: var(--bad); }
+.pv-empty { color: var(--muted); font-size: 1.2em; padding: 2em 0; }
+</style>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1l2.6 7.4L22 11l-7.4 2.6L12 21l-2.6-7.4L2 11l7.4-2.6z"/><circle cx="12" cy="11" r="2.4" fill="var(--surface)"/></svg>
+      DM Screen
+    </div>
+    <nav class="tabs" aria-label="Views" id="tabNav">
+      <button data-tab="table" class="on">Table</button>
+      <button data-tab="prep">Prep</button>
+      <button data-tab="sessions">Sessions</button>
+      <button data-tab="lore">Lore</button>
+    </nav>
+    <div class="dice-out" id="diceOut" aria-live="polite"><b>—</b><small>Pick a die</small></div>
+    <div class="dhist" id="dHist" aria-label="Recent rolls"></div>
+    <div class="dtray" id="diceTray">
+      <div class="dgrp"><span class="lbl">Roll</span><input class="dnum" id="dCount" type="number" min="1" max="99" value="1" aria-label="Number of dice" title="How many dice"><span class="hint">×</span>
+        <span id="dieBtns" class="dgrp"></span></div>
+      <div class="dgrp"><span class="lbl">Mod</span><button class="dstep" data-dmod="-1" aria-label="Lower modifier">−</button><input class="dnum" id="dMod" type="number" value="0" aria-label="Modifier"><button class="dstep" data-dmod="1" aria-label="Raise modifier">+</button></div>
+      <div class="seg adv" id="dAdv" role="group" aria-label="Advantage"><button data-adv="dis">Disadv.</button><button data-adv="none" class="on">Normal</button><button data-adv="adv">Adv.</button></div>
+      <form class="dexpr" id="diceForm" autocomplete="off"><input id="diceExpr" type="text" placeholder="4d6kh3, 2d8+1d6" aria-label="Custom roll, for example 2d6+3"><button class="btn sm" type="submit">Roll</button></form>
+    </div>
+  </div>
+</header>
+
+<main>
+<div id="tab-table" class="tabview">
+<!-- ================= INITIATIVE ================= -->
+<section class="panel" id="initiative" aria-labelledby="h-init">
+  <div class="panel-head">
+    <h2 id="h-init">Initiative</h2>
+    <p>Press <kbd>N</kbd> for next turn, <kbd>P</kbd> for previous.</p>
+  </div>
+
+  <div class="combat-bar">
+    <div class="round"><span>Round</span><b class="num" id="roundNum">1</b></div>
+    <button class="btn" id="prevTurn" title="Previous turn (P)">◀ Prev</button>
+    <button class="btn primary" id="nextTurn" title="Next turn (N)">Next turn ▶</button>
+    <div class="now" id="nowUp"></div>
+    <div class="spacer"></div>
+    <button class="btn sm" id="rollMon">Roll monster init</button>
+    <button class="btn sm" id="sortInit">Sort</button>
+    <button class="btn sm" id="addParty">Add party</button>
+    <a class="btn sm" id="playerLink" href="#players" title="Opens the player-facing tracker in its own window. Drag it to the players' screen." style="text-decoration:none">Player screen ↗</a>
+    <button class="btn sm" id="copyOrder">Copy order for Discord</button>
+    <button class="btn sm danger" id="endCombat">End combat</button>
+  </div>
+
+  <div class="banner" id="exampleBanner" hidden>
+    <span>The wolves below are an example encounter. The party are your PCs from the campaign notes; set their AC and HP once and they're remembered.</span>
+    <button class="btn sm" id="clearExample">Clear the wolves</button>
+  </div>
+
+  <div class="init-list" id="initList"></div>
+
+  <form class="add-form" id="addForm" autocomplete="off">
+    <label class="f name-f">Name or SRD monster
+      <input id="aName" list="monsterList" placeholder="Goblin, Veteran, Captain Solana…" required>
+    </label>
+    <label class="f">Type
+      <select id="aKind"><option value="monster">Monster</option><option value="npc">NPC</option><option value="pc">PC</option></select>
+    </label>
+    <label class="f">Qty <input id="aQty" type="number" min="1" max="30" value="1"></label>
+    <label class="f">Init <input id="aInit" type="number" placeholder="roll"></label>
+    <label class="f">Init mod <input id="aMod" type="number" value="0"></label>
+    <label class="f">AC <input id="aAC" type="number" min="0" placeholder="—"></label>
+    <label class="f">HP <input id="aHP" type="text" placeholder="22 or 3d8+9"></label>
+    <button class="btn primary" type="submit">Add</button>
+    <div class="opts">
+      <label class="chk"><input type="checkbox" id="aRollHP"> Roll HP dice</label>
+      <label class="chk"><input type="checkbox" id="aGroup" checked> Group shares one initiative</label>
+      <label class="chk"><input type="checkbox" id="aSave"> Save to my monsters</label>
+      <label class="chk"><input type="checkbox" id="skipDown" checked> Skip defeated monsters</label>
+      <span class="hint" id="aHint"></span>
+    </div>
+  </form>
+  <datalist id="monsterList"></datalist>
+</section>
+
+<!-- ================= LOOT ================= -->
+<section class="panel" id="loot" aria-labelledby="h-loot">
+  <div class="panel-head">
+    <h2 id="h-loot">Loot</h2>
+    <p>Lock lines you like, then generate again to reroll the rest.</p>
+  </div>
+  <div class="loot-grid">
+    <form class="side" id="lootForm" autocomplete="off">
+      <div>
+        <div class="eyebrow" style="margin-bottom:4px">Treasure type</div>
+        <div class="seg" id="lootKind">
+          <button type="button" data-v="individual">Pocket loot</button>
+          <button type="button" data-v="hoard">Hoard</button>
+        </div>
+      </div>
+      <div class="two">
+        <label class="f">Party level
+          <select id="lTier"><option value="1">1–4</option><option value="2">5–10</option><option value="3">11–16</option><option value="4">17–20</option></select>
+        </label>
+        <label class="f">Creatures searched
+          <input id="lCount" type="number" min="1" max="50" value="1">
+        </label>
+        <label class="f">Party size (split)
+          <input id="lParty" type="number" min="1" max="12" value="5">
+        </label>
+        <label class="f">Magic items
+          <select id="lMagic"><option value="0">None</option><option value="0.5">Few</option><option value="1">Normal</option><option value="2">Generous</option></select>
+        </label>
+      </div>
+      <div class="chks">
+        <label class="chk"><input type="checkbox" id="lCoins" checked> Coins</label>
+        <label class="chk"><input type="checkbox" id="lGems" checked> Gems &amp; art</label>
+        <label class="chk"><input type="checkbox" id="lGear" checked> Gear</label>
+        <label class="chk"><input type="checkbox" id="lHerbs" checked> Novum herbs</label>
+      </div>
+      <label class="f">Loot title (for Discord)
+        <input id="lTitle" type="text" placeholder="Wolf den in the Whisperwood">
+      </label>
+      <button class="btn primary" type="submit">Generate loot</button>
+      <button class="btn" type="button" id="lClear">Clear unlocked</button>
+    </form>
+
+    <div class="loot-out">
+      <div class="coins" id="coinRow"></div>
+      <div class="totals" id="lootTotals"></div>
+      <div id="lootList" class="lgroup"></div>
+      <form class="row" id="lootAdd" autocomplete="off">
+        <input id="lAddName" type="text" placeholder="Add a line: Wren's ciphered journal" style="flex:1">
+        <input id="lAddVal" type="number" min="0" placeholder="gp" style="width:80px">
+        <button class="btn" type="submit">Add</button>
+      </form>
+      <div class="export">
+        <div class="row">
+          <div class="eyebrow">Discord message</div>
+          <div class="spacer"></div>
+          <label class="chk"><input type="checkbox" id="lShowVal" checked> Show values</label>
+          <label class="chk"><input type="checkbox" id="lShowSplit" checked> Show split</label>
+        </div>
+        <textarea id="lootExport" readonly aria-label="Loot formatted for Discord"></textarea>
+        <div class="row">
+          <span class="count" id="lootCount"></span>
+          <div class="spacer"></div>
+          <button class="btn primary" type="button" id="copyLoot">Copy for Discord</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MAGIC ITEMS ================= -->
+<section class="panel" id="items" aria-labelledby="h-items">
+  <div class="panel-head">
+    <h2 id="h-items">Magic Items</h2>
+    <p>Forge a random item, then rewrite whatever you want. Secrets never go into the Discord text.</p>
+  </div>
+  <div class="row">
+    <label class="f">Type <select id="gType"></select></label>
+    <label class="f">Rarity <select id="gRarity"></select></label>
+    <label class="f">Theme <select id="gTheme"></select></label>
+    <button class="btn primary" id="forgeBtn" style="align-self:end">Forge random item</button>
+    <button class="btn" id="newBlank" style="align-self:end">Start blank</button>
+  </div>
+  <div class="forge">
+    <div class="fields">
+      <label class="f">Name
+        <span class="with-btn"><input id="iName" type="text"><button class="btn icon" type="button" data-re="name" title="New name">↻</button></span>
+      </label>
+      <div class="three">
+        <label class="f">Type <select id="iType"></select></label>
+        <label class="f">Base item <input id="iBase" type="text" list="baseList" placeholder="longsword"></label>
+        <label class="f">Rarity <select id="iRarity"></select></label>
+      </div>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="iAttune"> Requires attunement</label>
+        <input id="iAttuneBy" type="text" placeholder="by a warlock (optional)" style="flex:1">
+      </div>
+      <label class="f">Appearance and description (players see this)
+        <span class="with-btn"><textarea id="iDesc" rows="3"></textarea><button class="btn icon" type="button" data-re="desc" title="New description">↻</button></span>
+      </label>
+      <div>
+        <div class="row" style="margin-bottom:6px">
+          <div class="eyebrow">Properties</div><div class="spacer"></div>
+          <button class="btn sm" type="button" id="addPropRandom">+ Random property</button>
+          <button class="btn sm" type="button" id="addPropBlank">+ Blank</button>
+        </div>
+        <div class="props" id="propList"></div>
+      </div>
+      <div class="two">
+        <label class="f">Charges <input id="iCharges" type="number" min="0" placeholder="none"></label>
+        <label class="f">Recharge <input id="iRecharge" type="text" placeholder="1d4 at dawn"></label>
+      </div>
+      <label class="f">Quirk
+        <span class="with-btn"><input id="iQuirk" type="text"><button class="btn icon" type="button" data-re="quirk" title="New quirk">↻</button></span>
+      </label>
+      <label class="f">Lore (optional, players see this)
+        <span class="with-btn"><input id="iLore" type="text"><button class="btn icon" type="button" data-re="lore" title="New lore">↻</button></span>
+      </label>
+      <div class="secret">
+        <div class="row"><div class="eyebrow">DM only</div><div class="spacer"></div><button class="btn sm" type="button" id="rollCurse">Roll a curse</button></div>
+        <textarea id="iSecret" rows="2" placeholder="Curse, true origin, who's hunting it. Never exported."></textarea>
+      </div>
+    </div>
+
+    <div class="fields">
+      <div class="eyebrow">Card preview</div>
+      <div class="card" id="itemCard"></div>
+      <div class="export">
+        <div class="row">
+          <div class="eyebrow">Discord message</div>
+          <div class="spacer"></div>
+          <label class="chk"><input type="checkbox" id="iEmoji" checked> Rarity emoji</label>
+          <label class="chk"><input type="checkbox" id="iHeaders" checked> Discord headings</label>
+        </div>
+        <textarea id="itemExport" readonly aria-label="Item formatted for Discord"></textarea>
+        <div class="row">
+          <span class="count" id="itemCount"></span>
+          <div class="spacer"></div>
+          <button class="btn" type="button" id="saveItem">Save to library</button>
+          <button class="btn primary" type="button" id="copyItem">Copy for Discord</button>
+        </div>
+      </div>
+      <div>
+        <div class="row" style="margin-bottom:6px"><div class="eyebrow">Library</div><div class="spacer"></div><button class="btn sm" type="button" id="copyAllItems">Copy all</button></div>
+        <div class="library" id="libList"></div>
+      </div>
+    </div>
+  </div>
+  <datalist id="baseList"></datalist>
+</section>
+</div>
+
+<!-- ================= PREP ================= -->
+<div id="tab-prep" class="tabview" hidden>
+  <section class="panel" aria-labelledby="h-prep">
+    <div class="panel-head"><h2 id="h-prep">Prep</h2><p>Plan the next session here, then take notes in it while you play.</p><div class="spacer"></div><span class="savestate" data-savestate></span></div>
+    <div id="prepBody"></div>
+  </section>
+</div>
+
+<!-- ================= SESSIONS ================= -->
+<div id="tab-sessions" class="tabview" hidden>
+  <div class="jgrid">
+    <aside class="jside">
+      <div class="row"><div class="eyebrow">Session log</div><div class="spacer"></div><span class="hint" id="sessCount"></span><button class="btn sm" id="exportMd" title="Download every lore page, session and item as one Markdown file">Export .md</button><button class="btn sm primary" id="newSess">+ New session</button></div>
+      <div class="jlist" id="sessList"></div>
+    </aside>
+    <section class="jmain" id="sessMain"></section>
+  </div>
+</div>
+
+<!-- ================= LORE ================= -->
+<div id="tab-lore" class="tabview" hidden>
+  <div class="jgrid">
+    <aside class="jside">
+      <div class="row"><input id="loreSearch" type="search" placeholder="Search lore and sessions" aria-label="Search lore and sessions" style="flex:1"><button class="btn primary sm" id="newPage">+ New</button></div>
+      <select id="loreCat" aria-label="Category"></select>
+      <div class="jlist" id="loreList"></div>
+    </aside>
+    <section class="jmain" id="loreMain"></section>
+  </div>
+</div>
+</main>
+
+<section id="pv" hidden aria-label="Player initiative screen">
+  <div class="pv-head">
+    <h1>Round <span id="pvRound">1</span></h1>
+    <div class="pv-now" id="pvNow"></div>
+    <div class="pv-tools"><button class="btn sm" id="pvFull">Fullscreen</button><button class="btn sm" id="pvExit">DM view</button></div>
+  </div>
+  <div class="pv-list" id="pvList"></div>
+</section>
+<footer>
+  Monster stats and magic item names come from the System Reference Document 5.1 by Wizards of the Coast LLC, licensed under <a href="https://creativecommons.org/licenses/by/4.0/legalcode" target="_blank" rel="noopener">CC BY 4.0</a>. Everything is saved in your campaign file, with automatic backup copies in the folder next to it.
+</footer>
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ---------------- helpers ---------------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const uid = () => Math.random().toString(36).slice(2, 10);
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+function weighted(pairs) { const t = pairs.reduce((a, p) => a + p[1], 0); let r = Math.random() * t; for (const [v, w] of pairs) { if ((r -= w) < 0) return v; } return pairs[pairs.length - 1][0]; }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fmtNum(n) { return Math.round(n).toLocaleString("en-US"); }
+
+/* dice: "2d6+3", "d20", "4d6kh3", "1d20-1", "3d8*10" */
+function roll(expr) {
+  const src = String(expr).replace(/\s+/g, "").toLowerCase();
+  if (!src) return null;
+  let mult = 1, body = src;
+  const m = src.match(/^(.*)[*x×](\d+)$/);
+  if (m) { body = m[1]; mult = +m[2]; }
+  const terms = body.match(/[+-]?[^+-]+/g);
+  if (!terms) return null;
+  let total = 0; const parts = [];
+  for (const t of terms) {
+    const sign = t[0] === "-" ? -1 : 1;
+    const v = t.replace(/^[+-]/, "");
+    const d = v.match(/^(\d*)d(\d+)(?:k([hl])(\d+))?$/);
+    if (d) {
+      const n = clamp(+(d[1] || 1), 1, 200), s = clamp(+d[2], 1, 1000);
+      let rs = Array.from({ length: n }, () => 1 + rnd(s));
+      let kept = rs;
+      if (d[3]) { const k = clamp(+d[4], 1, n); const sorted = rs.slice().sort((a, b) => b - a); kept = d[3] === "h" ? sorted.slice(0, k) : sorted.slice(-k); }
+      const sum = kept.reduce((a, b) => a + b, 0);
+      total += sign * sum; parts.push((sign < 0 ? "−" : "") + "[" + rs.join(",") + "]");
+    } else if (/^\d+$/.test(v)) { total += sign * +v; parts.push((sign < 0 ? "−" : "+") + v); }
+    else return null;
+  }
+  return { total: total * mult, detail: parts.join(" ") + (mult > 1 ? " ×" + mult : "") };
+}
+function avgDice(expr) {
+  const src = String(expr).replace(/\s+/g, "").toLowerCase();
+  const terms = src.match(/[+-]?[^+-]+/g); if (!terms) return null;
+  let t = 0;
+  for (const x of terms) {
+    const sign = x[0] === "-" ? -1 : 1, v = x.replace(/^[+-]/, "");
+    const d = v.match(/^(\d*)d(\d+)$/);
+    if (d) t += sign * (+(d[1] || 1)) * (+d[2] + 1) / 2; else if (/^\d+$/.test(v)) t += sign * +v; else return null;
+  }
+  return Math.floor(t);
+}
+const d20 = () => 1 + rnd(20);
+
+/* storage */
+const KEY = "dm-screen-v1";
+function loadState() { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+let saveTimer = 0;
+let PLAYER = location.hash === "#players";
+function save() { if (PLAYER) return; clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }, 150); }
+
+/* toasts */
+function toast(msg, actionLabel, action, ms = 4200) {
+  const t = document.createElement("div"); t.className = "toast";
+  t.innerHTML = `<span style="flex:1">${esc(msg)}</span>`;
+  if (actionLabel) { const b = document.createElement("button"); b.className = "btn sm"; b.textContent = actionLabel; b.onclick = () => { action(); t.remove(); }; t.appendChild(b); }
+  $("#toasts").appendChild(t); setTimeout(() => t.remove(), ms);
+}
+function copyText(text, ta) {
+  const done = () => toast("Copied. Paste it into Discord.");
+  const fallback = () => { if (ta) { ta.focus(); ta.select(); } toast("Copy was blocked here. The text is selected: press Ctrl+C or ⌘C."); };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+}
+
+/* ---------------- SRD data ---------------- */
+// name, CR, AC, HP dice, Dex mod
+const SRD_MONSTERS = [
+["Acolyte","1/4",10,"2d8",0],["Air Elemental","5",15,"12d10+24",5],["Animated Armor","1",18,"6d8+6",0],["Ankheg","2",14,"6d10+6",0],["Ape","1/2",12,"3d8+6",2],["Archmage","12",12,"18d8+18",2],["Assassin","8",15,"12d8+24",3],["Awakened Shrub","0",9,"3d6",-1],["Bandit","1/8",12,"2d8+2",1],["Bandit Captain","2",15,"10d8+20",3],["Banshee","4",12,"13d8",2],["Basilisk","3",15,"8d8+16",-1],["Bearded Devil","3",13,"8d8+16",2],["Berserker","2",13,"9d8+27",1],["Black Bear","1/2",11,"3d8+6",0],["Black Dragon Wyrmling","2",17,"6d8+6",2],["Black Pudding","4",7,"10d10+30",-3],["Blink Dog","1/4",13,"4d8+4",3],["Blue Dragon Wyrmling","3",17,"8d8+16",0],["Boar","1/4",11,"2d8+2",0],["Brown Bear","1",11,"4d10+12",0],["Bugbear","1",16,"5d8+5",2],["Bulette","5",17,"9d10+45",0],["Centaur","2",12,"6d10+12",2],["Chimera","6",14,"12d10+48",0],["Chuul","4",16,"11d10+33",0],["Cloaker","8",14,"12d10+12",2],["Cockatrice","1/2",11,"6d6+6",1],["Commoner","0",10,"1d8",0],["Crocodile","1/2",12,"3d10+3",0],["Cult Fanatic","2",13,"6d8+6",2],["Cultist","1/8",12,"2d8",1],["Darkmantle","1/2",11,"5d6+5",1],["Death Dog","1",12,"6d8+12",2],["Deva","10",17,"16d8+64",4],["Dire Wolf","1",14,"5d10+10",2],["Doppelganger","3",14,"8d8+16",4],["Drider","6",19,"13d10+52",3],["Dryad","1",11,"5d8",1],["Duergar","1",16,"4d8+8",0],["Dust Mephit","1/2",12,"5d6",2],["Earth Elemental","5",17,"12d10+60",-1],["Erinyes","12",18,"18d8+72",3],["Ettercap","2",13,"8d8+8",2],["Ettin","4",12,"10d10+30",-1],["Fire Elemental","5",13,"12d10+36",3],["Fire Giant","9",18,"13d12+78",-1],["Flesh Golem","5",9,"11d8+44",-1],["Frost Giant","8",15,"12d12+60",-1],["Gargoyle","2",15,"7d8+21",0],["Gelatinous Cube","2",6,"8d10+40",-4],["Ghast","2",13,"8d8",3],["Ghost","4",11,"10d8",1],["Ghoul","1",12,"5d8",2],["Giant Boar","2",12,"5d10+15",0],["Giant Eagle","1",13,"4d10+4",3],["Giant Rat","1/8",12,"2d6",2],["Giant Spider","1",14,"4d10+4",3],["Giant Toad","1",11,"6d10+6",1],["Gladiator","5",16,"15d8+45",2],["Gnoll","1/2",15,"5d8",1],["Goblin","1/4",15,"2d6",2],["Gorgon","5",19,"12d10+48",0],["Green Dragon Wyrmling","2",17,"7d8+7",1],["Green Hag","3",17,"11d8+33",1],["Griffon","2",12,"7d10+21",2],["Guard","1/8",16,"2d8+2",1],["Harpy","1",11,"7d8+7",1],["Hell Hound","3",15,"7d8+14",1],["Hill Giant","5",13,"10d12+40",-1],["Hippogriff","1",11,"3d10+3",1],["Hobgoblin","1/2",18,"2d8+2",1],["Hydra","8",15,"15d12+75",1],["Imp","1",13,"3d4+3",3],["Invisible Stalker","6",14,"16d8+32",4],["Knight","3",18,"8d8+16",0],["Kobold","1/8",12,"2d6-2",2],["Lich","21",17,"18d8+54",3],["Lizardfolk","1/2",15,"4d8+4",0],["Mage","6",12,"9d8",2],["Manticore","3",14,"8d10+24",3],["Medusa","6",15,"17d8+51",2],["Mimic","2",12,"9d8+18",1],["Minotaur","3",14,"9d10+27",0],["Mummy","3",11,"9d8+18",-1],["Mummy Lord","15",17,"13d8+39",-1],["Night Hag","5",17,"15d8+45",2],["Noble","1/8",15,"2d8",1],["Ochre Jelly","2",8,"6d10+12",-2],["Ogre","2",11,"7d10+21",-1],["Ogre Zombie","2",8,"9d10+36",-2],["Oni","7",16,"13d10+39",0],["Orc","1/2",13,"2d8+6",1],["Otyugh","5",14,"12d10+48",0],["Owlbear","3",13,"7d10+21",1],["Phase Spider","3",13,"5d10+5",3],["Priest","2",13,"5d8+5",0],["Pseudodragon","1/4",13,"2d4+2",2],["Quasit","1",13,"3d4",3],["Rakshasa","13",16,"13d8+52",3],["Red Dragon Wyrmling","4",17,"10d8+30",0],["Roper","5",20,"11d10+33",-1],["Rust Monster","1/2",14,"5d8+5",1],["Sahuagin","1/2",12,"4d8+4",0],["Scout","1/2",13,"3d8+3",2],["Sea Hag","2",14,"7d8+21",1],["Shadow","1/2",12,"3d8+3",2],["Shambling Mound","5",15,"16d10+48",-1],["Skeleton","1/4",13,"2d8+4",2],["Spy","1",12,"6d8",2],["Stirge","1/8",14,"1d4",3],["Stone Giant","7",17,"11d12+55",2],["Stone Golem","10",17,"17d10+85",-1],["Succubus/Incubus","4",15,"12d8+12",3],["Swarm of Insects","1/2",12,"5d8",1],["Swarm of Rats","1/4",10,"7d8-7",0],["Thug","1/2",11,"5d8+10",0],["Treant","9",16,"12d12+60",-1],["Troll","5",15,"8d10+40",1],["Twig Blight","1/8",13,"1d6+1",1],["Unicorn","5",12,"9d10+18",2],["Vampire","13",16,"17d8+68",4],["Vampire Spawn","5",15,"11d8+33",3],["Veteran","3",17,"9d8+18",1],["Water Elemental","5",14,"12d10+48",2],["Water Weird","3",13,"9d10+9",3],["White Dragon Wyrmling","2",16,"5d8+10",0],["Wight","3",14,"6d8+18",2],["Will-o'-Wisp","2",19,"9d4",9],["Wolf","1/4",13,"2d8+2",2],["Worg","1/2",13,"4d10+4",1],["Wraith","5",13,"9d8+27",3],["Wyvern","6",13,"13d10+39",0],["Young Black Dragon","7",18,"15d10+45",2],["Young Blue Dragon","9",18,"16d10+64",0],["Young Green Dragon","8",18,"16d10+48",1],["Young Red Dragon","10",18,"17d10+85",0],["Young White Dragon","6",17,"14d10+56",0],["Zombie","1/4",8,"3d8+9",-2]
+];
+const CONDITIONS = ["Blinded","Charmed","Deafened","Exhaustion","Frightened","Grappled","Incapacitated","Invisible","Paralyzed","Petrified","Poisoned","Prone","Restrained","Stunned","Unconscious","Hasted","Blessed","Hexed","Marked","Raging","Dodging","Hidden"];
+
+const RARITIES = ["common","uncommon","rare","very rare","legendary","artifact"];
+const RKEY = r => r.replace(" ", "");
+const R_EMOJI = { common: "⚪", uncommon: "🟢", rare: "🔵", "very rare": "🟣", legendary: "🟠", artifact: "🔴" };
+
+// SRD 5.1 magic item names. [name, type, attunement]
+const SRD_ITEMS = {
+  common: [["Potion of Healing","Potion"],["Potion of Climbing","Potion"],["Spell Scroll (cantrip)","Scroll"],["Spell Scroll (1st level)","Scroll"]],
+  uncommon: [["Adamantine Armor","Armor"],["Alchemy Jug","Wondrous item"],["Ammunition, +1","Weapon"],["Bag of Holding","Wondrous item"],["Boots of Elvenkind","Wondrous item"],["Boots of Striding and Springing","Wondrous item",1],["Boots of the Winterlands","Wondrous item",1],["Bracers of Archery","Wondrous item",1],["Brooch of Shielding","Wondrous item",1],["Broom of Flying","Wondrous item"],["Cap of Water Breathing","Wondrous item"],["Circlet of Blasting","Wondrous item"],["Cloak of Elvenkind","Wondrous item",1],["Cloak of Protection","Wondrous item",1],["Cloak of the Manta Ray","Wondrous item"],["Decanter of Endless Water","Wondrous item"],["Deck of Illusions","Wondrous item"],["Driftglobe","Wondrous item"],["Dust of Disappearance","Wondrous item"],["Dust of Dryness","Wondrous item"],["Elemental Gem","Wondrous item"],["Eversmoking Bottle","Wondrous item"],["Eyes of Charming","Wondrous item",1],["Eyes of Minute Seeing","Wondrous item"],["Eyes of the Eagle","Wondrous item",1],["Gauntlets of Ogre Power","Wondrous item",1],["Gloves of Missile Snaring","Wondrous item",1],["Gloves of Swimming and Climbing","Wondrous item",1],["Goggles of Night","Wondrous item"],["Hat of Disguise","Wondrous item",1],["Headband of Intellect","Wondrous item",1],["Helm of Comprehending Languages","Wondrous item"],["Helm of Telepathy","Wondrous item",1],["Immovable Rod","Rod"],["Javelin of Lightning","Weapon"],["Lantern of Revealing","Wondrous item"],["Mariner's Armor","Armor"],["Medallion of Thoughts","Wondrous item",1],["Mithral Armor","Armor"],["Necklace of Adaptation","Wondrous item",1],["Pearl of Power","Wondrous item",1],["Periapt of Health","Wondrous item"],["Periapt of Wound Closure","Wondrous item",1],["Pipes of Haunting","Wondrous item"],["Potion of Fire Breath","Potion"],["Potion of Greater Healing","Potion"],["Potion of Growth","Potion"],["Potion of Hill Giant Strength","Potion"],["Potion of Resistance","Potion"],["Potion of Water Breathing","Potion"],["Potion of Animal Friendship","Potion"],["Quiver of Ehlonna","Wondrous item"],["Ring of Jumping","Ring",1],["Ring of Mind Shielding","Ring",1],["Ring of Swimming","Ring"],["Ring of Warmth","Ring",1],["Ring of Water Walking","Ring"],["Robe of Useful Items","Wondrous item"],["Rope of Climbing","Wondrous item"],["Saddle of the Cavalier","Wondrous item"],["Sending Stones","Wondrous item"],["Sentinel Shield","Shield"],["Shield, +1","Shield"],["Slippers of Spider Climbing","Wondrous item",1],["Spell Scroll (2nd level)","Scroll"],["Spell Scroll (3rd level)","Scroll"],["Stone of Good Luck","Wondrous item",1],["Trident of Fish Command","Weapon",1],["Wand of Magic Detection","Wand"],["Wand of Magic Missiles","Wand"],["Wand of Secrets","Wand"],["Wand of the War Mage, +1","Wand",1],["Wand of Web","Wand",1],["Weapon, +1","Weapon"],["Wind Fan","Wondrous item"],["Winged Boots","Wondrous item",1]],
+  rare: [["Amulet of Health","Wondrous item",1],["Armor, +1","Armor"],["Armor of Resistance","Armor",1],["Bag of Beans","Wondrous item"],["Bead of Force","Wondrous item"],["Belt of Dwarvenkind","Wondrous item",1],["Belt of Hill Giant Strength","Wondrous item",1],["Berserker Axe","Weapon",1],["Boots of Levitation","Wondrous item",1],["Boots of Speed","Wondrous item",1],["Bracers of Defense","Wondrous item",1],["Cape of the Mountebank","Wondrous item"],["Chime of Opening","Wondrous item"],["Cloak of Displacement","Wondrous item",1],["Cloak of the Bat","Wondrous item",1],["Cube of Force","Wondrous item",1],["Dagger of Venom","Weapon"],["Dimensional Shackles","Wondrous item"],["Dragon Slayer","Weapon"],["Elixir of Health","Potion"],["Elven Chain","Armor"],["Flame Tongue","Weapon",1],["Folding Boat","Wondrous item"],["Gem of Seeing","Wondrous item",1],["Giant Slayer","Weapon"],["Glamoured Studded Leather","Armor"],["Helm of Teleportation","Wondrous item",1],["Horn of Blasting","Wondrous item"],["Horseshoes of Speed","Wondrous item"],["Iron Bands of Binding","Wondrous item"],["Mace of Disruption","Weapon",1],["Mace of Smiting","Weapon"],["Mace of Terror","Weapon",1],["Mantle of Spell Resistance","Wondrous item",1],["Necklace of Fireballs","Wondrous item"],["Necklace of Prayer Beads","Wondrous item",1],["Oil of Etherealness","Potion"],["Periapt of Proof against Poison","Wondrous item"],["Portable Hole","Wondrous item"],["Potion of Clairvoyance","Potion"],["Potion of Diminution","Potion"],["Potion of Gaseous Form","Potion"],["Potion of Heroism","Potion"],["Potion of Invulnerability","Potion"],["Potion of Mind Reading","Potion"],["Potion of Superior Healing","Potion"],["Ring of Animal Influence","Ring"],["Ring of Evasion","Ring",1],["Ring of Feather Falling","Ring",1],["Ring of Free Action","Ring",1],["Ring of Protection","Ring",1],["Ring of Resistance","Ring",1],["Ring of Spell Storing","Ring",1],["Ring of the Ram","Ring",1],["Ring of X-ray Vision","Ring",1],["Robe of Eyes","Wondrous item",1],["Rope of Entanglement","Wondrous item"],["Shield, +2","Shield"],["Staff of Charming","Staff",1],["Staff of Healing","Staff",1],["Staff of Swarming Insects","Staff",1],["Staff of the Woodlands","Staff",1],["Staff of Withering","Staff",1],["Sun Blade","Weapon",1],["Sword of Life Stealing","Weapon",1],["Sword of Wounding","Weapon",1],["Tentacle Rod","Rod",1],["Vicious Weapon","Weapon"],["Wand of Binding","Wand",1],["Wand of Enemy Detection","Wand",1],["Wand of Fear","Wand",1],["Wand of Fireballs","Wand",1],["Wand of Lightning Bolts","Wand",1],["Wand of Paralysis","Wand",1],["Wand of the War Mage, +2","Wand",1],["Wand of Wonder","Wand",1],["Weapon, +2","Weapon"],["Wings of Flying","Wondrous item",1],["Spell Scroll (4th level)","Scroll"],["Spell Scroll (5th level)","Scroll"]],
+  "very rare": [["Amulet of the Planes","Wondrous item",1],["Animated Shield","Shield",1],["Armor, +2","Armor"],["Arrow of Slaying","Weapon"],["Bag of Devouring","Wondrous item"],["Belt of Fire Giant Strength","Wondrous item",1],["Belt of Frost Giant Strength","Wondrous item",1],["Candle of Invocation","Wondrous item",1],["Carpet of Flying","Wondrous item"],["Cloak of Arachnida","Wondrous item",1],["Crystal Ball","Wondrous item",1],["Dancing Sword","Weapon",1],["Demon Armor","Armor",1],["Dragon Scale Mail","Armor",1],["Dwarven Plate","Armor"],["Dwarven Thrower","Weapon",1],["Efreeti Bottle","Wondrous item"],["Frost Brand","Weapon",1],["Horseshoes of a Zephyr","Wondrous item"],["Manual of Bodily Health","Wondrous item"],["Manual of Gainful Exercise","Wondrous item"],["Manual of Quickness of Action","Wondrous item"],["Mirror of Life Trapping","Wondrous item"],["Nine Lives Stealer","Weapon",1],["Oathbow","Weapon",1],["Oil of Sharpness","Potion"],["Potion of Flying","Potion"],["Potion of Invisibility","Potion"],["Potion of Longevity","Potion"],["Potion of Speed","Potion"],["Potion of Supreme Healing","Potion"],["Potion of Vitality","Potion"],["Ring of Regeneration","Ring",1],["Ring of Shooting Stars","Ring",1],["Ring of Telekinesis","Ring",1],["Robe of Scintillating Colors","Wondrous item",1],["Robe of Stars","Wondrous item",1],["Rod of Absorption","Rod",1],["Rod of Alertness","Rod",1],["Rod of Security","Rod"],["Scimitar of Speed","Weapon",1],["Shield, +3","Shield"],["Spellguard Shield","Shield",1],["Staff of Fire","Staff",1],["Staff of Frost","Staff",1],["Staff of Power","Staff",1],["Staff of Striking","Staff",1],["Staff of Thunder and Lightning","Staff",1],["Sword of Sharpness","Weapon",1],["Tome of Clear Thought","Wondrous item"],["Tome of Leadership and Influence","Wondrous item"],["Tome of Understanding","Wondrous item"],["Wand of Polymorph","Wand",1],["Wand of the War Mage, +3","Wand",1],["Weapon, +3","Weapon"],["Spell Scroll (6th level)","Scroll"],["Spell Scroll (7th level)","Scroll"]],
+  legendary: [["Apparatus of the Crab","Wondrous item"],["Armor, +3","Armor"],["Armor of Invulnerability","Armor",1],["Belt of Cloud Giant Strength","Wondrous item",1],["Belt of Storm Giant Strength","Wondrous item",1],["Cloak of Invisibility","Wondrous item",1],["Crystal Ball of True Seeing","Wondrous item",1],["Cubic Gate","Wondrous item"],["Deck of Many Things","Wondrous item"],["Defender","Weapon",1],["Efreeti Chain","Armor",1],["Hammer of Thunderbolts","Weapon"],["Holy Avenger","Weapon",1],["Iron Flask","Wondrous item"],["Luck Blade","Weapon",1],["Plate Armor of Etherealness","Armor",1],["Ring of Djinni Summoning","Ring",1],["Ring of Elemental Command","Ring",1],["Ring of Invisibility","Ring",1],["Ring of Spell Turning","Ring",1],["Ring of Three Wishes","Ring"],["Robe of the Archmagi","Wondrous item",1],["Rod of Lordly Might","Rod",1],["Rod of Resurrection","Rod",1],["Scarab of Protection","Wondrous item",1],["Sovereign Glue","Wondrous item"],["Sphere of Annihilation","Wondrous item"],["Staff of the Magi","Staff",1],["Talisman of Pure Good","Wondrous item",1],["Talisman of the Sphere","Wondrous item",1],["Universal Solvent","Wondrous item"],["Vorpal Sword","Weapon",1],["Well of Many Worlds","Wondrous item"],["Spell Scroll (8th level)","Scroll"],["Spell Scroll (9th level)","Scroll"]]
+};
+const ITEM_VALUE = { common: 50, uncommon: 300, rare: 3000, "very rare": 30000, legendary: 150000 };
+
+/* ---------------- loot tables (written for this app) ---------------- */
+const GEMS = {
+  10: ["Azurite","Banded agate","Blue quartz","Eye agate","Hematite","Lapis lazuli","Malachite","Moss agate","Obsidian","Rhodochrosite","Tiger eye","Turquoise"],
+  50: ["Bloodstone","Carnelian","Chalcedony","Chrysoprase","Citrine","Jasper","Moonstone","Onyx","Clear quartz","Sardonyx","Star rose quartz","Zircon"],
+  100: ["Amber","Amethyst","Chrysoberyl","Coral","Garnet","Jade","Jet","Pearl","Spinel","Tourmaline"],
+  500: ["Alexandrite","Aquamarine","Black pearl","Blue spinel","Peridot","Topaz"],
+  1000: ["Black opal","Blue sapphire","Emerald","Fire opal","Opal","Star ruby","Star sapphire","Yellow sapphire"],
+  5000: ["Black sapphire","Diamond","Jacinth","Ruby"]
+};
+const ART_MAT = { low: ["Copper","Carved bone","Brass","Painted wood","Pewter","Bronze"], mid: ["Silver","Electrum","Ivory","Jade","Silver-gilt","Black lacquer"], high: ["Gold","Platinum","Mithral-inlaid","Crystal","Gold and enamel","Starmetal"] };
+const ART_OBJ = ["ewer","comb","goblet","bracelet","statuette of a starpony","music box","festival mask","locket","censer","hand mirror","chalice","circlet","reliquary","snuffbox","brooch","drinking horn","dagger hilt","tiara","signet ring","tapestry"];
+const ART_MOTIF = ["engraved with a crescent moon","set with tiny moonstones","depicting a sunrise over a sea of stars","etched with Starpony runes","inlaid with mother-of-pearl","showing a dragon coiled around a tree","with a constellation picked out in gems","bearing a noble house's crest","carved with dancing figures","edged in fine filigree","showing an eclipse","with a hidden compartment","inscribed with a lover's verse","depicting a ship under full sail","wound with silver vines"];
+const ART_VAL = { 1: [25, 25, 50], 2: [25, 250, 250, 750], 3: [250, 750, 750, 2500], 4: [2500, 2500, 7500] };
+const GEM_VAL = { 1: [10, 10, 50], 2: [50, 100, 100, 500], 3: [500, 1000, 1000], 4: [1000, 5000, 5000] };
+const GEAR = [["Hempen rope (50 ft)",1],["Silk rope (50 ft)",10],["Healer's kit",5],["Hooded lantern",5],["Thieves' tools",25],["Crowbar",2],["Tinderbox",0.5],["Torches",0.01,"1d6+2"],["Rations (days)",0.5,"1d6+1"],["Climber's kit",25],["Hunting trap",5],["Ink and quill",10],["Map case with a smudged map",1],["Vial of perfume",5],["Grappling hook",2],["Flasks of oil",0.1,"1d4"],["Bag of caltrops",1],["Dagger",2],["Shortsword",10],["Arrows",0.05,"2d10"],["Holy symbol",5],["Component pouch",25],["Herbalism kit",5],["Set of fine clothes",15],["Bone dice",0.1],["Deck of cards",0.5],["Bottle of fine wine",10],["Vial of antitoxin",50],["Manacles",2],["Spyglass with a cracked lens",100],["Waterskin",0.2],["Whetstone",0.01],["Bedroll",1],["Mess kit",0.2],["Steel mirror",5]];
+// Herbs and goods named in Xak's Ebon Star notes; values are placeholders to adjust.
+const HERBS = [["Dreamshade",25],["Stargaze Thistle",15],["Glimmercap",10],["Moonlace",20],["Whisperfern",5],["Lunabloom",30],["Keelshade",10],["Echolotus",40],["Spectral Salvia",25],["Twilight's Kiss",35],["Heartroot",50],["Veritaspore",45]];
+// The table only uses gold and copper; everything is converted into those two.
+const COIN_ORDER = ["gp","cp"];
+function normCoins(c) { const cp = Math.round(Object.entries(c || {}).reduce((a, [k, v]) => a + v * (COIN_GP[k] || 0) * 100, 0)); const o = {}; if (cp >= 100) o.gp = Math.floor(cp / 100); if (cp % 100) o.cp = cp % 100; return o; }
+const COIN_GP = { cp: 0.01, sp: 0.1, ep: 0.5, gp: 1, pp: 10 };
+const INDIV = { 1: [["cp","5d6"],["sp","4d6"],["gp","2d6"]], 2: [["sp","4d6*10"],["gp","2d6*10"],["pp","1d6"]], 3: [["gp","4d6*10"],["pp","2d6*5"]], 4: [["gp","2d6*100"],["pp","1d6*20"]] };
+const HOARD = { 1: [["cp","6d6*100"],["sp","3d6*100"],["gp","2d6*10"]], 2: [["cp","2d6*100"],["sp","2d6*1000"],["gp","6d6*100"],["pp","3d6*10"]], 3: [["gp","4d6*1000"],["pp","5d6*100"]], 4: [["gp","12d6*1000"],["pp","8d6*1000"]] };
+const MAGIC_RAR = { 1: [["common", 5], ["uncommon", 4], ["rare", 0.5]], 2: [["uncommon", 5], ["rare", 3], ["very rare", 0.5]], 3: [["rare", 5], ["very rare", 3], ["legendary", 0.4]], 4: [["very rare", 5], ["legendary", 2], ["rare", 2]] };
+
+/* ---------------- item forge tables (written for this app) ---------------- */
+const ITEM_TYPES = ["Weapon","Armor","Shield","Ring","Wondrous item","Wand","Rod","Staff","Potion","Scroll"];
+const BASES = {
+  Weapon: ["longsword","shortsword","rapier","dagger","greatsword","scimitar","battleaxe","handaxe","warhammer","mace","spear","quarterstaff","glaive","whip","trident","longbow","shortbow","light crossbow","hand crossbow","sickle"],
+  Armor: ["leather","studded leather","hide","chain shirt","scale mail","breastplate","half plate","chain mail","splint","plate"],
+  Shield: ["shield"], Ring: ["ring"], Wand: ["wand"], Rod: ["rod"], Staff: ["staff"], Potion: ["potion"], Scroll: ["scroll"],
+  "Wondrous item": ["amulet","cloak","boots","gloves","belt","circlet","lantern","compass","figurine","mask","bracers","locket","music box","hand mirror","pendant","brooch","hourglass","quill","tuning fork","bell","harp","flute","journal","eyepatch","earring","spyglass"]
+};
+const THEMES = {
+  starlight: { label: "Starlight", dmg: "radiant", words: ["Star","Astral","Lumen","Comet","Dawn","Sky"], epi: ["the Falling Star","the First Morning","Distant Suns","the Starpony Herds","the Lit Path"], mat: ["pale silver shot with tiny points of light","star-white glass","polished moonsilver","a metal that holds a faint starfield beneath its surface"], spells: { 1: ["Guiding Bolt","Faerie Fire","Light"], 2: ["Moonbeam","See Invisibility","Misty Step"], 3: ["Daylight","Fly","Blink"], 4: ["Dimension Door","Freedom of Movement"], 5: ["Scrying","Wall of Force"], 6: ["Sunbeam","True Seeing"], 7: ["Plane Shift","Teleport"] } },
+  void: { label: "Void and shadow", dmg: "necrotic", words: ["Dusk","Umbral","Gloam","Hollow","Night","Ebon"], epi: ["the Quiet Dark","Lost Echoes","the Empty Sky","the Last Lantern","Unlit Places"], mat: ["blackened steel that drinks the light","smoky obsidian","dark iron veined with violet","cold, matte black stone"], spells: { 1: ["Darkness","Hex","Sleep"], 2: ["Darkness","Invisibility","Silence"], 3: ["Fear","Blink","Counterspell"], 4: ["Greater Invisibility","Phantasmal Killer"], 5: ["Dominate Person","Hold Monster"], 6: ["Circle of Death","Eyebite"], 7: ["Finger of Death","Etherealness"] } },
+  wild: { label: "Fey and wild", dmg: "poison", words: ["Thorn","Briar","Moss","Antler","Fern","Wild"], epi: ["the Whisperwood","the Green Hollow","the Old Grove","Tangled Roots","the Hunter's Moon"], mat: ["living ash wood still putting out tiny leaves","braided willow and bone","green-tinged bronze wrapped in vine","antler polished to a deep gloss"], spells: { 1: ["Entangle","Speak with Animals","Goodberry"], 2: ["Pass without Trace","Spike Growth","Barkskin"], 3: ["Plant Growth","Conjure Animals"], 4: ["Polymorph","Freedom of Movement"], 5: ["Tree Stride","Awaken"], 6: ["Transport via Plants","Heal"], 7: ["Regenerate","Mirage Arcane"] } },
+  frost: { label: "Frost", dmg: "cold", words: ["Frost","Rime","Winter","Glacier","Hoar","Snow"], epi: ["the Long Winter","the Frozen Tide","the Northern Wind","Still Water"], mat: ["blue-white steel that is always beaded with frost","clear ice that never melts","silver etched with snowflakes","pale wood rimed in hoarfrost"], spells: { 1: ["Ray of Frost","Fog Cloud","Armor of Agathys"], 2: ["Hold Person","Misty Step"], 3: ["Sleet Storm","Slow"], 4: ["Ice Storm","Stoneskin"], 5: ["Cone of Cold","Wall of Stone"], 6: ["Freezing Sphere","Wall of Ice"], 7: ["Etherealness","Plane Shift"] } },
+  flame: { label: "Flame", dmg: "fire", words: ["Ember","Cinder","Pyre","Ash","Flare","Forge"], epi: ["the Burning Hearth","the Red Forge","Smoldering Oaths","the Last Fire"], mat: ["dark iron that glows red along its edges","copper that is warm to the touch","soot-black steel with ember-orange veins","brass worked like licking flames"], spells: { 1: ["Burning Hands","Hellish Rebuke"], 2: ["Scorching Ray","Flaming Sphere"], 3: ["Fireball","Daylight"], 4: ["Wall of Fire","Fire Shield"], 5: ["Flame Strike","Cone of Cold"], 6: ["Sunbeam","Chain Lightning"], 7: ["Delayed Blast Fireball","Fire Storm"] } },
+  storm: { label: "Storm and sea", dmg: "lightning", words: ["Storm","Tide","Gale","Thunder","Squall","Wave"], epi: ["the Rolling Thunder","the Deep Current","the Lunar Tide","the Captain's Oath","the Sunstone River"], mat: ["sea-green bronze crusted with tiny shells","steel that crackles faintly in the rain","driftwood bound in silver wire","pearl-white coral"], spells: { 1: ["Thunderwave","Fog Cloud","Create or Destroy Water"], 2: ["Gust of Wind","Shatter"], 3: ["Lightning Bolt","Water Breathing","Call Lightning"], 4: ["Control Water","Dimension Door"], 5: ["Conjure Elemental","Wall of Force"], 6: ["Chain Lightning","Wind Walk"], 7: ["Plane Shift","Teleport"] } },
+  dream: { label: "Dream and mind", dmg: "psychic", words: ["Dream","Reverie","Whisper","Mirage","Lull","Echo"], epi: ["Forgotten Dreams","the Waking Mind","the Hundred Whispers","the Long Sleep","Borrowed Memories"], mat: ["iridescent shell that shifts color when you look away","opalescent glass","silver that seems to blur at the edges","lavender crystal clouded like a sleeping eye"], spells: { 1: ["Sleep","Charm Person","Silent Image"], 2: ["Detect Thoughts","Suggestion","Calm Emotions"], 3: ["Hypnotic Pattern","Major Image","Sending"], 4: ["Confusion","Phantasmal Killer"], 5: ["Dream","Modify Memory"], 6: ["Mass Suggestion","Programmed Illusion"], 7: ["Mirage Arcane","Project Image"] } },
+  blood: { label: "Blood and bone", dmg: "necrotic", words: ["Blood","Marrow","Crimson","Grave","Bone","Fang"], epi: ["the Bloodroot Clans","Old Oaths","the Hunt","the Unquiet Dead","the Red Moon"], mat: ["yellowed bone lashed with red leather","dark red steel the color of dried blood","ivory carved with tally marks","iron wrapped in sinew"], spells: { 1: ["Inflict Wounds","False Life","Hex"], 2: ["Ray of Enfeeblement","Blindness/Deafness"], 3: ["Vampiric Touch","Animate Dead","Speak with Dead"], 4: ["Blight","Death Ward"], 5: ["Contagion","Raise Dead"], 6: ["Harm","Create Undead"], 7: ["Finger of Death","Resurrection"] } },
+  clockwork: { label: "Clockwork and arcane", dmg: "force", words: ["Cog","Gear","Arcane","Rune","Sigil","Lattice"], epi: ["the Academy","the Quiet Workshop","Endless Calculation","the Ninth Rune","Perfect Measure"], mat: ["brass full of tiny turning gears","blue steel etched with glowing runes","layered plates of silver and glass","bronze that ticks softly like a clock"], spells: { 1: ["Shield","Magic Missile","Detect Magic","Identify"], 2: ["Knock","Arcane Lock","Levitate"], 3: ["Counterspell","Dispel Magic","Haste"], 4: ["Arcane Eye","Fabricate"], 5: ["Animate Objects","Teleportation Circle","Wall of Force"], 6: ["Globe of Invulnerability","Contingency"], 7: ["Teleport","Forcecage"] } }
+};
+const NAME_SUFFIX = {
+  Weapon: ["fang","edge","bite","song","reaver","thorn","call","brand","strike","needle"], Armor: ["ward","mail","shell","guard","hide","plate"], Shield: ["ward","wall","aegis","bulwark"], Ring: ["band","loop","circle","seal"],
+  Wand: ["wand","spark","rod"], Rod: ["scepter","rod","rule"], Staff: ["staff","stave","walker"], Potion: ["draught","tonic","elixir","philter"], Scroll: ["scroll","writ","verse"],
+  "Wondrous item": ["heart","eye","whisper","charm","lantern","song","key","bloom"]
+};
+const NAME_OWNERS = ["Vessa","Old Tamsin","Captain Rook","Ilyra","Brother Oren","Kael the Twice-Drowned","Merriwether","Sable","Grandmother Hesk","the Ninth Warden","Lady Corvane","Pell Marrow"];
+const QUIRKS = ["It hums faintly when undead are within 60 feet.","It is always cold to the touch, even after hours in a warm hand.","It smells faintly of rain on stone.","At dusk it whispers a name no one recognizes.","It glows softly under open starlight.","Animals are calm around whoever carries it.","It is slightly heavier at night than during the day.","Flowers wilt if it rests against them for an hour.","Its owner dreams of a city they have never seen.","It cannot be painted, dyed or engraved; marks fade by morning.","It points, very slightly, toward the nearest body of water.","Small birds land on it whenever it is held still.","It hates being in the dark and grows warm when sheathed or packed away.","It rings like a bell when struck, louder than it should.","Whoever is attuned to it wakes up exactly at dawn.","It casts a shadow that is a little too long.","Coins carried near it turn slightly tarnished.","It feels faintly sad when its owner lies.","Its reflection shows it as it looked when new.","It sometimes leaves a dusting of glittering frost on whatever it touches."];
+const LORES = ["Recovered from a Starpony burial mound deep in the Whisperwood.","Sold in a Lumbridge market by a merchant who swore it found him.","Carried down the Sunstone River by a captain who refused to name its maker.","Made by a Stellborn smith who remembered a world no one else did.","Taken in trade from a Bloodroot Orc war-chief, who was glad to be rid of it.","Found among Soot-folk salvage, still warm from a forge that went cold long ago.","A Lumbridge academy scholar kept it under glass and lent it to no one.","Its maker's mark is a star with one point missing.","Pulled from the riverbed after the waters came back.","Said to have belonged to a hero of a war nobody in Novum remembers.","Won in a game of Three Dragon Ante that the loser still disputes.","Several owners have carried it before you; none of them kept it long."];
+const CURSES = ["Cursed: once attuned, the owner can't willingly part with it until a remove curse spell is cast.","Cursed: each dusk the owner must succeed on a DC 13 Wisdom save or gain 1 Stress.","Cursed: the item reveals the owner's location to its maker whenever a property is used.","Cursed: while attuned, the owner has disadvantage on Insight checks against lies told by its maker's servants.","Cursed: on a natural 1 with this item, it fires the effect at the nearest ally instead.","Cursed: the owner slowly forgets one cherished memory each week (DM picks).","Cursed: undead are drawn to the owner and treat them as their first target.","Cursed: it is a stolen relic, and the order that lost it is already hunting for it.","Cursed: the owner can't benefit from a long rest more than once in 48 hours unless the item is fed a drop of blood.","Cursed: it whispers advice that is right three times and catastrophically wrong the fourth."];
+const MINOR = [
+  t => ["Lightkeeper", "As a bonus action you can speak its command word to make it shed bright light in a 10-foot radius and dim light for 10 feet more, or to put the light out."],
+  t => ["Wayfinder", "While holding it, you always know which way is north and how many hours remain until dawn."],
+  t => ["Spotless", "It never gets dirty, and it cleans itself of blood, mud or soot within a minute."],
+  t => ["Small Magic", `Once per dawn, you can use it to cast ${pick(["Prestidigitation","Mending","Message","Thaumaturgy","Druidcraft","Minor Illusion"])} without components.`],
+  t => ["Warding Chill", `You have advantage on saving throws against extreme ${t.dmg === "fire" ? "cold" : "heat"} while you carry it.`],
+  t => ["Keen", "You can't be surprised while you are conscious and holding it, as long as you aren't asleep or incapacitated."],
+  t => ["Unbreakable", "It can't be broken by nonmagical means."],
+  t => ["Sentry", "When it is set down and you speak a word, it chimes softly if any creature you don't name comes within 20 feet before you pick it up again."]
+];
+
+/* ---------------- state ---------------- */
+const SEED_PARTY = ["Syllie Bigeyes","Markus Vangalor","Venraxis Chaldarok","Orifina","Lysander Delarus","Seraphina"];
+function freshState() {
+  const party = SEED_PARTY.map(n => ({ name: n, ac: null, maxHp: null, mod: 0 }));
+  const combatants = [];
+  const inits = [17, 12, 9, 15, 6, 11];
+  party.forEach((p, i) => combatants.push(mkCombatant({ name: p.name, kind: "pc", init: inits[i], mod: 0, ac: null, hp: null })));
+  const wolf = SRD_MONSTERS.find(m => m[0] === "Wolf"), dire = SRD_MONSTERS.find(m => m[0] === "Dire Wolf");
+  [["Wolf 1", wolf, 14], ["Wolf 2", wolf, 14], ["Dire Wolf", dire, 13]].forEach(([n, m, ini]) => combatants.push(mkCombatant({ name: n, kind: "monster", init: ini, mod: m[4], ac: m[2], hp: avgDice(m[3]), example: true })));
+  combatants[combatants.length - 2].hp = 4;
+  combatants[combatants.length - 2].conds.push({ n: "Prone" });
+  return {
+    combatants, party, round: 1, activeId: null, skipDown: true, customMonsters: [],
+    loot: { kind: "hoard", tier: "1", count: 1, partySize: 5, magic: "1", coins: true, gems: true, gear: true, herbs: true, title: "", showVal: true, showSplit: true, coinsOut: {}, lines: [] },
+    item: null, library: [], forge: { type: "Weapon", rarity: "rare", theme: "starlight" }, discord: { emoji: true, headers: true }, seeded: true
+  };
+}
+function mkCombatant(o) {
+  return { id: uid(), name: o.name, kind: o.kind || "monster", init: o.init ?? 0, mod: o.mod ?? 0, ac: o.ac ?? null, hp: o.hp ?? null, maxHp: o.maxHp ?? o.hp ?? null, temp: 0, conds: [], conc: false, note: "", stress: 0, ds: { s: 0, f: 0 }, example: !!o.example, tie: Math.random() };
+}
+let S = loadState() || freshState();
+// back-fill older saves
+S.loot = Object.assign(freshState().loot, S.loot || {});
+S.forge = S.forge || { type: "Weapon", rarity: "rare", theme: "starlight" };
+S.discord = S.discord || { emoji: true, headers: true };
+S.loot.coinsOut = normCoins(S.loot.coinsOut);
+(S.combatants || []).forEach(c => { c.stress = Math.min(c.stress || 0, 4); });
+S.library = S.library || []; S.customMonsters = S.customMonsters || []; S.party = S.party || [];
+
+/* ---------------- dice tray ---------------- */
+/* Die buttons roll Count × die + Mod. Advantage and disadvantage apply to d20s only (roll two, keep the higher or lower). The custom box adds Mod too. */
+S.dice = Object.assign({ n: 1, mod: 0, adv: "none" }, S.dice);
+const DICE = [4, 6, 8, 10, 12, 20, 100], dHist = [];
+$("#dieBtns").innerHTML = DICE.map(d => `<button class="die ${d === 20 ? "d20" : ""}" data-die="${d}" title="Roll d${d}">d${d}</button>`).join("");
+const fmtMod = m => m ? (m > 0 ? ` + ${m}` : ` − ${-m}`) : "";
+function syncDiceUI() {
+  $("#dCount").value = S.dice.n; $("#dMod").value = S.dice.mod;
+  $$("#dAdv button").forEach(b => b.classList.toggle("on", b.dataset.adv === S.dice.adv));
+}
+function showRoll(label, total, detail, cls = "") {
+  $("#diceOut").innerHTML = `<b class="${cls}">${total}</b><small title="${esc(label + ": " + detail)}">${esc(label)} · ${esc(detail)}</small>`;
+  dHist.unshift({ label, total }); dHist.length = Math.min(dHist.length, 6);
+  $("#dHist").innerHTML = dHist.slice(1).map(h => `<span title="${esc(h.label)}">${h.total}</span>`).join("");
+}
+function rollDie(d) {
+  const n = clamp(parseInt(S.dice.n, 10) || 1, 1, 99), mod = parseInt(S.dice.mod, 10) || 0, adv = d === 20 ? S.dice.adv : "none";
+  let sum = 0, parts = [], nat = null;
+  for (let i = 0; i < n; i++) {
+    if (adv !== "none") {
+      const a = 1 + rnd(20), b = 1 + rnd(20), k = adv === "adv" ? Math.max(a, b) : Math.min(a, b);
+      sum += k; parts.push(`[${a}, ${b}]→${k}`); if (n === 1) nat = k;
+    } else { const r = 1 + rnd(d); sum += r; parts.push(r); if (n === 1 && d === 20) nat = r; }
+  }
+  const label = `${n}d${d}${fmtMod(mod).replace(/ /g, "")}${adv === "adv" ? " adv" : adv === "dis" ? " disadv" : ""}`;
+  const detail = (n === 1 && adv === "none" ? parts[0] : (adv === "none" ? `[${parts.join(", ")}]` : parts.join(" "))) + fmtMod(mod);
+  showRoll(label, sum + mod, detail, nat === 20 ? "crit" : nat === 1 ? "fumble" : "");
+}
+$("#dieBtns").addEventListener("click", e => { const b = e.target.closest("[data-die]"); if (b) rollDie(+b.dataset.die); });
+$("#dCount").addEventListener("input", e => { S.dice.n = clamp(parseInt(e.target.value, 10) || 1, 1, 99); save(); });
+$("#dMod").addEventListener("input", e => { S.dice.mod = parseInt(e.target.value, 10) || 0; save(); });
+$$("[data-dmod]").forEach(b => b.addEventListener("click", () => { S.dice.mod = (parseInt(S.dice.mod, 10) || 0) + +b.dataset.dmod; syncDiceUI(); save(); }));
+$("#dAdv").addEventListener("click", e => { const b = e.target.closest("[data-adv]"); if (!b) return; S.dice.adv = b.dataset.adv; syncDiceUI(); save(); });
+$("#diceForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const expr = $("#diceExpr").value.trim(), mod = parseInt(S.dice.mod, 10) || 0;
+  const r = expr && roll(expr);
+  if (!r) { $("#diceOut").innerHTML = `<b>?</b><small>Try 2d6+3 or 4d6kh3</small>`; return; }
+  showRoll(expr + fmtMod(mod).replace(/ /g, ""), r.total + mod, r.detail + fmtMod(mod));
+});
+syncDiceUI();
+
+/* ================= INITIATIVE ================= */
+const allMonsters = () => [...S.customMonsters, ...SRD_MONSTERS];
+function fillMonsterList() {
+  $("#monsterList").innerHTML = allMonsters().map(m => `<option value="${esc(m[0])}">CR ${esc(m[1])} · AC ${m[2]} · HP ${esc(m[3])}</option>`).join("");
+}
+function sorted() {
+  return S.combatants.slice().sort((a, b) => (b.init - a.init) || (b.mod - a.mod) || (b.kind === "pc") - (a.kind === "pc") || (a.tie - b.tie));
+}
+function isDown(c) { return c.hp !== null && c.hp <= 0; }
+function activeOrDefault() {
+  const list = sorted();
+  if (!list.length) return null;
+  if (!list.find(c => c.id === S.activeId)) S.activeId = list[0].id;
+  return S.activeId;
+}
+function hpClass(c) { if (c.maxHp == null || c.maxHp <= 0) return ""; const p = c.hp / c.maxHp; return p <= 0.25 ? "low" : p <= 0.5 ? "mid" : ""; }
+function healthWord(c) {
+  if (c.hp == null || !c.maxHp) return "";
+  if (c.hp <= 0) return c.kind === "pc" ? "down" : "defeated";
+  const p = c.hp / c.maxHp; return p >= 1 ? "unhurt" : p > 0.5 ? "hurt" : p > 0.25 ? "bloodied" : "barely standing";
+}
+let openMenu = null, openPick = null;
+const EYE = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>', EYEX = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><path stroke="currentColor" stroke-width="2.2" d="M4 20L20 4"/></svg>';
+const ABBR = { Blinded: "Blind", Charmed: "Charm", Deafened: "Deaf", Exhaustion: "Exh", Frightened: "Fright", Grappled: "Grap", Incapacitated: "Incap", Invisible: "Invis", Paralyzed: "Para", Petrified: "Petr", Poisoned: "Pois", Restrained: "Restr", Stunned: "Stun", Unconscious: "Unc", Hasted: "Haste", Blessed: "Bless", Hexed: "Hex", Raging: "Rage", Dodging: "Dodge", Hidden: "Hide" };
+function exhLvl(c) { const k = c.conds.find(x => x.n === "Exhaustion"); return k ? (k.lvl || 1) : 0; }
+function pickHtml(c) {
+  const has = n => n === "Concentrating" ? c.conc : c.conds.some(k => k.n === n);
+  return `<div class="cpick" data-pick>
+    <div class="exh"><span>Exhaustion</span>${[0,1,2,3,4,5,6].map(n => `<button data-act="exh" data-n="${n}" class="${exhLvl(c) === n ? "on" : ""}" title="${n ? `Level ${n}` : "None"}">${n || "–"}</button>`).join("")}</div>
+    <div class="grid">${["Concentrating", ...CONDITIONS.filter(n => n !== "Exhaustion")].map(n => `<button data-act="togcond" data-n="${n}" class="${has(n) ? "on" : ""}">${n}</button>`).join("")}</div>
+    <label class="rd">Lasts <input type="number" min="1" placeholder="—" data-condr value="${pickRounds}"> rounds (blank = until removed)</label>
+  </div>`;
+}
+let pickRounds = "";
+function renderInit() {
+  activeOrDefault();
+  const list = sorted();
+  $("#roundNum").textContent = S.round;
+  $("#exampleBanner").hidden = !S.combatants.some(c => c.example);
+  const cur = list.find(c => c.id === S.activeId);
+  const idx = list.indexOf(cur);
+  const nxt = list.length > 1 ? nextFrom(idx, 1, list) : null;
+  $("#nowUp").innerHTML = cur ? `Now: <b>${esc(cur.name)}</b>${nxt && nxt !== cur ? ` · Next: ${esc(nxt.name)}` : ""}` : "";
+  $("#skipDown").checked = S.skipDown;
+  if (!list.length) { $("#initList").innerHTML = `<div class="empty">Nobody is in the fight yet. Add a monster below or press <b>Add party</b>.</div>`; return; }
+  $("#initList").innerHTML = list.map(c => {
+    const pct = c.maxHp ? clamp(c.hp / c.maxHp * 100, 0, 100) : 0;
+    const conds = [...(c.conc ? [`<span class="cond conc" data-act="conc" title="Concentrating (click to drop)">Conc</span>`] : []),
+      ...c.conds.map((k, i) => `<span class="cond" data-act="uncond" data-i="${i}" title="${esc(k.n)}${k.r ? `, ${k.r} rounds left` : ""} (click to remove)">${esc(ABBR[k.n] || k.n)}${k.lvl ? ` ${k.lvl}` : ""}${k.r ? ` ${k.r}` : ""}</span>`),
+      `<button class="cadd ${openPick === c.id ? "on" : ""}" data-act="condpick" title="Add or remove conditions" aria-label="Conditions for ${esc(c.name)}">+</button>`].join("");
+    const pcExtras = c.kind === "pc" ? `
+      <span class="stress" title="Stress (house rule): each point subtracts a d4 from d20 rolls. Max 4; stress past 4 becomes a level of exhaustion.">Stress ${[1,2,3,4].map(n => `<button class="pip ${c.stress >= n ? "on" : ""}" data-act="stress" data-n="${n}" aria-label="Stress ${n}"></button>`).join("")}${c.stress >= 4 ? `<button class="pip ex" data-act="overstress" title="Already at 4 Stress: add a level of exhaustion instead">+Exh</button>` : ""}</span>
+      ${c.hp !== null && c.hp <= 0 ? `<span class="saves">Saves ${[1,2,3].map(n => `<button class="pip s ${c.ds.s >= n ? "on" : ""}" data-act="ds" data-k="s" data-n="${n}" aria-label="Success ${n}"></button>`).join("")} ${[1,2,3].map(n => `<button class="pip f ${c.ds.f >= n ? "on" : ""}" data-act="ds" data-k="f" data-n="${n}" aria-label="Failure ${n}"></button>`).join("")}</span>` : ""}` : "";
+    return `<div class="cbt ${c.id === S.activeId ? "active" : ""} ${isDown(c) && c.kind !== "pc" ? "down" : ""} ${c.hidden ? "hidp" : ""}" data-id="${c.id}">
+      <input class="init num" type="number" value="${c.init}" data-f="init" aria-label="Initiative for ${esc(c.name)}">
+      <div class="who">
+        <div class="who-top"><input class="cname" type="text" value="${esc(c.name)}" data-f="name" aria-label="Name"><span class="tag ${c.kind}">${c.kind === "monster" ? "Mon" : c.kind.toUpperCase()}</span>${conds}${pcExtras}</div>
+        ${c.note ? `<div class="note">${esc(c.note)}</div>` : ""}
+      </div>
+      <label class="ac"><span class="shield">AC</span><input type="number" value="${c.ac ?? ""}" placeholder="—" data-f="ac" aria-label="Armor class"></label>
+      <div class="hp">
+        <div class="hp-nums"><input type="number" value="${c.hp ?? ""}" placeholder="HP" data-f="hp" aria-label="Current HP"><span>/</span><input class="max" type="number" value="${c.maxHp ?? ""}" placeholder="max" data-f="maxHp" aria-label="Max HP">${c.temp ? `<span class="tmp">+${c.temp} temp</span>` : ""}</div>
+        <div class="hpbar"><i class="${hpClass(c)}" style="width:${pct}%"></i></div>
+      </div>
+      <div class="dmg"><input type="text" inputmode="numeric" placeholder="amt" aria-label="Damage or healing amount" data-amt><button class="btn" data-act="dmg" title="Damage">−Dmg</button><button class="btn" data-act="heal" title="Heal">+Heal</button><button class="btn" data-act="temp" title="Temp HP">Tmp</button></div>
+      <div class="acts"><button class="btn ghost icon eye ${c.hidden ? "off" : ""}" data-act="hide" title="${c.hidden ? "Hidden from players. Click to reveal." : "Visible to players. Click to hide."}" aria-label="${c.hidden ? "Reveal" : "Hide"} ${esc(c.name)}" aria-pressed="${c.hidden ? "true" : "false"}">${c.hidden ? EYEX : EYE}</button><button class="btn ghost icon" data-act="menu" title="Conditions, notes, more" aria-label="More">⋯</button><button class="btn ghost icon danger" data-act="remove" title="Remove" aria-label="Remove ${esc(c.name)}">✕</button></div>
+      ${openMenu === c.id ? menuHtml(c) : ""}${openPick === c.id ? pickHtml(c) : ""}
+    </div>`;
+  }).join("");
+}
+function menuHtml(c) {
+  return `<div class="menu" data-menu>
+    <textarea data-f="note" placeholder="Notes: legendary actions left, who it's grappling…">${esc(c.note)}</textarea>
+    <label class="f">Type<select data-f="kind"><option value="monster" ${c.kind === "monster" ? "selected" : ""}>Monster</option><option value="npc" ${c.kind === "npc" ? "selected" : ""}>NPC</option><option value="pc" ${c.kind === "pc" ? "selected" : ""}>PC</option></select></label>
+    <div class="row"><button class="btn sm" data-act="dup">Duplicate</button><button class="btn sm" data-act="reroll">Reroll init</button><div class="spacer"></div><button class="btn sm" data-act="closemenu">Done</button></div>
+  </div>`;
+}
+function nextFrom(idx, dir, list) {
+  const n = list.length;
+  for (let step = 1; step <= n; step++) {
+    const c = list[((idx + dir * step) % n + n) % n];
+    if (!(S.skipDown && c.kind !== "pc" && isDown(c))) return c;
+  }
+  return list[((idx + dir) % n + n) % n];
+}
+function advance(dir) {
+  const list = sorted(); if (!list.length) return;
+  activeOrDefault();
+  const idx = list.findIndex(c => c.id === S.activeId);
+  const nx = nextFrom(idx, dir, list);
+  const nIdx = list.indexOf(nx);
+  if (dir > 0 && nIdx <= idx) S.round++;
+  if (dir < 0 && nIdx >= idx) S.round = Math.max(1, S.round - 1);
+  S.activeId = nx.id;
+  if (dir > 0) tickConditions(nx);
+  openMenu = null; openPick = null; save(); renderInit();
+}
+function tickConditions(c) {
+  const ended = [];
+  c.conds = c.conds.filter(k => { if (k.r) { k.r--; if (k.r <= 0) { ended.push(k.n); return false; } } return true; });
+  if (ended.length) toast(`${ended.join(", ")} ended on ${c.name}.`);
+  if (c.kind === "pc" && c.hp !== null && c.hp <= 0) toast(`${c.name} is down. Roll a death save.`);
+}
+const findC = id => S.combatants.find(c => c.id === id);
+function applyDamage(c, amt) {
+  if (c.hp == null) { toast(`Set ${c.name}'s HP first.`); return; }
+  let a = amt;
+  if (c.temp) { const t = Math.min(c.temp, a); c.temp -= t; a -= t; }
+  const wasUp = c.hp > 0;
+  c.hp = c.kind === "pc" ? Math.max(0, c.hp - a) : c.hp - a;
+  if (c.hp < 0 && c.kind !== "pc") c.hp = 0;
+  if (c.conc && amt > 0) toast(`${c.name} took ${amt}. Concentration save DC ${Math.max(10, Math.floor(amt / 2))}.`, null, null, 6000);
+  if (wasUp && c.hp <= 0) { if (c.kind === "pc") toast(`${c.name} drops to 0 HP.`); else toast(`${c.name} is defeated.`); }
+}
+$("#initList").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const row = b.closest(".cbt"); const c = row && findC(row.dataset.id); if (!c) return;
+  const act = b.dataset.act;
+  const amtEl = $("[data-amt]", row);
+  const amtRaw = amtEl ? amtEl.value.trim() : "";
+  const amt = (() => { if (!amtRaw) return NaN; if (/d/i.test(amtRaw)) { const r = roll(amtRaw); return r ? r.total : NaN; } return Math.abs(parseInt(amtRaw, 10)); })();
+  if (act === "dmg" || act === "heal" || act === "temp") {
+    if (isNaN(amt)) { amtEl.focus(); return; }
+    if (act === "dmg") applyDamage(c, amt);
+    if (act === "heal") { if (c.hp == null) { toast(`Set ${c.name}'s HP first.`); return; } c.hp = c.maxHp ? Math.min(c.maxHp, Math.max(0, c.hp) + amt) : c.hp + amt; if (c.hp > 0) c.ds = { s: 0, f: 0 }; }
+    if (act === "temp") c.temp = Math.max(c.temp, amt);
+  } else if (act === "remove") {
+    const i = S.combatants.indexOf(c); S.combatants.splice(i, 1);
+    if (S.activeId === c.id) { const list = sorted(); S.activeId = list.length ? (list.find(x => x.init <= c.init) || list[0]).id : null; }
+    toast(`Removed ${c.name}.`, "Undo", () => { S.combatants.splice(i, 0, c); save(); renderInit(); });
+  } else if (act === "menu") { openMenu = openMenu === c.id ? null : c.id; openPick = null; }
+  else if (act === "closemenu") { openMenu = null; }
+  else if (act === "condpick") { openPick = openPick === c.id ? null : c.id; openMenu = null; pickRounds = ""; }
+  else if (act === "exh") {
+    const n = +b.dataset.n, i = c.conds.findIndex(x => x.n === "Exhaustion");
+    if (!n) { if (i >= 0) c.conds.splice(i, 1); }
+    else if (i >= 0) c.conds[i].lvl = n; else c.conds.push({ n: "Exhaustion", lvl: n });
+  }
+  else if (act === "togcond") {
+    const n = b.dataset.n;
+    if (n === "Concentrating") c.conc = !c.conc;
+    else { const i = c.conds.findIndex(k => k.n === n); if (i >= 0) c.conds.splice(i, 1); else { const r = parseInt(pickRounds, 10); c.conds.push(r > 0 ? { n, r } : { n }); } }
+  }
+  else if (act === "uncond") { const k = c.conds[+b.dataset.i]; if (k && k.lvl > 1) k.lvl--; else c.conds.splice(+b.dataset.i, 1); }
+  else if (act === "hide") { c.hidden = !c.hidden; }
+  else if (act === "conc") { c.conc = b.type === "checkbox" ? b.checked : !c.conc; }
+  else if (act === "overstress") {
+    let k = c.conds.find(x => x.n === "Exhaustion");
+    if (k) k.lvl = (k.lvl || 1) + 1; else { k = { n: "Exhaustion", lvl: 1 }; c.conds.push(k); }
+    toast(`${c.name} is at 4 Stress, so they gain a level of exhaustion (now level ${k.lvl}).`);
+  }
+  else if (act === "stress") { const n = +b.dataset.n; c.stress = c.stress === n ? n - 1 : n; if (c.kind === "pc") rememberPC(c); }
+  else if (act === "ds") { const n = +b.dataset.n, k = b.dataset.k; c.ds[k] = c.ds[k] === n ? n - 1 : n; if (c.ds.s >= 3) toast(`${c.name} is stable.`); if (c.ds.f >= 3) toast(`${c.name} has failed three death saves.`); }
+  else if (act === "dup") { const d = JSON.parse(JSON.stringify(c)); d.id = uid(); d.tie = Math.random(); d.name = nextName(baseName(c.name)); d.example = false; S.combatants.push(d); }
+  else if (act === "reroll") { c.init = d20() + c.mod; }
+  save(); renderInit();
+});
+$("#initList").addEventListener("change", e => {
+  const el = e.target; const f = el.dataset.f; if (!f) return;
+  const row = el.closest(".cbt"); const c = row && findC(row.dataset.id); if (!c) return;
+  if (f === "name") c.name = el.value.trim() || c.name;
+  else if (f === "note") c.note = el.value;
+  else if (f === "kind") c.kind = el.value;
+  else { const v = el.value === "" ? null : parseInt(el.value, 10); if (f === "init") c.init = v ?? 0; else c[f] = v; if (f === "maxHp" && c.hp == null) c.hp = v; }
+  if (c.kind === "pc" && (f === "ac" || f === "maxHp" || f === "name")) rememberPC(c);
+  save(); if (f !== "note") renderInit();
+});
+$("#initList").addEventListener("input", e => { if (e.target.matches("[data-pick] [data-condr]")) pickRounds = e.target.value; });
+document.addEventListener("click", e => { if ((openPick || openMenu) && !e.target.closest(".cbt")) { openPick = null; openMenu = null; renderInit(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && (openPick || openMenu)) { openPick = null; openMenu = null; renderInit(); } });
+$("#initList").addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.matches("[data-amt]")) { e.preventDefault(); $("[data-act=dmg]", e.target.closest(".cbt")).click(); }
+});
+function rememberPC(c) {
+  let p = S.party.find(p => p.name === c.name);
+  if (!p) { p = { name: c.name }; S.party.push(p); }
+  p.ac = c.ac; p.maxHp = c.maxHp; p.mod = c.mod; p.stress = c.stress || 0;
+}
+const baseName = n => n.replace(/\s+\d+$/, "");
+function nextName(base) {
+  const used = S.combatants.map(c => c.name);
+  if (!used.includes(base) && !used.some(n => baseName(n) === base)) return base;
+  let i = 1; while (used.includes(`${base} ${i}`)) i++;
+  const lone = S.combatants.find(c => c.name === base);
+  if (lone) { lone.name = `${base} 1`; if (i === 1) i = 2; while (used.includes(`${base} ${i}`)) i++; }
+  return `${base} ${i}`;
+}
+$("#aName").addEventListener("input", () => {
+  const m = allMonsters().find(m => m[0].toLowerCase() === $("#aName").value.trim().toLowerCase());
+  if (m) { $("#aAC").value = m[2]; $("#aHP").value = m[3]; $("#aMod").value = m[4]; $("#aKind").value = "monster"; $("#aHint").textContent = `${m[0]}: CR ${m[1]}, average HP ${avgDice(m[3])}`; }
+  else $("#aHint").textContent = "";
+});
+$("#addForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("#aName").value.trim(); if (!name) return;
+  const kind = $("#aKind").value, qty = clamp(parseInt($("#aQty").value, 10) || 1, 1, 30);
+  const mod = parseInt($("#aMod").value, 10) || 0, ac = $("#aAC").value === "" ? null : parseInt($("#aAC").value, 10);
+  const hpRaw = $("#aHP").value.trim(), fixedInit = $("#aInit").value === "" ? null : parseInt($("#aInit").value, 10);
+  const group = $("#aGroup").checked, rollHP = $("#aRollHP").checked;
+  const groupInit = fixedInit ?? d20() + mod;
+  const hpFor = () => { if (!hpRaw) return null; if (/d/i.test(hpRaw)) { if (rollHP) { const r = roll(hpRaw); return r ? Math.max(1, r.total) : null; } return avgDice(hpRaw); } return parseInt(hpRaw, 10) || null; };
+  const added = [];
+  for (let i = 0; i < qty; i++) {
+    const nm = qty > 1 || S.combatants.some(c => baseName(c.name) === name) ? nextName(name) : name;
+    const c = mkCombatant({ name: nm, kind, init: group ? groupInit : (fixedInit ?? d20() + mod), mod, ac, hp: hpFor() });
+    c.hidden = true; // new arrivals stay off the player screen until revealed
+    S.combatants.push(c); added.push(c);
+  }
+  if (kind === "pc") rememberPC(added[0]);
+  if ($("#aSave").checked && kind !== "pc" && !SRD_MONSTERS.some(m => m[0] === name)) {
+    S.customMonsters = S.customMonsters.filter(m => m[0] !== name);
+    S.customMonsters.unshift([name, "?", ac ?? 10, hpRaw || "10", mod]); fillMonsterList();
+  }
+  toast(`Added ${qty > 1 ? qty + "× " + name : added[0].name} at initiative ${added.map(c => c.init).filter((v, i, a) => a.indexOf(v) === i).join(", ")}.`);
+  $("#aName").value = ""; $("#aQty").value = 1; $("#aInit").value = ""; $("#aAC").value = ""; $("#aHP").value = ""; $("#aMod").value = 0; $("#aHint").textContent = "";
+  save(); renderInit(); $("#aName").focus();
+});
+$("#nextTurn").onclick = () => advance(1);
+$("#prevTurn").onclick = () => advance(-1);
+$("#sortInit").onclick = () => { renderInit(); toast("Sorted by initiative, then Dex mod."); };
+$("#skipDown").onchange = e => { S.skipDown = e.target.checked; save(); renderInit(); };
+$("#rollMon").onclick = () => {
+  const groups = {};
+  S.combatants.filter(c => c.kind !== "pc").forEach(c => { const g = baseName(c.name); groups[g] = groups[g] ?? d20() + c.mod; c.init = $("#aGroup").checked ? groups[g] : d20() + c.mod; });
+  S.round = 1; S.activeId = null; save(); renderInit(); toast("Rolled initiative for every monster and NPC.");
+};
+$("#addParty").onclick = () => {
+  let n = 0;
+  S.party.forEach(p => { if (!S.combatants.some(c => c.name === p.name)) { const pc = mkCombatant({ name: p.name, kind: "pc", init: 0, mod: p.mod || 0, ac: p.ac, hp: p.maxHp }); pc.stress = Math.min(p.stress || 0, 4); S.combatants.push(pc); n++; } });
+  save(); renderInit(); toast(n ? `Added ${n} party member${n > 1 ? "s" : ""}. Type in their initiative rolls.` : "The whole party is already here.");
+};
+$("#endCombat").onclick = () => {
+  const removed = S.combatants.filter(c => c.kind !== "pc"); const prev = { round: S.round, activeId: S.activeId };
+  S.combatants = S.combatants.filter(c => c.kind === "pc");
+  S.combatants.forEach(c => { c.conds = []; c.conc = false; c.temp = 0; c.init = 0; });
+  S.round = 1; S.activeId = null; openMenu = null; save(); renderInit();
+  toast(`Combat over. Cleared ${removed.length} monster${removed.length === 1 ? "" : "s"} and NPC${removed.length === 1 ? "" : "s"}; PC HP kept.`, "Undo", () => { S.combatants.push(...removed); Object.assign(S, prev); save(); renderInit(); }, 7000);
+};
+$("#clearExample").onclick = () => { S.combatants = S.combatants.filter(c => !c.example); S.activeId = null; save(); renderInit(); };
+$("#copyOrder").onclick = () => {
+  const list = sorted().filter(c => !c.hidden);
+  const lines = [`## ⚔️ Initiative · Round ${S.round}`];
+  list.forEach((c, i) => {
+    const now = c.id === S.activeId;
+    const status = c.kind === "pc" ? (c.hp !== null && c.maxHp ? `${c.hp}/${c.maxHp} HP` : "") : healthWord(c);
+    const conds = c.conds.map(k => k.n).join(", ");
+    lines.push(`${now ? "▶️ **" : ""}${i + 1}. ${c.name}${now ? "**" : ""}${status ? ` · *${status}*` : ""}${conds ? ` · ${conds}` : ""}`);
+  });
+  copyText(lines.join("\n"));
+};
+document.addEventListener("keydown", e => {
+  if (PLAYER || (window.currentTab && window.currentTab !== "table") || e.target.closest("input, textarea, select, [contenteditable]") || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "n" || e.key === "N") { e.preventDefault(); advance(1); }
+  if (e.key === "p" || e.key === "P") { e.preventDefault(); advance(-1); }
+});
+
+/* ================= LOOT ================= */
+const L = () => S.loot;
+function lootSettingsFromForm() {
+  const l = L();
+  l.tier = $("#lTier").value; l.count = clamp(parseInt($("#lCount").value, 10) || 1, 1, 50); l.partySize = clamp(parseInt($("#lParty").value, 10) || 1, 1, 12);
+  l.magic = $("#lMagic").value; l.coins = $("#lCoins").checked; l.gems = $("#lGems").checked; l.gear = $("#lGear").checked; l.herbs = $("#lHerbs").checked; l.title = $("#lTitle").value;
+}
+function lootFormFromSettings() {
+  const l = L();
+  $$("#lootKind button").forEach(b => b.classList.toggle("on", b.dataset.v === l.kind));
+  $("#lTier").value = l.tier; $("#lCount").value = l.count; $("#lParty").value = l.partySize; $("#lMagic").value = l.magic;
+  $("#lCoins").checked = l.coins; $("#lGems").checked = l.gems; $("#lGear").checked = l.gear; $("#lHerbs").checked = l.herbs; $("#lTitle").value = l.title;
+  $("#lShowVal").checked = l.showVal; $("#lShowSplit").checked = l.showSplit;
+  $("#lCount").closest("label").style.opacity = l.kind === "hoard" ? .5 : 1;
+}
+const rollN = e => roll(e).total;
+function genGem(tier) { const v = pick(GEM_VAL[tier]); return { cat: "gem", name: pick(GEMS[v]), qty: 1, value: v }; }
+function genArt(tier) {
+  const v = pick(ART_VAL[tier]); const band = v <= 50 ? "low" : v <= 750 ? "mid" : "high";
+  return { cat: "art", name: `${pick(ART_MAT[band])} ${pick(ART_OBJ)} ${pick(ART_MOTIF)}`, qty: 1, value: v };
+}
+function genGear() { const g = pick(GEAR); const q = g[2] ? rollN(g[2]) : 1; return { cat: "gear", name: g[0], qty: q, value: +(g[1] * q).toFixed(2) }; }
+function genHerb() { const h = pick(HERBS); const q = 1 + rnd(3); return { cat: "herb", name: `${h[0]}, bundle${q > 1 ? "s" : ""}`, qty: q, value: h[1] * q }; }
+function genMagic(tier, rarity) {
+  const r = rarity || weighted(MAGIC_RAR[tier]);
+  const it = pick(SRD_ITEMS[r]);
+  return { cat: "magic", name: it[0], type: it[1], attune: !!it[2], rarity: r, qty: 1, value: ITEM_VALUE[r] };
+}
+function genConsumable(tier) {
+  const r = weighted(MAGIC_RAR[tier]);
+  const pool = SRD_ITEMS[r].filter(i => i[1] === "Potion" || i[1] === "Scroll");
+  const it = pick(pool);
+  return { cat: "magic", name: it[0], type: it[1], attune: false, rarity: r, qty: 1, value: ITEM_VALUE[r] };
+}
+function genLoot() {
+  lootSettingsFromForm();
+  const l = L(), tier = +l.tier, hoard = l.kind === "hoard", mag = +l.magic;
+  const out = [];
+  const coins = {};
+  if (l.coins) {
+    const table = hoard ? HOARD[tier] : INDIV[tier];
+    const reps = hoard ? 1 : l.count;
+    for (let r = 0; r < reps; r++) {
+      let any = false;
+      table.forEach(([c, e], i) => { if (Math.random() < (hoard ? 0.8 : 0.55) || (!any && i === table.length - 1)) { coins[c] = (coins[c] || 0) + rollN(e); any = true; } });
+    }
+  }
+  if (l.gems) {
+    const n = hoard ? rollN("2d4") : [...Array(l.count)].filter(() => Math.random() < 0.2).length;
+    for (let i = 0; i < n; i++) out.push(Math.random() < 0.55 ? genGem(tier) : genArt(tier));
+  }
+  if (l.gear) { const n = hoard ? rollN("1d4") : [...Array(l.count)].filter(() => Math.random() < 0.45).length; for (let i = 0; i < Math.min(n, 8); i++) out.push(genGear()); }
+  if (l.herbs) { const n = hoard ? (Math.random() < 0.6 ? rollN("1d3") : 0) : (Math.random() < 0.3 ? 1 : 0); for (let i = 0; i < n; i++) out.push(genHerb()); }
+  if (mag > 0) {
+    if (hoard) { const base = [0, rollN("1d3") - 1, rollN("1d3"), rollN("1d4"), rollN("1d4") + 1][tier]; const n = Math.max(mag >= 1 ? 1 : 0, Math.round(base * mag)); for (let i = 0; i < n; i++) out.push(genMagic(tier)); }
+    else { const n = [...Array(l.count)].filter(() => Math.random() < 0.08 * mag).length; for (let i = 0; i < n; i++) out.push(genConsumable(tier)); }
+  }
+  // merge duplicate gems
+  const merged = [];
+  out.forEach(x => { const m = merged.find(y => y.cat === x.cat && y.name === x.name && x.cat !== "magic"); if (m) { m.qty += x.qty; m.value += x.value; } else merged.push(x); });
+  const kept = l.lines.filter(x => x.locked);
+  l.lines = [...kept, ...merged.map(x => ({ ...x, id: uid(), locked: false }))];
+  if (!l.coinsLocked) l.coinsOut = normCoins(coins);
+  save(); renderLoot();
+}
+function rerollLine(x) {
+  const tier = +L().tier; let n;
+  if (x.cat === "gem") n = genGem(tier); else if (x.cat === "art") n = genArt(tier); else if (x.cat === "gear") n = genGear(); else if (x.cat === "herb") n = genHerb(); else if (x.cat === "magic") n = genMagic(tier, x.rarity); else return;
+  Object.assign(x, n);
+}
+function coinTotalGp(coins) { return Object.entries(coins).reduce((a, [k, v]) => a + v * COIN_GP[k], 0); }
+function splitText(coins, n) {
+  const cp = Math.floor(Object.entries(coins).reduce((a, [k, v]) => a + v * COIN_GP[k] * 100, 0) / n);
+  const gp = Math.floor(cp / 100), c = cp % 100;
+  return [gp && `${fmtNum(gp)} gp`, c && `${c} cp`].filter(Boolean).join(", ") || "0 cp";
+}
+const CAT_LABEL = { gem: "Gems", art: "Art objects", gear: "Gear", herb: "Herbs", magic: "Magic items", custom: "Other" };
+const CAT_ORDER = ["magic", "art", "gem", "herb", "gear", "custom"];
+function fmtGp(v) { if (v >= 1) return `${fmtNum(v)} gp`; return `${Math.max(1, Math.round(v * 100))} cp`; }
+function renderLoot() {
+  const l = L();
+  lootFormFromSettings();
+  const coinKeys = COIN_ORDER.filter(k => l.coinsOut[k]);
+  $("#coinRow").innerHTML = coinKeys.length ? coinKeys.map(k => `<label class="coin"><input type="number" min="0" value="${l.coinsOut[k]}" data-coin="${k}" aria-label="${k}"><small>${k}</small></label>`).join("") + `<button class="btn ghost sm ${l.coinsLocked ? "on" : ""}" id="lockCoins" title="Keep these coins when you generate again">${l.coinsLocked ? "🔒 Coins locked" : "🔓 Lock coins"}</button>` : "";
+  const itemsVal = l.lines.reduce((a, x) => a + (x.value || 0), 0), coinVal = coinTotalGp(l.coinsOut);
+  $("#lootTotals").innerHTML = (coinKeys.length || l.lines.length) ? `<span>Coins <b>${fmtNum(coinVal)} gp</b></span><span>Goods <b>${fmtNum(itemsVal)} gp</b></span>${coinKeys.length ? `<span>Coin split ÷${l.partySize} <b>${splitText(l.coinsOut, l.partySize)}</b> each</span>` : ""}` : "";
+  if (!l.lines.length && !coinKeys.length) { $("#lootList").innerHTML = `<div class="empty">Pick a treasure type and press <b>Generate loot</b>.</div>`; }
+  else $("#lootList").innerHTML = CAT_ORDER.filter(cat => l.lines.some(x => x.cat === cat)).map(cat => `<div class="eyebrow" style="margin-top:6px">${CAT_LABEL[cat]}</div>` + l.lines.filter(x => x.cat === cat).map(x => `
+    <div class="litem ${x.locked ? "locked" : ""}" data-id="${x.id}">
+      <div class="nm"><b>${esc(x.name)}</b>${x.qty > 1 ? ` ×${x.qty}` : ""}${x.rarity ? ` <span class="rar ${RKEY(x.rarity)}">${x.rarity}${x.attune ? " · attunement" : ""}</span>` : ""}</div>
+      <div class="val">${x.value ? fmtGp(x.value) : ""}</div>
+      <div class="acts">
+        ${x.cat === "magic" ? `<button class="btn sm" data-act="unique" title="Open in the item creator and give it a twist">Make unique</button>` : ""}
+        ${x.cat !== "custom" ? `<button class="btn ghost icon" data-act="reroll" title="Reroll this line">↻</button>` : ""}
+        <button class="btn ghost icon ${x.locked ? "on" : ""}" data-act="lock" title="${x.locked ? "Unlock" : "Lock (keep on regenerate)"}">${x.locked ? "🔒" : "🔓"}</button>
+        <button class="btn ghost icon danger" data-act="del" title="Remove">✕</button>
+      </div>
+    </div>`).join("")).join("");
+  renderLootExport();
+}
+function lootToDiscord() {
+  const l = L(), sv = l.showVal;
+  const lines = [`## 💰 ${l.title.trim() || "Loot"}`];
+  const coinKeys = COIN_ORDER.filter(k => l.coinsOut[k]);
+  if (coinKeys.length) {
+    lines.push(`**Coins:** ${coinKeys.map(k => `${fmtNum(l.coinsOut[k])} ${k}`).join(", ")}`);
+    if (l.showSplit && l.partySize > 1) lines.push(`-# Split ${l.partySize} ways: ${splitText(l.coinsOut, l.partySize)} each`);
+  }
+  CAT_ORDER.forEach(cat => {
+    const xs = l.lines.filter(x => x.cat === cat); if (!xs.length) return;
+    lines.push("", `**${CAT_LABEL[cat]}**`);
+    xs.forEach(x => {
+      if (cat === "magic") lines.push(`- ${S.discord.emoji ? R_EMOJI[x.rarity] + " " : ""}**${x.name}** *(${x.rarity}${x.attune ? ", requires attunement" : ""})*`);
+      else lines.push(`- ${x.name}${x.qty > 1 && cat !== "herb" ? ` ×${x.qty}` : x.qty > 1 ? ` ×${x.qty}` : ""}${sv && x.value ? ` (${fmtGp(x.value)})` : ""}`);
+    });
+  });
+  if (sv && (coinKeys.length || l.lines.length)) lines.push("", `-# Total value ≈ ${fmtNum(coinTotalGp(l.coinsOut) + l.lines.filter(x => x.cat !== "magic").reduce((a, x) => a + (x.value || 0), 0))} gp, not counting magic items`);
+  return lines.join("\n");
+}
+function renderLootExport() { const t = lootToDiscord(); $("#lootExport").value = t; setCount($("#lootCount"), t); }
+function setCount(el, t) { const n = t.length; el.textContent = `${n} / 2000 characters${n > 2000 ? " · over Discord's limit, copy will split into parts" : ""}`; el.classList.toggle("over", n > 2000); }
+function chunk(text, max = 1900) {
+  if (text.length <= 2000) return [text];
+  const parts = []; let cur = "";
+  text.split("\n").forEach(line => { if ((cur + "\n" + line).length > max && cur) { parts.push(cur); cur = line; } else cur = cur ? cur + "\n" + line : line; });
+  if (cur) parts.push(cur); return parts;
+}
+let chunkState = { key: "", i: 0 };
+function copyChunked(text, ta, key) {
+  const parts = chunk(text);
+  if (parts.length === 1) return copyText(text, ta);
+  if (chunkState.key !== key + text.length) chunkState = { key: key + text.length, i: 0 };
+  const i = chunkState.i % parts.length;
+  try { navigator.clipboard.writeText(parts[i]).then(() => toast(`Copied part ${i + 1} of ${parts.length}. Paste it, then press Copy again for the next part.`, null, null, 6000), () => copyText(text, ta)); } catch (e) { copyText(text, ta); }
+  chunkState.i++;
+}
+$$("#lootKind button").forEach(b => b.onclick = () => { L().kind = b.dataset.v; save(); lootFormFromSettings(); });
+$("#lootForm").addEventListener("submit", e => { e.preventDefault(); genLoot(); });
+$("#lootForm").addEventListener("change", () => { lootSettingsFromForm(); save(); renderLootExport(); });
+$("#lTitle").addEventListener("input", () => { L().title = $("#lTitle").value; save(); renderLootExport(); });
+$("#lClear").onclick = () => { const l = L(); l.lines = l.lines.filter(x => x.locked); if (!l.coinsLocked) l.coinsOut = {}; save(); renderLoot(); };
+$("#lShowVal").onchange = e => { L().showVal = e.target.checked; save(); renderLootExport(); };
+$("#lShowSplit").onchange = e => { L().showSplit = e.target.checked; save(); renderLootExport(); };
+$("#coinRow").addEventListener("change", e => { const k = e.target.dataset.coin; if (!k) return; L().coinsOut[k] = Math.max(0, parseInt(e.target.value, 10) || 0); save(); renderLoot(); });
+$("#coinRow").addEventListener("click", e => { if (e.target.id === "lockCoins") { L().coinsLocked = !L().coinsLocked; save(); renderLoot(); } });
+$("#lootList").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const id = b.closest(".litem").dataset.id; const l = L(); const x = l.lines.find(y => y.id === id); if (!x) return;
+  const a = b.dataset.act;
+  if (a === "lock") x.locked = !x.locked;
+  else if (a === "del") l.lines = l.lines.filter(y => y !== x);
+  else if (a === "reroll") rerollLine(x);
+  else if (a === "unique") { makeUniqueFrom(x); return; }
+  save(); renderLoot();
+});
+$("#lootAdd").addEventListener("submit", e => {
+  e.preventDefault(); const n = $("#lAddName").value.trim(); if (!n) return;
+  L().lines.push({ id: uid(), cat: "custom", name: n, qty: 1, value: parseFloat($("#lAddVal").value) || 0, locked: true });
+  $("#lAddName").value = ""; $("#lAddVal").value = ""; save(); renderLoot();
+});
+$("#copyLoot").onclick = () => copyChunked($("#lootExport").value, $("#lootExport"), "loot");
+
+/* ================= MAGIC ITEMS ================= */
+const DC = { common: 11, uncommon: 13, rare: 15, "very rare": 17, legendary: 19, artifact: 21 };
+const BONUS = { common: 0, uncommon: 1, rare: 2, "very rare": 3, legendary: 3, artifact: 3 };
+const RIDER = { common: "1", uncommon: "1d4", rare: "1d6", "very rare": "2d6", legendary: "3d6", artifact: "4d6" };
+const SPELL_LV = { common: [1], uncommon: [1, 2], rare: [3, 4], "very rare": [5, 6], legendary: [7], artifact: [7] };
+const ordinal = n => ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"][n];
+const article = w => /^[aeiou]/i.test(w) ? "an" : "a";
+const blankItem = () => ({ id: uid(), name: "", type: "Wondrous item", base: "", rarity: "uncommon", attune: false, attuneBy: "", desc: "", props: [], charges: null, recharge: "", quirk: "", lore: "", secret: "", theme: "starlight" });
+function themeOf(k) { return THEMES[k] || THEMES[pick(Object.keys(THEMES))]; }
+function genName(it) {
+  const t = themeOf(it.theme), suf = pick(NAME_SUFFIX[it.type] || NAME_SUFFIX["Wondrous item"]);
+  const base = it.base && it.base !== it.type.toLowerCase() ? it.base : (it.type === "Wondrous item" ? pick(BASES["Wondrous item"]) : it.type.toLowerCase());
+  const nice = cap(base.replace(/^(potion|scroll)$/, m => m));
+  const w = pick(t.words);
+  return pick([
+    () => `${w}${suf}`,
+    () => `${nice} of ${pick(t.epi)}`,
+    () => `${pick(NAME_OWNERS)}'s ${nice}`,
+    () => `The ${w}${suf}`,
+    () => `${w}${suf}, ${nice} of ${pick(t.epi)}`
+  ])();
+}
+function genDesc(it) {
+  const t = themeOf(it.theme);
+  const base = it.base || it.type.toLowerCase();
+  const mat = pick(t.mat);
+  if (it.type === "Potion") return `A stoppered vial of liquid that ${pick(["swirls with slow motes of light","is dark as ink but smells of honey","shifts color whenever the vial is tilted","is faintly warm and fizzes softly","holds a single drifting bubble that never rises"])}. The label is written in ${pick(["a careful alchemist's hand","Starpony script","a cipher","faded Common"])}.`;
+  if (it.type === "Scroll") return `A scroll of ${pick(["heavy vellum","pale birch bark","black paper written in silver ink","oiled silk"])} sealed with ${pick(["a star-shaped wax seal","braided red thread","a pressed moonflower","a thumbprint in soot"])}.`;
+  const shape = { Weapon: `This ${base} is made of ${mat}`, Armor: `This suit of ${base} armor is made of ${mat}`, Shield: `This shield is made of ${mat}`, Ring: `A band of ${mat}`, Wand: `A slender wand of ${mat}`, Rod: `A heavy rod of ${mat}`, Staff: `A staff of ${mat}` }[it.type] || (/^(boots|gloves|bracers)$/.test(base) ? `A pair of ${base} made of ${mat}` : `${cap(article(base))} ${base} of ${mat}`);
+  return `${shape}, ${pick(["worked with the image of " + pick(["a falling star","a sleeping drake","an open eye","a crescent moon","a tree with roots in the sky","two hands clasped"]), "marked with a single unfamiliar rune", "worn smooth where countless hands have held it", "wrapped in " + pick(["dark leather","silver wire","faded blue ribbon","braided horsehair"]), "set with a small " + pick(["moonstone","garnet","chip of black glass","pearl","star sapphire"])])}.`;
+}
+function spellProp(it, t, preferLvl) {
+  const lv = preferLvl ?? pick(SPELL_LV[it.rarity] || [1]);
+  const sp = pick(t.spells[lv] || t.spells[1]);
+  const dc = DC[it.rarity];
+  return { name: sp, text: `Once per dawn, you can use an action to cast ${sp} from this item${lv > 1 ? ` at ${ordinal(lv)} level` : ""} (save DC ${dc}, +${dc - 8} to hit if it needs an attack roll).`, lv };
+}
+function propertyPool(it) {
+  const t = themeOf(it.theme), r = it.rarity, b = BONUS[r], dmg = t.dmg, dc = DC[r];
+  const P = [];
+  if (r === "common") return MINOR.map(f => () => { const [name, text] = f(t); return { name, text }; });
+  if (it.type === "Weapon") {
+    P.push(() => ({ name: `+${b} Weapon`, text: `You gain a +${b} bonus to attack and damage rolls made with this magic weapon.` }));
+    P.push(() => ({ name: `${cap(dmg)} Edge`, text: `On a hit, the weapon deals an extra ${RIDER[r]} ${dmg} damage.` }));
+    P.push(() => ({ name: "Hunter's Mark", text: `As a bonus action, choose a creature you can see. Until dawn, you always know its direction and distance while it is on the same plane, and your attacks with this weapon against it score a critical hit on a roll of 19 or 20.` }));
+    P.push(() => ({ name: "Returning", text: "If the weapon is thrown, it flies back to your hand immediately after the attack." }));
+    P.push(() => ({ name: "Starfall Strike", text: `When you score a critical hit, the target must succeed on a DC ${dc} Constitution saving throw or be blinded until the end of its next turn.` }));
+    P.push(() => ({ name: "Bane", text: `Choose a creature type when the item is made (${pick(["undead","fiends","fey","giants","dragons","aberrations","monstrosities"])}). Against that type, this weapon deals an extra ${RIDER[r] === "1" ? "1d4" : RIDER[r]} damage and you have advantage on Wisdom (Survival) checks to track them.` }));
+  }
+  if (it.type === "Armor" || it.type === "Shield") {
+    P.push(() => ({ name: `+${b} ${it.type}`, text: `You have a +${b} bonus to AC while ${it.type === "Shield" ? "holding this shield" : "wearing this armor"}.` }));
+    P.push(() => ({ name: `${cap(dmg)} Ward`, text: `You have resistance to ${dmg} damage while ${it.type === "Shield" ? "holding" : "wearing"} it.` }));
+    P.push(() => ({ name: "Deflect", text: `When a creature you can see hits you with an attack, you can use your reaction to reduce the damage by ${r === "uncommon" ? "1d10" : r === "rare" ? "2d10" : "3d10"}. You can't use this again until the next dawn.` }));
+    P.push(() => ({ name: "Silent", text: "It makes no noise, and you don't have disadvantage on Dexterity (Stealth) checks because of it." }));
+    P.push(() => ({ name: "Retort", text: `When a creature within 5 feet hits you with a melee attack, it takes ${RIDER[r] === "1" ? "1d4" : RIDER[r]} ${dmg} damage.` }));
+  }
+  if (["Wand", "Rod", "Staff"].includes(it.type)) {
+    P.push(() => ({ name: "Spell Focus", text: `While holding it, you gain a +${b} bonus to spell attack rolls and to your spell save DC.` }));
+    P.push(() => { const s = pick(t.spells[pick(SPELL_LV[r])] || t.spells[1]); return { name: s, text: `While holding it, you can expend 1 or more of its charges to cast ${s} (save DC ${dc}). The spell's level rises by one for each charge spent beyond the first.`, charges: true }; });
+    P.push(() => ({ name: `${cap(dmg)} Bolt`, text: `As an action, expend 1 charge to make a ranged spell attack (+${dc - 8} to hit, range 120 ft). On a hit, the target takes ${b + 1}d8 ${dmg} damage.`, charges: true }));
+  }
+  if (it.type === "Ring" || it.type === "Wondrous item") {
+    P.push(() => ({ name: `${cap(dmg)} Resistance`, text: `While ${it.type === "Ring" ? "wearing" : "carrying"} it, you have resistance to ${dmg} damage.` }));
+    P.push(() => ({ name: "Protection", text: `You gain a +${Math.max(1, b - 1)} bonus to AC and saving throws while you wear it.` }));
+    P.push(() => ({ name: "Second Sight", text: "You have darkvision out to 60 feet. If you already have darkvision, its range increases by 30 feet." }));
+    P.push(() => ({ name: "Silver Tongue", text: `You have advantage on ${pick(["Charisma (Persuasion)","Charisma (Deception)","Wisdom (Insight)","Dexterity (Stealth)","Wisdom (Perception)","Intelligence (Investigation)"])} checks.` }));
+    P.push(() => ({ name: "Mindspeech", text: "You can speak telepathically to any creature you can see within 60 feet. It can reply the same way if it shares a language with you." }));
+    P.push(() => ({ name: "Lucky", text: `${r === "uncommon" ? "Once per dawn" : r === "rare" ? "Twice per dawn" : "Three times per dawn"}, when you make an attack roll, ability check or saving throw, you can roll a d6 and add it to the result.` }));
+    P.push(() => ({ name: "Step Between", text: "As a bonus action, you teleport up to 30 feet to an unoccupied space you can see. Once used, this property can't be used again until the next dawn." }));
+  }
+  if (it.type === "Potion") {
+    P.push(() => ({ name: "Restoring", text: `When you drink it, you regain ${["", "4d4+4", "8d4+8", "10d4+20", "20d4+40"][Math.max(1, BONUS[r])]} hit points${t.dmg === "radiant" ? " and the next attack against you before your next turn has disadvantage" : ""}.` }));
+    P.push(() => ({ name: `${cap(dmg)} Breath`, text: `After drinking it, you can use a bonus action to exhale ${dmg} in a 15-foot cone. Each creature in it makes a DC ${dc} Dexterity save, taking ${b + 1}d6 ${dmg} damage on a failure or half as much on a success. You can do this three times, and the effect ends after 1 hour.` }));
+    P.push(() => ({ name: "Clarity", text: `For 1 hour after drinking it, you can't be charmed or frightened and you have advantage on Wisdom saving throws.` }));
+    P.push(() => ({ name: "Vigor", text: "Drinking it removes one level of exhaustion and gives you temporary hit points equal to your level." }));
+  }
+  if (it.type === "Scroll") {
+    P.push(() => { const s = spellProp(it, t); return { name: `Scroll of ${s.name}`, text: `Reading the scroll casts ${s.name}${s.lv > 1 ? ` at ${ordinal(s.lv)} level` : ""} (save DC ${dc}). The scroll crumbles to ash afterward.` }; });
+  } else if (it.type !== "Potion") P.push(() => spellProp(it, t));
+  return P;
+}
+function randomProp(it) {
+  const pool = propertyPool(it);
+  const have = new Set(it.props.map(p => p.name));
+  for (let i = 0; i < 12; i++) { const p = pick(pool)(); if (!have.has(p.name)) return p; }
+  return pick(pool)();
+}
+function forge() {
+  const f = S.forge;
+  const type = f.type === "any" ? pick(ITEM_TYPES) : f.type;
+  const rarity = f.rarity === "any" ? weighted([["common", 2], ["uncommon", 5], ["rare", 4], ["very rare", 2], ["legendary", 1]]) : f.rarity;
+  const it = blankItem();
+  it.type = type; it.rarity = rarity; it.theme = f.theme === "any" ? pick(Object.keys(THEMES)) : f.theme;
+  it.base = pick(BASES[type]);
+  it.name = genName(it);
+  it.desc = genDesc(it);
+  const n = { common: 1, uncommon: 1 + rnd(2), rare: 2, "very rare": 2 + rnd(2), legendary: 3, artifact: 4 }[rarity];
+  for (let i = 0; i < n; i++) it.props.push(randomProp(it));
+  if (it.type === "Weapon" && rarity !== "common" && !it.props.some(p => /^\+\d/.test(p.name)) && Math.random() < 0.6) it.props.unshift({ name: `+${BONUS[rarity]} Weapon`, text: `You gain a +${BONUS[rarity]} bonus to attack and damage rolls made with this magic weapon.` });
+  if (it.props.some(p => p.charges) || (["Wand", "Staff", "Rod"].includes(type))) { it.charges = { uncommon: 3, rare: 5, "very rare": 7, legendary: 10, artifact: 12, common: 2 }[rarity]; it.recharge = { uncommon: "1d3", rare: "1d4+1", "very rare": "1d6+1", legendary: "1d8+2", artifact: "2d6", common: "1" }[rarity] + " at dawn"; }
+  it.props.forEach(p => delete p.charges);
+  it.attune = !["Potion", "Scroll"].includes(type) && rarity !== "common" && Math.random() < { uncommon: 0.45, rare: 0.7, "very rare": 0.85, legendary: 1, artifact: 1 }[rarity];
+  if (it.attune && Math.random() < 0.25) it.attuneBy = pick(["by a spellcaster", "by a bard", "by a warlock", "by a ranger", "by a rogue", "by a cleric or paladin", "by a druid", "by a creature of good alignment", "by one of the Stellborn"]);
+  if (!["Potion", "Scroll"].includes(type)) it.quirk = pick(QUIRKS);
+  it.lore = Math.random() < 0.7 ? pick(LORES) : "";
+  S.item = it; save(); renderItemForm(); renderItem();
+}
+function makeUniqueFrom(x) {
+  const it = blankItem();
+  it.type = ITEM_TYPES.includes(x.type) ? x.type : "Wondrous item"; it.rarity = x.rarity; it.theme = S.forge.theme === "any" ? pick(Object.keys(THEMES)) : S.forge.theme;
+  it.base = /Weapon|Armor/.test(x.name) ? pick(BASES[it.type]) : "";
+  it.attune = x.attune;
+  const t = themeOf(it.theme);
+  if (/, \+\d/.test(x.name)) { it.base = pick(BASES[it.type] || [""]); it.name = genName(it); }
+  else it.name = `${x.name} of ${pick(t.epi)}`;
+  it.desc = genDesc(it);
+  it.props = [{ name: x.name, text: `This item works as ${article(x.name)} ${x.name} (see the rules for that item).` }, randomProp(it)];
+  it.quirk = pick(QUIRKS); it.lore = pick(LORES);
+  S.item = it; save(); renderItemForm(); renderItem();
+  $("#items").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  toast(`Loaded ${x.name} into the item creator.`);
+}
+function headerLine(it) {
+  const base = it.base && !["Shield", "Ring", "Wand", "Rod", "Staff", "Potion", "Scroll"].includes(it.type) && it.type !== "Wondrous item" ? ` (${it.base})` : "";
+  return `${it.type}${base}, ${it.rarity}${it.attune ? ` (requires attunement${it.attuneBy ? " " + it.attuneBy.replace(/^\s*/, "") : ""})` : ""}`;
+}
+function itemToDiscord(it, opts = S.discord) {
+  if (!it) return "";
+  const H = opts.headers;
+  const lines = [];
+  const title = `${opts.emoji ? R_EMOJI[it.rarity] + " " : ""}${it.name || "Unnamed item"}`;
+  lines.push(H ? `## ${title}` : `**__${title}__**`);
+  lines.push(H ? `-# *${headerLine(it)}*` : `*${headerLine(it)}*`);
+  if (it.desc.trim()) lines.push(...it.desc.trim().split(/\n+/).map(l => `> ${l}`));
+  it.props.filter(p => p.name.trim() || p.text.trim()).forEach(p => lines.push(`**${p.name.trim()}.** ${p.text.trim()}`.replace(/^\*\*\.\*\* /, "")));
+  if (it.charges) lines.push(`**Charges.** ${it.charges} charge${it.charges > 1 ? "s" : ""}${it.recharge ? `; regains ${it.recharge}` : ""}.`);
+  if (it.quirk.trim()) lines.push(`*Quirk: ${it.quirk.trim()}*`);
+  if (it.lore.trim()) lines.push(H ? `-# ${it.lore.trim()}` : `*${it.lore.trim()}*`);
+  return lines.join("\n");
+}
+function renderItem() {
+  const it = S.item;
+  const card = $("#itemCard");
+  if (!it) { card.className = "card"; card.innerHTML = `<p class="hint">Press <b>Forge random item</b> to get started.</p>`; $("#itemExport").value = ""; setCount($("#itemCount"), ""); return; }
+  card.className = `card rc-${RKEY(it.rarity)}`;
+  card.innerHTML = `<h3>${esc(it.name || "Unnamed item")}</h3><div class="sub">${esc(headerLine(it))}</div>
+    ${it.desc ? `<p class="desc">${esc(it.desc)}</p>` : ""}
+    ${it.props.map(p => `<p><b>${esc(p.name)}.</b> ${esc(p.text)}</p>`).join("")}
+    ${it.charges ? `<p><b>Charges.</b> ${it.charges}${it.recharge ? `; regains ${esc(it.recharge)}` : ""}.</p>` : ""}
+    ${it.quirk ? `<p class="q"><i>Quirk:</i> ${esc(it.quirk)}</p>` : ""}
+    ${it.lore ? `<p class="q">${esc(it.lore)}</p>` : ""}`;
+  const t = itemToDiscord(it); $("#itemExport").value = t; setCount($("#itemCount"), t);
+}
+function renderProps() {
+  const it = S.item;
+  $("#propList").innerHTML = it && it.props.length ? it.props.map((p, i) => `<div class="prop" data-i="${i}">
+    <div class="row"><input type="text" value="${esc(p.name)}" data-pf="name" aria-label="Property name"><button class="btn ghost icon" data-pa="re" title="Replace with a random property">↻</button><button class="btn ghost icon" data-pa="up" title="Move up" ${i === 0 ? "disabled" : ""}>↑</button><button class="btn ghost icon danger" data-pa="del" title="Remove">✕</button></div>
+    <textarea data-pf="text" aria-label="Property text">${esc(p.text)}</textarea></div>`).join("") : `<div class="hint">No properties yet.</div>`;
+}
+function renderItemForm() {
+  const it = S.item || blankItem();
+  $("#iName").value = it.name; $("#iType").value = it.type; $("#iBase").value = it.base; $("#iRarity").value = it.rarity;
+  $("#iAttune").checked = it.attune; $("#iAttuneBy").value = it.attuneBy; $("#iDesc").value = it.desc;
+  $("#iCharges").value = it.charges ?? ""; $("#iRecharge").value = it.recharge; $("#iQuirk").value = it.quirk; $("#iLore").value = it.lore; $("#iSecret").value = it.secret;
+  $("#baseList").innerHTML = (BASES[it.type] || []).map(b => `<option value="${esc(b)}">`).join("");
+  renderProps();
+}
+function readItemForm() {
+  if (!S.item) S.item = blankItem();
+  const it = S.item;
+  it.name = $("#iName").value; it.type = $("#iType").value; it.base = $("#iBase").value; it.rarity = $("#iRarity").value;
+  it.attune = $("#iAttune").checked; it.attuneBy = $("#iAttuneBy").value; it.desc = $("#iDesc").value;
+  const ch = parseInt($("#iCharges").value, 10); it.charges = ch > 0 ? ch : null; it.recharge = $("#iRecharge").value;
+  it.quirk = $("#iQuirk").value; it.lore = $("#iLore").value; it.secret = $("#iSecret").value;
+}
+function fillSelects() {
+  $("#gType").innerHTML = `<option value="any">Any</option>` + ITEM_TYPES.map(t => `<option>${t}</option>`).join("");
+  $("#gRarity").innerHTML = `<option value="any">Any</option>` + RARITIES.slice(0, 5).map(r => `<option value="${r}">${cap(r)}</option>`).join("");
+  $("#gTheme").innerHTML = `<option value="any">Surprise me</option>` + Object.entries(THEMES).map(([k, t]) => `<option value="${k}">${t.label}</option>`).join("");
+  $("#iType").innerHTML = ITEM_TYPES.map(t => `<option>${t}</option>`).join("");
+  $("#iRarity").innerHTML = RARITIES.map(r => `<option value="${r}">${cap(r)}</option>`).join("");
+  $("#gType").value = S.forge.type; $("#gRarity").value = S.forge.rarity; $("#gTheme").value = S.forge.theme;
+}
+["gType", "gRarity", "gTheme"].forEach(id => $("#" + id).onchange = () => { S.forge = { type: $("#gType").value, rarity: $("#gRarity").value, theme: $("#gTheme").value }; save(); });
+$("#forgeBtn").onclick = forge;
+$("#newBlank").onclick = () => { S.item = blankItem(); save(); renderItemForm(); renderItem(); $("#iName").focus(); };
+const fieldsEl = $("#items .forge .fields");
+fieldsEl.addEventListener("input", e => {
+  if (e.target.closest(".prop")) return;
+  readItemForm(); save(); renderItem();
+});
+fieldsEl.addEventListener("change", e => { if (e.target.id === "iType") { $("#baseList").innerHTML = (BASES[S.item.type] || []).map(b => `<option value="${esc(b)}">`).join(""); } });
+$$("[data-re]").forEach(b => b.onclick = () => {
+  readItemForm(); const it = S.item; const k = b.dataset.re;
+  if (!it.theme) it.theme = S.forge.theme === "any" ? pick(Object.keys(THEMES)) : S.forge.theme;
+  if (k === "name") it.name = genName(it); if (k === "desc") it.desc = genDesc(it); if (k === "quirk") it.quirk = pick(QUIRKS); if (k === "lore") it.lore = pick(LORES);
+  save(); renderItemForm(); renderItem();
+});
+$("#addPropRandom").onclick = () => { readItemForm(); if (!S.item.theme) S.item.theme = "starlight"; S.item.props.push(randomProp(S.item)); save(); renderProps(); renderItem(); };
+$("#addPropBlank").onclick = () => { readItemForm(); S.item.props.push({ name: "", text: "" }); save(); renderProps(); renderItem(); $("#propList .prop:last-child input").focus(); };
+$("#propList").addEventListener("input", e => {
+  const el = e.target, pf = el.dataset.pf; if (!pf) return;
+  const i = +el.closest(".prop").dataset.i; S.item.props[i][pf] = el.value; save(); renderItem();
+});
+$("#propList").addEventListener("click", e => {
+  const b = e.target.closest("[data-pa]"); if (!b) return;
+  const i = +b.closest(".prop").dataset.i, ps = S.item.props;
+  if (b.dataset.pa === "del") ps.splice(i, 1);
+  if (b.dataset.pa === "up" && i > 0) [ps[i - 1], ps[i]] = [ps[i], ps[i - 1]];
+  if (b.dataset.pa === "re") { const keep = ps.splice(i, 1); const np = randomProp(S.item); ps.splice(i, 0, np.name === keep[0].name ? randomProp(S.item) : np); }
+  ps.forEach(p => delete p.charges);
+  save(); renderProps(); renderItem();
+});
+$("#rollCurse").onclick = () => { readItemForm(); S.item.secret = (S.item.secret ? S.item.secret + "\n" : "") + pick(CURSES); save(); renderItemForm(); };
+$("#iEmoji").onchange = e => { S.discord.emoji = e.target.checked; save(); renderItem(); renderLootExport(); };
+$("#iHeaders").onchange = e => { S.discord.headers = e.target.checked; save(); renderItem(); };
+$("#copyItem").onclick = () => copyChunked($("#itemExport").value, $("#itemExport"), "item");
+$("#saveItem").onclick = () => {
+  readItemForm(); const it = S.item; if (!it) return;
+  const i = S.library.findIndex(x => x.id === it.id);
+  const copy = JSON.parse(JSON.stringify(it));
+  if (i >= 0) S.library[i] = copy; else S.library.unshift(copy);
+  save(); renderLibrary(); window.libChanged?.(); toast(i >= 0 ? `Updated ${it.name || "item"} in the library.` : `Saved ${it.name || "item"} to the library.`);
+};
+function renderLibrary() {
+  $("#libList").innerHTML = S.library.length ? S.library.map(x => `<div class="lib rc-${RKEY(x.rarity)}" data-id="${x.id}">
+    <div class="nm"><b>${esc(x.name || "Unnamed")}</b> <span class="rar ${RKEY(x.rarity)}">${esc(x.rarity)}</span>${x.secret ? ` <span class="hint" title="Has DM-only notes">· secret</span>` : ""}</div>
+    <div class="acts"><button class="btn sm" data-la="copy">Copy</button><button class="btn sm" data-la="edit">Edit</button><button class="btn ghost icon" data-la="dup" title="Duplicate">⧉</button><button class="btn ghost icon danger" data-la="del" title="Delete">✕</button></div></div>`).join("")
+    : `<div class="hint">Saved items show up here, so you can copy them again next session.</div>`;
+}
+$("#libList").addEventListener("click", e => {
+  const b = e.target.closest("[data-la]"); if (!b) return;
+  const id = b.closest(".lib").dataset.id; const i = S.library.findIndex(x => x.id === id); const x = S.library[i]; if (!x) return;
+  const a = b.dataset.la;
+  if (a === "copy") copyChunked(itemToDiscord(x), null, "lib" + id);
+  if (a === "edit") { S.item = JSON.parse(JSON.stringify(x)); renderItemForm(); renderItem(); $("#iName").focus(); }
+  if (a === "dup") { const d = JSON.parse(JSON.stringify(x)); d.id = uid(); d.name += " (copy)"; S.library.splice(i + 1, 0, d); }
+  if (a === "del") { S.library.splice(i, 1); toast(`Deleted ${x.name}.`, "Undo", () => { S.library.splice(i, 0, x); save(); renderLibrary(); window.libChanged?.(); }); }
+  save(); renderLibrary(); window.libChanged?.();
+});
+$("#copyAllItems").onclick = () => { if (!S.library.length) { toast("The library is empty."); return; } copyChunked(S.library.map(x => itemToDiscord(x)).join("\n\n"), null, "all"); };
+
+/* ---------------- boot ---------------- */
+fillMonsterList(); fillSelects();
+$("#iEmoji").checked = S.discord.emoji; $("#iHeaders").checked = S.discord.headers;
+if (!S.item) {
+  // a starter item so the creator opens filled in
+  S.forge = { type: "Weapon", rarity: "rare", theme: "starlight" }; forge();
+  S.forge = { type: "any", rarity: "any", theme: "any" }; fillSelects();
+}
+if (S.seeded && !L().lines.length && !Object.keys(L().coinsOut).length) { lootFormFromSettings(); genLoot(); }
+S.seeded = false;
+renderInit(); renderLoot(); renderItemForm(); renderItem(); renderLibrary(); save();
+
+/* ================= PLAYER SCREEN ================= */
+// Short player-facing reminders, paraphrased from the 2024 (5.5e) conditions.
+const COND_FX = {
+  Concentrating: "Taking damage means a Con save (DC 10 or half the damage, max 30) to keep the spell",
+  Blinded: "Can't see. Your attacks have disadvantage; attacks against you have advantage",
+  Charmed: "Can't attack the charmer; they have advantage on social checks with you",
+  Deafened: "Can't hear; automatically fail checks that rely on hearing",
+  Frightened: "Disadvantage on checks and attacks while you can see the source; can't move closer to it",
+  Grappled: "Speed 0; disadvantage on attacks against anyone but the grappler, who can drag you along",
+  Incapacitated: "No actions, bonus actions or reactions; can't speak; concentration breaks",
+  Invisible: "Advantage on initiative. Your attacks have advantage; attacks against you have disadvantage",
+  Paralyzed: "Incapacitated, speed 0. Fail Str and Dex saves; attacks against you have advantage and hits from within 5 ft are crits",
+  Petrified: "Turned to stone: incapacitated, speed 0, resist all damage, immune to poison; fail Str and Dex saves",
+  Poisoned: "Disadvantage on attack rolls and ability checks",
+  Prone: "Crawl only; disadvantage on attacks. Melee attacks against you have advantage, ranged have disadvantage. Standing costs half your speed",
+  Restrained: "Speed 0. Disadvantage on attacks and Dex saves; attacks against you have advantage",
+  Stunned: "Incapacitated. Fail Str and Dex saves; attacks against you have advantage",
+  Unconscious: "Incapacitated and prone, speed 0. Fail Str and Dex saves; attacks against you have advantage and hits from within 5 ft are crits",
+  Hasted: "+2 AC, advantage on Dex saves, double speed, one extra action (one weapon attack, Dash, Disengage, Hide or Utilize)",
+  Blessed: "Add a d4 to attack rolls and saving throws",
+  Hexed: "Take extra 1d6 necrotic from the caster's hits; disadvantage on checks with one ability",
+  Marked: "Your marker deals extra damage to you",
+  Raging: "Resist bludgeoning, piercing and slashing; bonus damage on Str attacks; advantage on Str checks and saves; no spells or concentration",
+  Dodging: "Attacks against you have disadvantage; advantage on Dex saves",
+  Hidden: "Invisible until found or you make noise: your attacks have advantage, attacks against you have disadvantage"
+};
+function exhText(l) { return l >= 6 ? "Death" : `−${2 * l} to every d20 roll; speed −${5 * l} ft. A long rest removes one level`; }
+function condEffect(k) { return k.n === "Exhaustion" ? exhText(Math.min(k.lvl || 1, 6)) : COND_FX[k.n] || ""; }
+function healthTier(c) {
+  if (c.hp == null || !c.maxHp) return null;
+  if (c.hp <= 0) return { t: 0, w: c.kind === "pc" ? "Down" : "Defeated" };
+  const p = c.hp / c.maxHp;
+  return p >= 1 ? { t: 4, w: "Unhurt" } : p > 0.5 ? { t: 3, w: "Wounded" } : p > 0.25 ? { t: 2, w: "Bloodied" } : { t: 1, w: "Near death" };
+}
+function renderPlayers() {
+  const list = sorted().filter(c => !c.hidden);
+  const cur = list.find(c => c.id === S.activeId);
+  $("#pvRound").textContent = S.round;
+  const i = cur ? list.indexOf(cur) : -1;
+  const nxt = cur && list.length > 1 ? nextFrom(i, 1, list) : null;
+  $("#pvNow").innerHTML = cur ? `Now: <b>${esc(cur.name)}</b>${nxt && nxt !== cur ? ` · Next: ${esc(nxt.name)}` : ""}` : "";
+  if (!list.length) { $("#pvList").innerHTML = `<div class="pv-empty">Waiting for initiative…</div>`; return; }
+  $("#pvList").innerHTML = list.map((c, n) => {
+    const h = healthTier(c);
+    const conds = [...(c.conc ? [`<span class="pv-cond conc"><b>Concentrating</b> <span>· ${esc(COND_FX.Concentrating)}</span></span>`] : []), ...c.conds.map(k => `<span class="pv-cond"><b>${esc(k.n)}${k.lvl ? ` ${k.lvl}` : ""}${k.r ? ` (${k.r} rd${k.r > 1 ? "s" : ""})` : ""}</b>${condEffect(k) ? ` <span>· ${esc(condEffect(k))}</span>` : ""}</span>`)].join("");
+    const face = `<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="head" cx="15" cy="17.5" r="12.5"/><path class="feat" d="M8.8 12.6l4-1.6M21.2 12.6l-4-1.6M10.2 25q4.8-4.6 9.6 0"/><ellipse class="eye" cx="11" cy="16.4" rx="1.6" ry="2"/><ellipse class="eye" cx="19" cy="16.4" rx="1.6" ry="2"/><path class="drop" d="M27.5 3c2.2 3.2 3.2 5 3.2 6.3a3.2 3.2 0 0 1-6.4 0c0-1.3 1-3.1 3.2-6.3z"/></svg>`;
+    const stress = c.kind === "pc" && c.stress ? `<span class="pv-stress" title="Stress">${face.repeat(Math.min(c.stress, 4))}<span class="lbl">−${c.stress}d4 on d20s</span></span>` : "";
+    const hp = h ? `<div class="pv-hp t${h.t}"><span>${h.w}</span><span class="pips">${[1,2,3,4].map(k => `<i class="${h.t >= k ? "f" : ""}"></i>`).join("")}</span></div>` : `<div></div>`;
+    return `<div class="pv-row ${c.kind} ${c.id === S.activeId ? "on" : ""} ${h && h.t === 0 && c.kind !== "pc" ? "out" : ""}">
+      <span class="pv-n">${n + 1}</span><div class="pv-main"><span class="pv-name">${esc(c.name)}</span>${stress}</div>${hp}${conds ? `<div class="pv-conds">${conds}</div>` : ""}</div>`;
+  }).join("");
+  fitPlayers();
+}
+// Shrink the text until every row fits the window; go to two columns when one would get too small.
+function fitPlayers() {
+  if (!PLAYER) return;
+  const pv = $("#pv"), listEl = $("#pvList"), H = window.innerHeight, W = window.innerWidth;
+  const rows = listEl.children.length;
+  const fits = () => pv.scrollHeight <= H && document.documentElement.scrollWidth <= W;
+  const tryFit = () => { let lo = 9, hi = Math.max(18, Math.min(40, W / 36)); pv.style.fontSize = hi + "px"; if (fits()) return hi;
+    for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; pv.style.fontSize = mid + "px"; if (fits()) lo = mid; else hi = mid; }
+    pv.style.fontSize = lo + "px"; return lo; };
+  listEl.classList.remove("cols2"); listEl.style.gridTemplateRows = "";
+  const one = tryFit();
+  if (one < 20 && rows > 6 && W > 900) {
+    listEl.classList.add("cols2"); listEl.style.gridTemplateRows = `repeat(${Math.ceil(rows / 2)}, auto)`;
+    const two = tryFit();
+    if (two <= one) { listEl.classList.remove("cols2"); listEl.style.gridTemplateRows = ""; tryFit(); }
+  }
+}
+window.addEventListener("resize", () => { if (PLAYER) fitPlayers(); });
+document.addEventListener("fullscreenchange", () => setTimeout(fitPlayers, 100));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitPlayers());
+function setMode() {
+  PLAYER = location.hash === "#players";
+  document.body.classList.toggle("pmode", PLAYER);
+  $("#pv").hidden = !PLAYER;
+  if (PLAYER) { const fresh = loadState(); if (fresh) S = fresh; renderPlayers(); }
+}
+let lastRaw = "";
+function syncFromStorage() {
+  if (!PLAYER) return;
+  let raw = null; try { raw = localStorage.getItem(KEY); } catch (e) {}
+  if (raw && raw !== lastRaw) { lastRaw = raw; try { S = JSON.parse(raw); renderPlayers(); } catch (e) {} }
+}
+window.addEventListener("storage", e => { if (e.key === KEY) syncFromStorage(); });
+setInterval(syncFromStorage, 1000);
+window.addEventListener("hashchange", () => { const was = PLAYER; setMode(); if (was && !PLAYER) { renderInit(); } });
+$("#pvExit").onclick = () => { location.hash = ""; };
+$("#pvFull").onclick = () => { try { const r = document.documentElement.requestFullscreen?.(); r && r.catch(() => toast("Fullscreen isn't available here. Use your browser's fullscreen (F11).")); } catch (e) {} };
+setMode();
+</script>
+<script>
+"use strict";
+/* ================= CAMPAIGN JOURNAL (Prep, Sessions, Lore) =================
+   Stored in the artifact's db so it survives republishes and works on any device.
+   pages/{id}:    { title, category, tags[], body, secret, created, updated }
+   sessions/{id}: { order, title, date, status: "planned"|"played", notes, recap, prep:{...}, created, updated }
+   items/{id}:    magic item library entries (same shape as the item creator) */
+const CATS = ["PC", "NPC", "Place", "Faction", "Deity", "Culture", "Item", "Herb & Substance", "Event", "Dream", "Game", "Vernacular", "Rules", "Lore"];
+const PREP_FIELDS = [
+  ["goals", "Session goals and vibe", "Your general notes: the mood you want, what you hope gets done, threads to push. Claude builds its suggestions from this."],
+  ["start", "Strong start", "How the session opens. Drop them into action or a hard choice."],
+  ["scenes", "Possible scenes", "A short list of things that might happen. Not a script."],
+  ["secrets", "Secrets and clues", "Ten or so facts they could discover, each one line. Tick them off as they come out."],
+  ["npcs", "NPCs", "Who might show up, with [[links]] to their pages."],
+  ["locations", "Locations", "Places they might go, with a few evocative details."],
+  ["encounters", "Encounters", "Monsters and fights, with SRD names you can add on the Table tab."],
+  ["treasure", "Treasure", "Rewards. The loot generator on the Table tab can help."],
+  ["threads", "Open threads", "Hooks still dangling from earlier sessions."]
+];
+const J = { db: null, ready: false, failed: false, pages: {}, sessions: {}, items: {}, loreId: null, loreEdit: false, sessId: null, sessEdit: false, search: "", cat: "all" };
+window.currentTab = "table";
+const now = () => Date.now();
+const lc = s => String(s || "").trim().toLowerCase();
+
+/* ---------- tabs ---------- */
+function setTab(t) {
+  window.currentTab = t;
+  $$("#tabNav button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  ["table", "prep", "sessions", "lore"].forEach(k => { $("#tab-" + k).hidden = k !== t; });
+  try { localStorage.setItem("dm-tab", t); } catch (e) {}
+  renderJournal();
+  window.scrollTo(0, 0);
+}
+$("#tabNav").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) setTab(b.dataset.tab); });
+
+/* ---------- markdown (small, escapes everything first) ---------- */
+function inline(s) {
+  s = esc(s);
+  s = s.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (m, t, label) => {
+    const p = pageByTitle(t);
+    return `<button class="wl ${p ? "" : "missing"}" data-goto="${esc(t.trim())}" title="${p ? "Open page" : "No page yet. Click to create it."}">${label || t}</button>`;
+  });
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>").replace(/(^|\W)_([^_]+)_(?=\W|$)/g, "$1<i>$2</i>");
+  s = s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
+function md(src) {
+  const lines = String(src || "").replace(/\r/g, "").split("\n");
+  let out = "", list = null, para = [];
+  const flushP = () => { if (para.length) { out += `<p>${para.map(inline).join("<br>")}</p>`; para = []; } };
+  const flushL = () => { if (list) { out += `</${list}>`; list = null; } };
+  for (const raw of lines) {
+    const l = raw.trim();
+    let m;
+    if (!l) { flushP(); continue; }
+    if ((m = l.match(/^(#{1,4})\s+(.*)$/))) { flushP(); flushL(); const n = Math.min(4, m[1].length + 1); out += `<h${n}>${inline(m[2])}</h${n}>`; continue; }
+    if (/^(-{3,}|\*{3,})$/.test(l)) { flushP(); flushL(); out += "<hr>"; continue; }
+    if ((m = l.match(/^[-*•]\s+(.*)$/)) || (m = l.match(/^\d+[.)]\s+(.*)$/))) {
+      flushP(); const kind = /^\d/.test(l) ? "ol" : "ul";
+      if (list !== kind) { flushL(); out += `<${kind}>`; list = kind; }
+      const item = m[1].replace(/^\[( |x)\]\s*/i, (mm, x) => x.trim() ? "☑ " : "☐ ");
+      out += `<li>${inline(item)}</li>`; continue;
+    }
+    if ((m = l.match(/^>\s?(.*)$/))) { flushP(); flushL(); out += `<blockquote>${inline(m[1])}</blockquote>`; continue; }
+    flushL(); para.push(l);
+  }
+  flushP(); flushL();
+  return out;
+}
+function linksIn(text) { return [...new Set([...String(text || "").matchAll(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g)].map(m => m[1].trim()))]; }
+function pageByTitle(t) { const k = lc(t); return Object.entries(J.pages).map(([id, p]) => ({ id, ...p })).find(p => lc(p.title) === k) || null; }
+
+/* ---------- db plumbing ---------- */
+const chains = {}, timers = {}, dirty = {};
+let pendingWrites = 0;
+function setSaveState(txt) { $$("[data-savestate]").forEach(el => el.textContent = txt); }
+function writeDoc(path, getData, delay = 700) {
+  if (!J.db) { toast("Your journal can't be saved in this view."); return; }
+  clearTimeout(timers[path]);
+  setSaveState("Saving…");
+  dirty[path] = (dirty[path] || 0) + 1;
+  timers[path] = setTimeout(() => {
+    pendingWrites++;
+    chains[path] = (chains[path] || Promise.resolve()).then(() => J.db.doc(path).set(strip(getData()))).then(() => {
+      pendingWrites--; dirty[path]--; if (!pendingWrites) setSaveState("All changes saved");
+    }, err => {
+      pendingWrites--; dirty[path]--; setSaveState("Not saved");
+      toast(err && err.code === "quota_exceeded" ? "The journal is full. Delete some pages to make room." : "Couldn't save that change. Check your connection and edit again.", null, null, 7000);
+    });
+  }, delay);
+}
+function deleteDoc(path) { if (!J.db) return Promise.reject(); clearTimeout(timers[path]); return (chains[path] = (chains[path] || Promise.resolve()).then(() => J.db.doc(path).delete())); }
+const strip = o => JSON.parse(JSON.stringify(o));
+
+async function startJournal() {
+  let db = null;
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (e) { db = null; }
+  if (!db) { J.failed = true; renderJournal(); return; }
+  J.db = db;
+  const watch = (col, key, after) => db.collection(col).onSnapshot(snap => {
+    const next = {};
+    snap.docs.forEach(d => { next[d.id] = d.data(); });
+    const merged = {};
+    Object.entries(next).forEach(([id, v]) => { merged[id] = dirty[`${col}/${id}`] > 0 && J[key][id] ? J[key][id] : strip(v); });
+    Object.keys(J[key]).forEach(id => { if (!merged[id] && dirty[`${col}/${id}`] > 0) merged[id] = J[key][id]; }); // created here, not echoed yet
+    J[key] = merged;
+    if (key === "pages" || key === "sessions") J.ready = true;
+    after();
+  }, err => { if (err.code !== "unavailable") { J.failed = true; renderJournal(); } });
+  watch("pages", "pages", () => renderJournal(true));
+  watch("sessions", "sessions", () => renderJournal(true));
+  watch("items", "items", syncLibraryFromDb);
+}
+
+/* ---------- item library mirror ---------- */
+let libFromDb = false;
+function syncLibraryFromDb() {
+  const list = Object.entries(J.items).map(([id, x]) => ({ ...x, id })).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  if (!libFromDb && !list.length && S.library.length) { libFromDb = true; window.libChanged(); return; } // first run: move browser library into the db
+  libFromDb = true;
+  S.library = list; save(); renderLibrary();
+}
+window.libChanged = () => {
+  if (!J.db || !libFromDb) return;
+  const ids = new Set(S.library.map(x => x.id));
+  S.library.forEach((x, i) => {
+    const doc = { ...strip(x), savedAt: J.items[x.id]?.savedAt || now() - i };
+    if (JSON.stringify(J.items[x.id]) !== JSON.stringify(doc)) { J.items[x.id] = doc; writeDoc(`items/${x.id}`, () => doc, 0); }
+  });
+  Object.keys(J.items).forEach(id => { if (!ids.has(id)) { delete J.items[id]; deleteDoc(`items/${id}`).catch(() => {}); } });
+};
+
+/* ---------- shared render entry ---------- */
+function renderJournal(fromSnapshot) {
+  const t = window.currentTab;
+  if (t === "lore") renderLore(fromSnapshot);
+  else if (t === "sessions") renderSessions(fromSnapshot);
+  else if (t === "prep") renderPrep(fromSnapshot);
+}
+function storageNotice() {
+  if (J.failed) return `<div class="jnotice">Your journal is stored with this page on claude.ai, and it can't be reached in this view. Open the page from claude.ai while signed in to read and edit it.</div>`;
+  if (!J.ready) return `<div class="hint">Loading your journal…</div>`;
+  return "";
+}
+document.addEventListener("click", e => {
+  const g = e.target.closest("[data-goto]"); if (!g) return;
+  e.preventDefault(); openPageByTitle(g.dataset.goto);
+});
+function openPageByTitle(t) {
+  const p = pageByTitle(t);
+  if (p) { J.loreId = p.id; J.loreEdit = false; }
+  else { const id = createPage({ title: t.trim() }); J.loreId = id; J.loreEdit = true; }
+  setTab("lore");
+}
+
+/* ================= LORE ================= */
+function createPage(o = {}) {
+  if (!J.db) { toast("Your journal can't be saved in this view."); return null; }
+  const id = J.db.collection("pages").doc().id;
+  J.pages[id] = { title: o.title || "New page", category: o.category || "Lore", tags: [], body: "", secret: "", created: now(), updated: now() };
+  writeDoc(`pages/${id}`, () => J.pages[id], 0);
+  return id;
+}
+function catOptions(sel) {
+  const have = new Set([...CATS, ...Object.values(J.pages).map(p => p.category).filter(Boolean)]);
+  return [...have].map(c => `<option ${c === sel ? "selected" : ""}>${esc(c)}</option>`).join("");
+}
+function sortedPages() { return Object.entries(J.pages).map(([id, p]) => ({ id, ...p })).sort((a, b) => a.title.localeCompare(b.title)); }
+function snippet(text, q) { const i = lc(text).indexOf(q); if (i < 0) return ""; const s = Math.max(0, i - 40); return (s ? "…" : "") + text.slice(s, i + q.length + 60).replace(/\s+/g, " ") + "…"; }
+function renderLoreList() {
+  const all = sortedPages();
+  const cats = [...new Set([...CATS, ...all.map(p => p.category)])].filter(c => all.some(p => p.category === c));
+  $("#loreCat").innerHTML = `<option value="all">All categories (${all.length})</option>` + cats.map(c => `<option value="${esc(c)}" ${J.cat === c ? "selected" : ""}>${esc(c)} (${all.filter(p => p.category === c).length})</option>`).join("");
+  const q = lc(J.search);
+  if (q) {
+    const hits = all.filter(p => (J.cat === "all" || p.category === J.cat) && lc(p.title + " " + (p.tags || []).join(" ") + " " + p.body + " " + p.secret).includes(q));
+    const sh = Object.entries(J.sessions).filter(([, s]) => lc(s.title + " " + s.notes + " " + s.recap + " " + Object.values(s.prep || {}).join(" ")).includes(q));
+    $("#loreList").innerHTML = (hits.length ? hits.map(p => `<button class="jitem ${p.id === J.loreId ? "on" : ""}" data-page="${p.id}">${esc(p.title)}<small>${esc(snippet(lc(p.title).includes(q) ? p.category : p.body + " " + p.secret, q) || p.category)}</small></button>`).join("") : `<div class="hint">No pages match.</div>`)
+      + (sh.length ? `<div class="eyebrow" style="margin-top:8px">Sessions</div>` + sh.map(([id, s]) => `<button class="jitem" data-sess="${id}">${esc(s.title)}<small>${esc(snippet(s.notes + " " + s.recap + " " + Object.values(s.prep || {}).join(" "), q))}</small></button>`).join("") : "");
+    return;
+  }
+  const show = J.cat === "all" ? cats : [J.cat];
+  const cur = J.pages[J.loreId];
+  $("#loreList").innerHTML = all.length ? show.map(c => {
+    const ps = all.filter(p => p.category === c);
+    const open = J.cat !== "all" || (cur && cur.category === c);
+    return `<details ${open ? "open" : ""}><summary>${esc(c)}<span>${ps.length}</span></summary>${ps.map(p => `<button class="jitem ${p.id === J.loreId ? "on" : ""}" data-page="${p.id}">${esc(p.title)}${p.secret ? `<span class="lock" title="Has DM-only notes">●</span>` : ""}</button>`).join("")}</details>`;
+  }).join("") : `<div class="hint">No pages yet.</div>`;
+}
+function backlinks(title) {
+  const k = lc(title), out = [];
+  sortedPages().forEach(p => { if (linksIn(p.body + "\n" + p.secret).some(t => lc(t) === k)) out.push(`<button class="wl" data-page-open="${p.id}">${esc(p.title)}</button>`); });
+  Object.entries(J.sessions).forEach(([id, s]) => { if (linksIn(s.notes + "\n" + s.recap + "\n" + Object.values(s.prep || {}).join("\n")).some(t => lc(t) === k)) out.push(`<button class="wl" data-sess-open="${id}">${esc(s.title)}</button>`); });
+  return out;
+}
+function renderLore(fromSnapshot) {
+  if (!J.ready || J.failed) { $("#loreList").innerHTML = ""; $("#loreMain").innerHTML = storageNotice(); return; }
+  renderLoreList();
+  if (fromSnapshot && J.loreEdit) return; // don't disturb the editor
+  const id = J.loreId, p = J.pages[id];
+  const main = $("#loreMain");
+  if (!p) {
+    const n = Object.keys(J.pages).length;
+    main.innerHTML = `<div class="jhead"><h2>Lore</h2></div><div class="prose"><p>${n} pages. Pick one on the left, search, or press <b>+ New</b>.</p><p>In any page, session or prep note, write <b>[[Page name]]</b> to link to a page. A link to a page that doesn't exist yet appears dashed, and clicking it creates the page.</p></div>`;
+    return;
+  }
+  if (!J.loreEdit) {
+    const bl = backlinks(p.title);
+    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(p.category)}</span>${(p.tags || []).map(t => `<span class="tagchip">${esc(t)}</span>`).join("")}<div class="spacer"></div><span class="savestate" data-savestate></span><button class="btn sm" data-lore="edit">Edit</button></div>
+      <h2 style="font-size:34px">${esc(p.title)}</h2>
+      <div class="prose">${p.body ? md(p.body) : `<p class="hint">Nothing written yet.</p>`}</div>
+      ${p.secret ? `<div class="secretbox"><div class="eyebrow">DM only</div><div class="prose">${md(p.secret)}</div></div>` : ""}
+      ${bl.length ? `<div class="backlinks"><span class="eyebrow">Linked from</span>${bl.join("")}</div>` : ""}`;
+    return;
+  }
+  main.innerHTML = `<div class="jhead"><span class="eyebrow">Editing</span><div class="spacer"></div><span class="savestate" data-savestate></span><span data-delzone><button class="btn sm danger" data-lore="askdel">Delete page</button></span><button class="btn primary sm" data-lore="done">Done</button></div>
+    <label class="jfield"><span>Title</span><input id="pgTitle" type="text" value="${esc(p.title)}" style="font-size:22px;font-family:var(--display);font-weight:700"></label>
+    <div class="two"><label class="jfield"><span>Category</span><select id="pgCat">${catOptions(p.category)}<option value="__new">New category…</option></select></label>
+    <label class="jfield"><span>Tags (comma separated)</span><input id="pgTags" type="text" value="${esc((p.tags || []).join(", "))}"></label></div>
+    <label class="jfield"><span>Page text. Use # for headings, - for lists, **bold**, *italic* and [[Page name]] for links.</span><textarea id="pgBody" class="big">${esc(p.body)}</textarea></label>
+    <label class="jfield"><span style="color:var(--bad)">DM only: secrets, true motives, things the players haven't learned</span><textarea id="pgSecret">${esc(p.secret)}</textarea></label>`;
+}
+$("#loreList").addEventListener("click", e => {
+  const b = e.target.closest("[data-page],[data-sess]"); if (!b) return;
+  if (b.dataset.page) { J.loreId = b.dataset.page; J.loreEdit = false; renderLore(); }
+  else { J.sessId = b.dataset.sess; J.sessEdit = false; setTab(J.sessions[J.sessId]?.status === "planned" ? "prep" : "sessions"); }
+});
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-page-open]"); if (a) { J.loreId = a.dataset.pageOpen; J.loreEdit = false; setTab("lore"); return; }
+  const s = e.target.closest("[data-sess-open]"); if (s) { J.sessId = s.dataset.sessOpen; J.sessEdit = false; setTab(J.sessions[J.sessId]?.status === "planned" ? "prep" : "sessions"); }
+});
+$("#loreSearch").addEventListener("input", e => { J.search = e.target.value; renderLoreList(); });
+$("#loreCat").addEventListener("change", e => { J.cat = e.target.value; renderLoreList(); });
+$("#newPage").onclick = () => { const id = createPage({ category: J.cat !== "all" ? J.cat : "Lore" }); if (!id) return; J.loreId = id; J.loreEdit = true; renderLore(); $("#pgTitle")?.select(); };
+$("#loreMain").addEventListener("click", e => {
+  const b = e.target.closest("[data-lore]"); if (!b) return;
+  const id = J.loreId, p = J.pages[id]; if (!p) return;
+  const a = b.dataset.lore;
+  if (a === "edit") { J.loreEdit = true; renderLore(); $("#pgBody")?.focus(); }
+  if (a === "done") { J.loreEdit = false; renderLore(); }
+  if (a === "askdel") b.closest("[data-delzone]").innerHTML = `<span class="confirm">Delete “${esc(p.title)}”? <button class="btn sm danger" data-lore="del">Delete</button><button class="btn sm" data-lore="nodel">Keep</button></span>`;
+  if (a === "nodel") renderLore();
+  if (a === "del") {
+    const copy = strip(p); delete J.pages[id]; J.loreId = null; J.loreEdit = false;
+    deleteDoc(`pages/${id}`).catch(() => toast("Couldn't delete that page."));
+    renderLore();
+    toast(`Deleted ${copy.title}.`, "Undo", () => { J.pages[id] = copy; writeDoc(`pages/${id}`, () => J.pages[id], 0); J.loreId = id; renderLore(); }, 8000);
+  }
+});
+$("#loreMain").addEventListener("input", e => {
+  const p = J.pages[J.loreId]; if (!p) return;
+  const t = e.target;
+  if (t.id === "pgTitle") p.title = t.value;
+  else if (t.id === "pgTags") p.tags = t.value.split(",").map(x => x.trim()).filter(Boolean);
+  else if (t.id === "pgBody") p.body = t.value;
+  else if (t.id === "pgSecret") p.secret = t.value;
+  else return;
+  p.updated = now();
+  writeDoc(`pages/${J.loreId}`, () => J.pages[J.loreId]);
+  if (t.id === "pgTitle") renderLoreList();
+});
+$("#loreMain").addEventListener("change", e => {
+  if (e.target.id !== "pgCat") return;
+  const p = J.pages[J.loreId]; if (!p) return;
+  if (e.target.value === "__new") {
+    e.target.outerHTML = `<input id="pgCatNew" type="text" placeholder="Category name">`; $("#pgCatNew").focus();
+    $("#pgCatNew").addEventListener("change", ev => { p.category = ev.target.value.trim() || "Lore"; p.updated = now(); writeDoc(`pages/${J.loreId}`, () => J.pages[J.loreId], 0); renderLoreList(); });
+    return;
+  }
+  p.category = e.target.value; p.updated = now(); writeDoc(`pages/${J.loreId}`, () => J.pages[J.loreId], 0); renderLoreList();
+});
+
+/* ================= SESSIONS ================= */
+function sessionsSorted(status) { return Object.entries(J.sessions).map(([id, s]) => ({ id, ...s })).filter(s => !status || s.status === status).sort((a, b) => (b.order ?? 0) - (a.order ?? 0)); }
+function fmtDate(d) { if (!d) return ""; const t = new Date(d + "T12:00:00"); return isNaN(t) ? d : t.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); }
+function renderSessions(fromSnapshot) {
+  if (!J.ready || J.failed) { $("#sessList").innerHTML = ""; $("#sessMain").innerHTML = storageNotice(); return; }
+  const list = sessionsSorted("played");
+  $("#sessCount").textContent = list.length ? `${list.length}` : "";
+  if (!J.sessions[J.sessId] || J.sessions[J.sessId].status !== "played") J.sessId = list[0]?.id || null;
+  $("#sessList").innerHTML = list.length ? list.map(s => `<button class="jitem ${s.id === J.sessId ? "on" : ""}" data-sid="${s.id}">${esc(s.title)}${s.date ? `<small>${esc(fmtDate(s.date))}</small>` : ""}</button>`).join("") : `<div class="hint">Played sessions land here when you mark a prep as played.</div>`;
+  if (fromSnapshot && J.sessEdit) return;
+  const s = J.sessions[J.sessId], main = $("#sessMain");
+  if (!s) { main.innerHTML = `<div class="jhead"><h2>Sessions</h2></div><p class="hint">No sessions yet. Plan one on the Prep tab.</p>`; return; }
+  const prepFilled = PREP_FIELDS.filter(([k]) => (s.prep || {})[k]);
+  if (!J.sessEdit) {
+    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span><button class="btn sm" data-ses="edit">Edit</button><button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="Write the session update with Claude, then download the full campaign export">End session &amp; export</button></div>
+      <h2 style="font-size:34px">${esc(s.title)}</h2>
+      ${endBoxHtml(J.sessId, s)}
+      ${s.recap ? `<div class="secretbox" style="border-color:var(--pc);background:transparent"><div class="row"><div class="eyebrow" style="color:var(--pc)">Recap for players</div><div class="spacer"></div><button class="btn sm primary" data-ses="copyrecap">Copy for Discord</button></div><div class="prose">${md(s.recap)}</div></div>` : `<div class="hint">No player recap yet. Press Edit to write one you can paste into Discord.</div>`}
+      <div class="eyebrow">Session notes</div>
+      <div class="prose">${s.notes ? md(s.notes) : `<p class="hint">No notes.</p>`}</div>
+      ${prepFilled.length ? `<details><summary class="eyebrow" style="cursor:pointer">What you prepped</summary><div class="prose">${prepFilled.map(([k, label]) => `<h3>${label}</h3>${md(s.prep[k])}`).join("")}</div></details>` : ""}
+      <div class="row"><div class="spacer"></div><button class="btn sm" data-ses="reopen">Move back to Prep</button></div>`;
+    return;
+  }
+  main.innerHTML = `<div class="jhead"><span class="eyebrow">Editing</span><div class="spacer"></div><span class="savestate" data-savestate></span><span data-delzone><button class="btn sm danger" data-ses="askdel">Delete session</button></span><button class="btn primary sm" data-ses="done">Done</button></div>
+    <div class="two"><label class="jfield"><span>Title</span><input data-sf="title" type="text" value="${esc(s.title)}"></label><label class="jfield"><span>Date played</span><input data-sf="date" type="date" value="${esc(s.date || "")}"></label></div>
+    <label class="jfield"><span style="color:var(--pc)">Recap for players (safe to share)</span><textarea data-sf="recap">${esc(s.recap || "")}</textarea></label>
+    <label class="jfield"><span>Session notes (DM only)</span><textarea data-sf="notes" class="big">${esc(s.notes || "")}</textarea></label>`;
+}
+const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+$("#newSess").addEventListener("click", () => {
+  if (!J.db) { toast("Your journal can't be saved in this view."); return; }
+  const id = J.db.collection("sessions").doc().id;
+  const order = Math.max(0, ...Object.values(J.sessions).map(s => s.order ?? 0)) + 1;
+  const n = sessionsSorted("played").length + 1;
+  J.sessions[id] = { order, title: `Session ${n}`, date: localDay(), started: now(), status: "played", notes: "", recap: "", prep: {}, created: now(), updated: now() };
+  J.sessId = id; J.sessEdit = true; writeDoc(`sessions/${id}`, () => J.sessions[id], 0); renderSessions();
+  $('#sessMain [data-sf="notes"]')?.focus();
+});
+/* ---------- end session: Claude writes an update block, then the whole campaign downloads as one .md ---------- */
+const END_PROMPT = `Session is over. Please generate a concise Markdown update block summarizing:
+1. New NPCs or altered NPC relationships.
+2. Major plot points, player decisions, and lingering quest hooks to append.
+Use clean bullet points without extra conversational fluff.`;
+const TABLE_RULES = `- **Rules edition:** the table plays 5e with the **2024 rules**. Exhaustion levels 1 to 6: each level gives −2 to every d20 roll and −5 ft speed, a long rest removes one level, level 6 is death.
+- **Currency:** gold and copper only.
+- **Stress:** cap of 4; each point subtracts a d4 from d20 rolls only; stress past 4 becomes a level of exhaustion. Full rules, including the five ways to remove stress, are on the Campaign Reference page under House rules.
+- **Player screen:** shows stress, conditions with short effect text, and a rough health state. Never HP numbers or death saves. New monsters and NPCs start hidden.
+- **Canon calls:** Helled is dead (drowned in a whirlpool right before Session 0 2.0). The official name is Greenlight Bastion, with the Aethryss/Rivening origin. Lord Ravencroft is Phillip.`;
+const rebaseMd = (t, top) => { t = String(t || "").trim(); const ls = [...t.matchAll(/^(#{1,6}) /gm)].map(m => m[1].length); if (!ls.length) return t; const by = top - Math.min(...ls); return t.replace(/^(#{1,6}) /gm, (m, h) => "#".repeat(Math.max(1, Math.min(6, h.length + by))) + " "); };
+const demoteMd = (t, by) => String(t || "").trim().replace(/^(#{1,6}) /gm, (m, h) => "#".repeat(Math.min(6, h.length + by)) + " ");
+function buildExport() {
+  const day = localDay(), out = [];
+  out.push(`# Ebon Star Campaign Export\n\nExported ${day} from the DM Suite journal. Contains DM-only secrets: do not share with players. Links between lore pages use [[Page Title]].`);
+  const latest = sessionsSorted("played").find(x => x.update);
+  if (latest) out.push(`## Latest session update: ${latest.title}${latest.date ? ` (${latest.date})` : ""}\n\n${rebaseMd(latest.update, 3)}`);
+  out.push(`## Table rules and decisions\n\n${TABLE_RULES}`);
+  const played = sessionsSorted("played").reverse();
+  out.push("## Sessions\n\n" + (played.map(x => [`### ${x.title}${x.date ? ` (${x.date})` : ""}`,
+    x.update && `**Session update**\n\n${rebaseMd(x.update, 4)}`, x.recap && `**Player recap**\n\n${demoteMd(x.recap, 3)}`,
+    x.notes && `**DM notes**\n\n${demoteMd(x.notes, 3)}`].filter(Boolean).join("\n\n")).join("\n\n") || "None yet."));
+  const planned = sessionsSorted("planned");
+  if (planned.length) out.push("## Next session prep\n\n" + planned.map(x => `### ${x.title}\n\n` + PREP_FIELDS.filter(([k]) => (x.prep || {})[k]).map(([k, lab]) => `**${lab}**\n\n${demoteMd(x.prep[k], 3)}`).join("\n\n") + (x.notes ? `\n\n**Notes**\n\n${x.notes.trim()}` : "")).join("\n\n"));
+  const pages = Object.values(J.pages).filter(p => (p.body || p.secret || "").trim()), cats = {};
+  pages.forEach(p => (cats[p.category || "Lore"] ||= []).push(p));
+  out.push("## Lore\n\n" + Object.keys(cats).sort().map(c => `### ${c}\n\n` + cats[c].sort((a, b) => lc(a.title).localeCompare(lc(b.title))).map(p => [`#### ${p.title || "Untitled"}`,
+    p.tags?.length && `Tags: ${p.tags.join(", ")}`, (p.body || "").trim() && demoteMd(p.body, 4), (p.secret || "").trim() && `**🔒 DM only**\n\n${demoteMd(p.secret, 4)}`].filter(Boolean).join("\n\n")).join("\n\n")).join("\n\n"));
+  out.push("## Magic item library\n\n" + (S.library.length ? S.library.map(x => itemToDiscord(x)).join("\n\n") : "No items saved yet."));
+  return out.join("\n\n").replace(/\n{3,}/g, "\n\n") + "\n";
+}
+async function downloadExport() {
+  const text = buildExport(), filename = `ebon-star-campaign-${localDay()}.md`;
+  let dl = null; try { dl = await window.claude?.use?.("downloads"); } catch (e) {}
+  if (dl) {
+    try { await dl.save({ filename, data: text }); toast("Campaign export saved."); return true; }
+    catch (e) { if (e?.code === "declined") { toast("Download cancelled."); return false; } if (e?.code === "rate_limited") { toast("A download prompt is already open."); return false; } }
+  }
+  try { await navigator.clipboard.writeText(text); toast("Downloads aren't available here, so the export was copied to your clipboard instead."); }
+  catch (e) { toast("Couldn't download or copy the export in this view."); }
+  return false;
+}
+function endBoxHtml(id, s) {
+  const e = J.ending && J.ending.id === id ? J.ending : null;
+  if (e) return `<div class="updbox"><div class="row"><div class="eyebrow">Session update</div><div class="spacer"></div>${e.done ? "" : `<button class="btn sm" data-ses="stopend">Stop</button>`}</div><div class="prose" id="endText">${e.text ? md(e.text) : `<p class="hint">${esc(e.status)}</p>`}</div>${e.err ? `<p class="hint">${esc(e.err)}</p>` : ""}</div>`;
+  if (s.update) return `<div class="updbox"><div class="row"><div class="eyebrow">Session update</div><div class="spacer"></div><button class="btn sm" data-ses="copyupdate">Copy</button><button class="btn sm" data-ses="redownload">Download export</button></div><div class="prose">${md(s.update)}</div></div>`;
+  return "";
+}
+function paintEnd() { const e = J.ending; if (!e || e.id !== J.sessId || J.sessEdit) return; const box = $("#endText"); if (box) box.innerHTML = e.text ? md(e.text) : `<p class="hint">${esc(e.status)}</p>`; }
+const SAMPLE_ERR = { not_granted: "Claude needs your API key (Claude menu > Set API Key), so the export went out without a session update.", rate_limited: "Claude is busy right now. The export went out without a session update; try again in a minute.", sampling_disabled: "Asking Claude is turned off for this page, so the export went out without a session update.", prompt_too_large: "This session had too much text to send in one go, so the export went out without a session update." };
+async function endSession(id) {
+  const s = J.sessions[id]; if (!s || J.ending) return;
+  const since = s.started || s.created || 0;
+  const changed = Object.values(J.pages).filter(p => (p.updated || 0) > since && (p.body || p.secret || "").trim());
+  const clip = (t, n) => { t = String(t || "").trim(); return t.length > n ? t.slice(0, n) + " […]" : t; };
+  const ctx = [`# Session: ${s.title}${s.date ? ` (${s.date})` : ""}`,
+    s.notes && `## DM session notes\n${clip(s.notes, 60000)}`, s.recap && `## Player recap\n${clip(s.recap, 8000)}`,
+    PREP_FIELDS.filter(([k]) => (s.prep || {})[k]).map(([k, lab]) => `## Prepped: ${lab}\n${clip(s.prep[k], 6000)}`).join("\n\n"),
+    changed.length && `## Lore pages added or edited during this session\n\n` + changed.map(p => `### ${p.title} (${p.category || "Lore"})\n${clip(p.body, 5000)}${(p.secret || "").trim() ? `\nDM secret: ${clip(p.secret, 5000)}` : ""}`).join("\n\n"),
+    `## NPCs already known before this session (names only)\n${Object.values(J.pages).filter(p => p.category === "NPC" && !changed.includes(p)).map(p => p.title).sort().join(", ")}`].filter(Boolean).join("\n\n");
+  const input = `${END_PROMPT}\n\nBase the update only on the material below. Reply with just the Markdown block.\n\n---\n\n${ctx.slice(0, 200000)}`;
+  J.ending = { id, text: "", status: "Asking Claude to write the session update…", ctl: new AbortController() };
+  renderSessions();
+  let sample = null; try { sample = await window.claude?.use?.("sample"); } catch (e) {}
+  if (!sample) { J.ending.status = "Claude isn't available in this view."; }
+  else if (!(s.notes || "").trim() && !changed.length) { J.ending.status = "This session has no notes or new lore yet, so there's nothing for Claude to summarize."; }
+  else {
+    try {
+      const r = await sample(input, { signal: J.ending.ctl.signal, cache: false, onText: ({ text }) => { J.ending.text = text; paintEnd(); } });
+      J.ending.text = r.text;
+      s.update = r.text.trim(); s.ended = now(); if (s.status !== "played") s.status = "played"; if (!s.date) s.date = localDay();
+      sessWrite(id);
+    } catch (e) {
+      J.ending.text = "";
+      J.ending.err = e?.code === "cancelled" ? "Stopped. The export went out without a session update." : (SAMPLE_ERR[e?.code] || "Claude couldn't write the update this time. The export went out without it.");
+    }
+  }
+  const problem = J.ending.err || (J.ending.text ? "" : J.ending.status);
+  J.ending.done = true; renderSessions();
+  await downloadExport();
+  J.ending = null; renderSessions();
+  if (problem) toast(problem, null, null, 7000);
+}
+$("#exportMd").addEventListener("click", () => { if (!J.ready) { toast("The journal is still loading."); return; } downloadExport(); });
+function sessWrite(id) { const s = J.sessions[id]; if (!s) return; s.updated = now(); writeDoc(`sessions/${id}`, () => J.sessions[id]); }
+$("#sessList").addEventListener("click", e => { const b = e.target.closest("[data-sid]"); if (!b) return; J.sessId = b.dataset.sid; J.sessEdit = false; renderSessions(); });
+$("#sessMain").addEventListener("input", e => { const f = e.target.dataset.sf; const s = J.sessions[J.sessId]; if (!f || !s) return; s[f] = e.target.value; sessWrite(J.sessId); if (f === "title" || f === "date") renderSessions(true); });
+$("#sessMain").addEventListener("click", e => {
+  const b = e.target.closest("[data-ses]"); if (!b) return;
+  const id = J.sessId, s = J.sessions[id]; if (!s) return;
+  const a = b.dataset.ses;
+  if (a === "edit") { J.sessEdit = true; renderSessions(); }
+  if (a === "done") { J.sessEdit = false; renderSessions(); }
+  if (a === "copyrecap") copyChunked(`## 📜 ${s.title}${s.date ? ` · ${fmtDate(s.date)}` : ""}\n${s.recap.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (m, t, l) => l || t)}`, null, "recap" + id);
+  if (a === "reopen") { s.status = "planned"; sessWrite(id); setTab("prep"); }
+  if (a === "end") endSession(id);
+  if (a === "stopend") J.ending?.ctl.abort();
+  if (a === "copyupdate") copyChunked(s.update || "", null, "upd" + id);
+  if (a === "redownload") downloadExport();
+  if (a === "askdel") b.closest("[data-delzone]").innerHTML = `<span class="confirm">Delete this session? <button class="btn sm danger" data-ses="del">Delete</button><button class="btn sm" data-ses="nodel">Keep</button></span>`;
+  if (a === "nodel") renderSessions();
+  if (a === "del") {
+    const copy = strip(s); delete J.sessions[id]; J.sessId = null; J.sessEdit = false;
+    deleteDoc(`sessions/${id}`).catch(() => toast("Couldn't delete that session."));
+    renderSessions();
+    toast(`Deleted ${copy.title}.`, "Undo", () => { J.sessions[id] = copy; writeDoc(`sessions/${id}`, () => J.sessions[id], 0); J.sessId = id; renderSessions(); }, 8000);
+  }
+});
+
+/* ================= PREP ================= */
+function currentPrepId() { const p = sessionsSorted("planned"); return (J.sessions[J.sessId]?.status === "planned" ? J.sessId : p[0]?.id) || null; }
+function newPrep() {
+  if (!J.db) { toast("Your journal can't be saved in this view."); return; }
+  const id = J.db.collection("sessions").doc().id;
+  const order = Math.max(0, ...Object.values(J.sessions).map(s => s.order ?? 0)) + 1;
+  const last = sessionsSorted()[0];
+  J.sessions[id] = { order, title: `Session ${order}`, date: "", status: "planned", notes: "", recap: "", prep: { threads: last?.prep?.threads || "" }, created: now(), updated: now() };
+  J.sessId = id; writeDoc(`sessions/${id}`, () => J.sessions[id], 0); renderPrep();
+}
+function renderPrep(fromSnapshot) {
+  const body = $("#prepBody");
+  if (!J.ready || J.failed) { body.innerHTML = storageNotice(); return; }
+  const id = currentPrepId(), s = J.sessions[id];
+  if (fromSnapshot && s && document.activeElement && body.contains(document.activeElement)) return;
+  if (!s) { body.innerHTML = `<div class="empty">No session is being prepped. <div style="margin-top:10px"><button class="btn primary" data-prep="new">Start prepping the next session</button></div></div>`; return; }
+  J.sessId = id;
+  const others = sessionsSorted("planned").filter(x => x.id !== id);
+  body.innerHTML = `<div class="row end" style="margin-bottom:12px">
+      <label class="jfield" style="flex:2;min-width:200px"><span>Session title</span><input data-pf="title" type="text" value="${esc(s.title)}" style="font-size:20px;font-family:var(--display);font-weight:700"></label>
+      <label class="jfield"><span>Planned date</span><input data-pf="date" type="date" value="${esc(s.date || "")}"></label>
+      <button class="btn primary" data-prep="played">Mark as played</button>
+    </div>
+    ${others.length ? `<div class="hint" style="margin-bottom:8px">Also in prep: ${others.map(o => `<button class="wl" data-sess-open="${o.id}">${esc(o.title)}</button>`).join(", ")}</div>` : ""}
+    <div class="prepgrid">
+      ${PREP_FIELDS.map(([k, label, hint]) => `<div class="prepcard ${["goals", "start", "scenes", "secrets", "threads"].includes(k) ? "wide" : ""} ${k === "goals" ? "goals" : ""}"><div class="phead"><h3>${label}</h3>${SUGGEST[k] ? suggBtn(id, k) : ""}</div><p class="hint">${hint}</p><textarea data-prepf="${k}" aria-label="${label}">${esc((s.prep || {})[k] || "")}</textarea><div class="links" data-links="${k}">${linkChips((s.prep || {})[k])}</div><div data-sugg="${k}">${suggHtml(id, k)}</div></div>`).join("")}
+      <div class="prepcard wide"><h3>Session notes</h3><p class="hint">Jot what happens during play. These become the session's notes in the log.</p><textarea data-pf="notes" style="min-height:200px">${esc(s.notes || "")}</textarea><div class="links" data-links="notes">${linkChips(s.notes)}</div></div>
+    </div>`;
+}
+/* ---------- storyboard: Claude suggests, the DM edits or picks, and later steps build on what was kept ---------- */
+const SUGGEST = {
+  start: { n: 3, btn: "Suggest", ask: "strong opening moments for the session: each drops the players into action, tension or a hard choice in the first few minutes" },
+  scenes: { n: 6, btn: "Suggest scenes", ask: "possible scenes or story points. Each is one line starting with a short bold title, then what happens and which goal or thread it serves, e.g. \"**Title**: what happens\"" },
+  secrets: { n: 10, btn: "Generate clues", needs: "scenes", ask: "secrets and clues the DM can reveal during play that lead the players toward the chosen scenes and story points. Each is one short fact, then how it might surface, then in italics which scene it points to, e.g. \"The fog follows the bell's toll (overheard at the docks) *→ The Bell Tower*\"" },
+  npcs: { n: 5, btn: "Suggest", ask: "NPCs to feature, reusing existing ones where they fit (as [[Page Title]] links), each with what they want this session" },
+  locations: { n: 4, btn: "Suggest", ask: "locations the session might visit, each with two or three evocative sensory details" },
+  encounters: { n: 4, btn: "Suggest", ask: "encounters (combat, social or hazard). For fights use monster names from the 5e SRD and note numbers for a party of the PCs listed" },
+  treasure: { n: 4, btn: "Suggest", ask: "rewards. Coins are gold (gp) and copper (cp) only; magic items should be SRD items or short homebrew ideas" },
+};
+J.sugg = {};
+function suggBtn(id, k) { const L = J.sugg[id]?.[k]; return L?.busy ? `<button class="btn sm" data-sg="stop" data-k="${k}">Stop</button>` : `<button class="btn sm" data-sg="go" data-k="${k}" title="Claude suggests options you can edit and keep">✦ ${SUGGEST[k].btn}</button>`; }
+function suggHtml(id, k) {
+  const L = J.sugg[id]?.[k]; if (!L) return "";
+  if (L.busy) return `<div class="sugg"><p class="hint">${esc(L.status || "Thinking…")}</p></div>`;
+  if (L.err) return `<div class="sugg"><p class="hint">${esc(L.err)}</p></div>`;
+  const live = L.items.map((t, i) => [t, i]).filter(([t]) => t !== null);
+  if (!live.length) return "";
+  return `<div class="sugg"><div class="row"><span class="eyebrow">Suggestions: edit, then add the ones you like</span><div class="spacer"></div><button class="btn sm primary" data-sg="addall" data-k="${k}">Add all</button><button class="btn sm" data-sg="clear" data-k="${k}">Dismiss all</button></div>
+    ${live.map(([t, i]) => `<div class="srow"><textarea data-sgk="${k}" data-sgi="${i}" aria-label="Suggestion ${i + 1}">${esc(t)}</textarea><div class="sacts"><button class="btn sm primary" data-sg="add" data-k="${k}" data-i="${i}">Add</button><button class="btn sm" data-sg="drop" data-k="${k}" data-i="${i}" aria-label="Dismiss">✕</button></div></div>`).join("")}</div>`;
+}
+function paintSugg(id, k) { if (currentPrepId() !== id || window.currentTab !== "prep") return; const box = $(`[data-sugg="${k}"]`, $("#prepBody")); if (box) box.innerHTML = suggHtml(id, k); const btn = box?.closest(".prepcard")?.querySelector("[data-sg=go],[data-sg=stop]"); if (btn) btn.outerHTML = suggBtn(id, k); }
+function prepContext(s) {
+  const clip = (t, n) => { t = String(t || "").trim(); return t.length > n ? t.slice(0, n) + " […]" : t; };
+  const prepText = PREP_FIELDS.map(([k]) => (s.prep || {})[k] || "").join("\n") + "\n" + (s.notes || "");
+  const titles = new Set(linksIn(prepText).map(lc));
+  const low = lc(prepText);
+  const pages = Object.values(J.pages).filter(p => p.title && p.title !== "Campaign Reference" && (titles.has(lc(p.title)) || (p.title.length > 3 && low.includes(lc(p.title))))).slice(0, 20);
+  const last = sessionsSorted("played")[0];
+  const ref = Object.values(J.pages).find(p => p.title === "Campaign Reference");
+  return [
+    `# Campaign: Ebon Star (D&D 5e, 2024 rules, homebrew world of Novum)`,
+    `Player characters: ${Object.values(J.pages).filter(p => p.category === "PC").map(p => p.title).join(", ") || "unknown"}`,
+    `House rule: Stress (cap 4, each point subtracts a d4 from d20 rolls; more stress past 4 becomes exhaustion).`,
+    last && `## Last session played: ${last.title}\n${clip(last.update || last.notes, 6000)}`,
+    `## This session's prep so far: ${s.title}\n` + PREP_FIELDS.filter(([k]) => (s.prep || {})[k]).map(([k, lab]) => `### ${lab}\n${clip(s.prep[k], 6000)}`).join("\n\n"),
+    pages.length && `## Lore pages mentioned in the prep\n` + pages.map(p => `### ${p.title} (${p.category || "Lore"})\n${clip(p.body, 2500)}${(p.secret || "").trim() ? `\nDM secret: ${clip(p.secret, 2500)}` : ""}`).join("\n\n"),
+    `## Existing lore page titles (link with [[Title]] when relevant)\n${Object.values(J.pages).map(p => p.title).filter(Boolean).sort().join(", ")}`,
+    ref && `## Campaign reference (DM digest)\n${clip(ref.secret || ref.body, 30000)}`,
+  ].filter(Boolean).join("\n\n");
+}
+const SUGG_ERR = { not_granted: "Claude needs your API key. Add it under Claude menu > Set API Key, then try again.", rate_limited: "Claude is busy. Try again in a minute.", sampling_disabled: "Asking Claude is turned off for this page.", invalid_json: "Claude's answer came back garbled. Try again.", cancelled: "" };
+async function prepSuggest(id, k) {
+  const s = J.sessions[id]; if (!s) return;
+  const cfg = SUGGEST[k], goals = ((s.prep || {}).goals || "").trim();
+  if (!goals && !((s.prep || {}).scenes || "").trim()) { toast("Write your session goals and vibe first, so Claude has something to build from."); return; }
+  if (cfg.needs && !((s.prep || {})[cfg.needs] || "").trim()) { toast("Add or pick some scenes first, then generate clues for them."); return; }
+  const L = J.sugg[id] = J.sugg[id] || {};
+  L[k] = { items: [], busy: true, status: "Thinking…", ctl: new AbortController() };
+  paintSugg(id, k);
+  let sample = null; try { sample = await window.claude?.use?.("sample"); } catch (e) {}
+  if (!sample) { L[k] = { items: [], err: "Claude isn't available in this view." }; paintSugg(id, k); return; }
+  const kept = ((s.prep || {})[k] || "").trim();
+  const prompt = `You are helping a Dungeon Master storyboard their next D&D session. Suggest ${cfg.n} ${cfg.ask}.
+Build on the DM's session goals and vibe, and on anything they already kept in the prep. Fit the campaign's established lore, names and open threads; don't contradict them. Keep each suggestion to one to three sentences of Markdown. Use [[Page Title]] only for titles in the existing lore list.${kept ? `\nThe DM already kept these, so offer different ones that work alongside them:\n${kept}` : ""}
+Reply with only a JSON array of ${cfg.n} strings.
+
+---
+
+${prepContext(s).slice(0, 200000)}`;
+  try {
+    const out = await sample.json(prompt, { signal: L[k].ctl.signal, cache: false, onText: () => { if (L[k]) { L[k].status = "Writing suggestions…"; paintSugg(id, k); } } });
+    const items = (Array.isArray(out) ? out : []).map(x => typeof x === "string" ? x : (x && (x.text || x.title) ? [x.title && `**${x.title}**`, x.text || x.summary].filter(Boolean).join(": ") : JSON.stringify(x))).filter(Boolean);
+    L[k] = items.length ? { items } : { items: [], err: "Claude didn't come back with suggestions. Try again." };
+  } catch (e) {
+    L[k] = SUGG_ERR[e?.code] === "" ? null : { items: [], err: SUGG_ERR[e?.code] || "Claude couldn't make suggestions this time. Try again." };
+  }
+  paintSugg(id, k);
+}
+function addToPrep(id, k, texts) {
+  const s = J.sessions[id]; if (!s) return;
+  s.prep = s.prep || {};
+  const cur = (s.prep[k] || "").replace(/\s+$/, "");
+  s.prep[k] = (cur ? cur + "\n" : "") + texts.map(t => "- " + t.trim().replace(/^[-*]\s+/, "")).join("\n");
+  sessWrite(id);
+  const ta = $(`[data-prepf="${k}"]`, $("#prepBody")); if (ta) ta.value = s.prep[k];
+  const box = $(`[data-links="${k}"]`, $("#prepBody")); if (box) box.innerHTML = linkChips(s.prep[k]);
+}
+function prepSuggestClick(b) {
+  const id = currentPrepId(), k = b.dataset.k, a = b.dataset.sg, L = J.sugg[id]?.[k];
+  if (a === "go") return prepSuggest(id, k);
+  if (a === "stop") { L?.ctl?.abort(); return; }
+  if (!L) return;
+  if (a === "add") { const i = +b.dataset.i; if (L.items[i]?.trim()) addToPrep(id, k, [L.items[i]]); L.items[i] = null; }
+  if (a === "drop") L.items[+b.dataset.i] = null;
+  if (a === "addall") { addToPrep(id, k, L.items.filter(t => t && t.trim())); L.items = []; }
+  if (a === "clear") L.items = [];
+  paintSugg(id, k);
+}
+function linkChips(text) { const ls = linksIn(text); return ls.length ? ls.map(t => `<button class="wl ${pageByTitle(t) ? "" : "missing"}" data-goto="${esc(t)}">${esc(t)}</button>`).join("") : ""; }
+$("#prepBody").addEventListener("input", e => {
+  const id = currentPrepId(), s = J.sessions[id]; if (!s) return;
+  const t = e.target;
+  if (t.dataset.sgi) { const L = J.sugg[id]?.[t.dataset.sgk]; if (L && L.items[t.dataset.sgi] != null) L.items[t.dataset.sgi] = t.value; return; }
+  if (t.dataset.pf) s[t.dataset.pf] = t.value;
+  else if (t.dataset.prepf) { s.prep = s.prep || {}; s.prep[t.dataset.prepf] = t.value; }
+  else return;
+  sessWrite(id);
+  const k = t.dataset.prepf || t.dataset.pf, box = $(`[data-links="${k}"]`, $("#prepBody"));
+  if (box) box.innerHTML = linkChips(t.value);
+});
+$("#prepBody").addEventListener("click", e => {
+  const g = e.target.closest("[data-sg]");
+  if (g) { prepSuggestClick(g); return; }
+  const b = e.target.closest("[data-prep]"); if (!b) return;
+  if (b.dataset.prep === "new") newPrep();
+  if (b.dataset.prep === "played") {
+    const id = currentPrepId(), s = J.sessions[id]; if (!s) return;
+    s.status = "played"; if (!s.date) s.date = localDay();
+    sessWrite(id); J.sessId = id; J.sessEdit = true; setTab("sessions");
+    toast("Moved to the session log. Add a player recap whenever you're ready.");
+  }
+});
+
+/* ---------- boot ---------- */
+if (!PLAYER) {
+  let t0 = "table"; try { t0 = localStorage.getItem("dm-tab") || "table"; } catch (e) {}
+  setTab(["table", "prep", "sessions", "lore"].includes(t0) ? t0 : "table");
+}
+startJournal();
+</script>
+
+<script src="../src/companion-bridge.js"></script>
+</body></html>

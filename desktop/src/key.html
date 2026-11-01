@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Claude API key</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 20px 22px; background: #171b26; color: #e6e8ef; font: 15px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  p { margin: 0 0 12px; color: #9aa1b4; font-size: 13.5px; }
+  input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #2c3243; background: #1e2330; color: inherit; font: 14px ui-monospace, monospace; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+  button { padding: 7px 14px; border-radius: 6px; border: 1px solid #2c3243; background: #1e2330; color: inherit; font: inherit; cursor: pointer; }
+  button.primary { background: #d9b45c; border-color: #d9b45c; color: #1a1405; font-weight: 700; }
+  a { color: #d9b45c; }
+</style></head>
+<body>
+  <h1>Connect Claude</h1>
+  <p>The Suggest buttons in Prep and End session use Claude through your own Anthropic API key. Each request is billed to that key, usually a few cents. The key is stored encrypted on this computer and is never put in your campaign file.</p>
+  <p id="has" hidden>A key is already saved. Paste a new one to replace it.</p>
+  <input id="k" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" autofocus>
+  <div class="row"><button id="cancel">Cancel</button><button class="primary" id="ok">Save key</button></div>
+  <script>
+    if (location.hash === "#has") document.getElementById("has").hidden = false;
+    const k = document.getElementById("k");
+    document.getElementById("ok").onclick = () => window.desktop.submitKey(k.value);
+    document.getElementById("cancel").onclick = () => window.desktop.cancelKey();
+    k.addEventListener("keydown", e => { if (e.key === "Enter") window.desktop.submitKey(k.value); if (e.key === "Escape") window.desktop.cancelKey(); });
+  </script>
+</body></html>
