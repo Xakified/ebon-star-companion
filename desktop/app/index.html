@@ -1989,7 +1989,7 @@ function renderSessions(fromSnapshot) {
   if (!s) { main.innerHTML = `<div class="jhead"><h2>Sessions</h2></div><p class="hint">No sessions yet. Plan one on the Prep tab.</p>`; return; }
   const prepFilled = PREP_FIELDS.filter(([k]) => (s.prep || {})[k]);
   if (!J.sessEdit) {
-    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span>${s.live ? `<span class="livepill" title="Players can add notes to this session from the Companion">● Live</span>` : ""}<button class="btn sm" data-ses="edit">Edit</button><button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="Write the session update with Claude, then download the full campaign export">End session &amp; export</button></div>
+    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span>${s.live ? `<span class="livepill" title="Players can add notes to this session from the Companion">● Live</span>` : ""}<button class="btn sm" data-ses="edit">Edit</button><button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="${s.update && !s.live ? "Have Claude write this session's summary again, with any notes added since" : "End the session and have Claude write its summary, including what the players are thinking. Everything is already saved."}">${s.update && !s.live ? "Rewrite summary" : "End session"}</button></div>
       <h2 style="font-size:34px">${esc(s.title)}</h2>
       ${endBoxHtml(J.sessId, s)}
       ${s.recap ? `<div class="secretbox" style="border-color:var(--pc);background:transparent"><div class="row"><div class="eyebrow" style="color:var(--pc)">Recap for players</div><div class="spacer"></div><button class="btn sm primary" data-ses="copyrecap">Copy for Discord</button></div><div class="prose">${md(s.recap)}</div></div>` : `<div class="hint">No player recap yet. Press Edit to write one you can paste into Discord.</div>`}
@@ -2062,14 +2062,14 @@ async function downloadExport() {
 function endBoxHtml(id, s) {
   const e = J.ending && J.ending.id === id ? J.ending : null;
   if (e) return `<div class="updbox"><div class="row"><div class="eyebrow">Session update</div><div class="spacer"></div>${e.done ? "" : `<button class="btn sm" data-ses="stopend">Stop</button>`}</div><div class="prose" id="endText">${e.text ? md(e.text) : `<p class="hint">${esc(e.status)}</p>`}</div>${e.err ? `<p class="hint">${esc(e.err)}</p>` : ""}</div>`;
-  if (s.update) return `<div class="updbox"><div class="row"><div class="eyebrow">Session update</div><div class="spacer"></div><button class="btn sm" data-ses="copyupdate">Copy</button><button class="btn sm" data-ses="redownload">Download export</button></div><div class="prose">${md(s.update)}</div></div>`;
+  if (s.update) return `<div class="updbox"><div class="row"><div class="eyebrow">Session update</div><div class="spacer"></div><button class="btn sm" data-ses="copyupdate">Copy</button></div><div class="prose">${md(s.update)}</div></div>`;
   return "";
 }
 function paintEnd() { const e = J.ending; if (!e || e.id !== J.sessId || J.sessEdit) return; const box = $("#endText"); if (box) box.innerHTML = e.text ? md(e.text) : `<p class="hint">${esc(e.status)}</p>`; }
-const SAMPLE_ERR = { not_granted: "Claude needs your API key (Claude menu > Set API Key), so the export went out without a session update.", rate_limited: "Claude is busy right now. The export went out without a session update; try again in a minute.", sampling_disabled: "Asking Claude is turned off for this page, so the export went out without a session update.", prompt_too_large: "This session had too much text to send in one go, so the export went out without a session update." };
+const SAMPLE_ERR = { not_granted: "Claude needs your API key (Claude menu > Set API Key), so the session ended without a summary.", rate_limited: "Claude is busy right now, so the session ended without a summary. Press Rewrite summary in a minute.", sampling_disabled: "Asking Claude is turned off for this page, so the session ended without a summary.", prompt_too_large: "This session had too much text to send in one go, so it ended without a summary." };
 async function endSession(id) {
   const s = J.sessions[id]; if (!s || J.ending) return;
-  s.live = false; s.ended = now(); sessWrite(id);
+  s.live = false; s.ended = now(); if (s.status !== "played") s.status = "played"; if (!s.date) s.date = localDay(); sessWrite(id);
   const pnotes = notesFor(id);
   const since = s.started || s.created || 0;
   const changed = Object.values(J.pages).filter(p => (p.updated || 0) > since && (p.body || p.secret || "").trim());
@@ -2094,12 +2094,11 @@ async function endSession(id) {
       sessWrite(id);
     } catch (e) {
       J.ending.text = "";
-      J.ending.err = e?.code === "cancelled" ? "Stopped. The export went out without a session update." : (SAMPLE_ERR[e?.code] || "Claude couldn't write the update this time. The export went out without it.");
+      J.ending.err = e?.code === "cancelled" ? "Stopped. The session ended without a summary." : (SAMPLE_ERR[e?.code] || "Claude couldn't write the summary this time. Press Rewrite summary to try again.");
     }
   }
   const problem = J.ending.err || (J.ending.text ? "" : J.ending.status);
   J.ending.done = true; renderSessions();
-  await downloadExport();
   J.ending = null; renderSessions();
   if (problem) toast(problem, null, null, 7000);
 }
@@ -2119,7 +2118,6 @@ $("#sessMain").addEventListener("click", e => {
   if (a === "stopend") J.ending?.ctl.abort();
   if (a === "copyupdate") copyChunked(s.update || "", null, "upd" + id);
   if (a === "copypnotes") copyChunked(`## Player notes: ${s.title}\n${notesMd(id)}`, null, "pn" + id);
-  if (a === "redownload") downloadExport();
   if (a === "askdel") b.closest("[data-delzone]").innerHTML = `<span class="confirm">Delete this session? <button class="btn sm danger" data-ses="del">Delete</button><button class="btn sm" data-ses="nodel">Keep</button></span>`;
   if (a === "nodel") renderSessions();
   if (a === "del") {
