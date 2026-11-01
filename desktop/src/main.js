@@ -3,6 +3,7 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const C = require("./campaign");
 const { Companion } = require("./companion");
 const updater = require("./updater");
@@ -77,11 +78,14 @@ function openCampaign(file) {
   let camp;
   try { camp = C.read(file); }
   catch (e) { dialog.showErrorBox("Couldn't open that campaign", `${file}\n\n${e.message}`); return false; }
-  if (current) current.save();
+  if (current) current.close();
   current = new C.OpenCampaign(file, camp, {
+    who: os.hostname(),
     onSaved: refreshTitle,
+    onExternal: fromOtherComputer,
     onError: e => dialog.showErrorBox("Couldn't save the campaign", `${e.message}\n\nYour changes are still open. Try File > Save a Copy As to keep them somewhere else.`),
   });
+  current.watch();
   const touch = current.touch.bind(current);
   current.touch = () => { touch(); refreshTitle(); };
   // A copy of the file as it was when opened, so a bad session can always be rolled back.
@@ -92,7 +96,47 @@ function openCampaign(file) {
   if (playersWin && !playersWin.isDestroyed()) playersWin.close();
   showDm();
   startCompanion();
+  setTimeout(offerConflictCopies, 1500);
   return true;
+}
+
+// The campaign file changed on disk because the other computer saved (through OneDrive, Dropbox…), and its
+// edits are now merged in. Update what's on screen: lore, sessions and items in place, the rest by reloading.
+function fromOtherComputer({ changed, conflicts, kept, by }) {
+  for (const col of changed.filter(k => ["pages", "sessions", "items"].includes(k)))
+    for (const w of [dmWin, playersWin]) if (w && !w.isDestroyed()) w.webContents.send("db:changed", col, current.camp[col] || {});
+  if (changed.includes("companion")) { startCompanion(); buildMenu(); }
+  if (changed.some(k => ["table", "ui"].includes(k)) && dmWin && !dmWin.isDestroyed()) dmWin.loadFile(PAGE);
+  refreshTitle();
+  if (conflicts.length && dmWin && !dmWin.isDestroyed()) {
+    const list = conflicts.slice(0, 8).map(c => `• ${c}`).join("\n") + (conflicts.length > 8 ? `\n• and ${conflicts.length - 8} more` : "");
+    dialog.showMessageBox(dmWin, {
+      type: "info", buttons: ["OK", "Open Backups Folder"], defaultId: 0,
+      message: `This campaign was also changed on ${by || "another computer"}`,
+      detail: `Their other edits are merged in. These were changed on both computers, so this computer's version was kept:\n\n${list}\n\nTheir version is saved as a backup${kept ? ` (${path.basename(kept)})` : ""}, so File > Restore from Backup can bring it back.`,
+    }).then(r => { if (r.response === 1 && kept) shell.showItemInFolder(kept); });
+  }
+}
+
+// A sync service's conflict copy sits next to the file (both computers saved while one was offline): offer to merge it.
+async function offerConflictCopies() {
+  if (!current) return;
+  for (const copy of C.conflictCopies(current.file)) {
+    let theirs;
+    try { theirs = C.read(copy); } catch (e) { continue; }
+    const r = await dialog.showMessageBox(dmWin, {
+      type: "question", buttons: ["Merge It In", "Not Now"], defaultId: 0, cancelId: 1,
+      message: "Found another copy of this campaign",
+      detail: `${path.basename(copy)}\n\nYour sync service made this copy because both computers saved while one was offline. Merging adds anything that's only in that copy. Where both have a different version of the same thing, the one already open is kept. The copy then moves into the backups folder.`,
+    });
+    if (r.response !== 0 || !current) return;
+    const before = current.camp;
+    const { camp, conflicts } = C.merge({}, before, theirs);
+    camp.savedAt = before.savedAt; camp.savedBy = before.savedBy;
+    current.camp = camp; current.touch(); current.save();
+    try { fs.mkdirSync(C.backupDir(current.file), { recursive: true }); fs.renameSync(copy, path.join(C.backupDir(current.file), path.basename(copy))); } catch (e) {}
+    fromOtherComputer({ changed: C.changedParts(before, camp), conflicts: [], kept: null, by: "" });
+  }
 }
 
 async function newCampaign() {
@@ -225,7 +269,7 @@ function buildMenu() {
       { type: "separator" }, { role: "toggleDevTools" },
     ] },
     { label: "Companion", submenu: [
-      { label: current && current.camp.companion ? `Connected to ${current.camp.companion.name} (${companionStatus.state === "live" ? "live" : companionStatus.state})` : "Not connected", enabled: false },
+      { label: current && current.camp.companion ? companionStatus.state === "unlinked" ? `${current.camp.companion.name}: not connected on this computer yet` : `Connected to ${current.camp.companion.name} (${companionStatus.state === "live" ? "live" : companionStatus.state})` : "Not connected", enabled: false },
       { label: current && current.camp.companion ? "Connect with a New Code…" : "Connect to Companion…", enabled: !!current, click: askForCompanion },
       { label: "Refresh Party Now", enabled: !!(current && current.camp.companion), click: () => companion.refresh().catch(e => dialog.showErrorBox("Couldn't reach the Companion", e.message)) },
       { label: "Disconnect", enabled: !!(current && current.camp.companion), click: disconnectCompanion },
