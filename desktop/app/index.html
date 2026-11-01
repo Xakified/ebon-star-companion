@@ -1989,10 +1989,11 @@ function renderSessions(fromSnapshot) {
   if (!s) { main.innerHTML = `<div class="jhead"><h2>Sessions</h2></div><p class="hint">No sessions yet. Plan one on the Prep tab.</p>`; return; }
   const prepFilled = PREP_FIELDS.filter(([k]) => (s.prep || {})[k]);
   if (!J.sessEdit) {
-    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span>${s.live ? `<span class="livepill" title="Players can add notes to this session from the Companion">● Live</span>` : ""}<button class="btn sm" data-ses="edit">Edit</button><button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="${s.update && !s.live ? "Have Claude write this session's summary again, with any notes added since" : "End the session and have Claude write its summary, including what the players are thinking. Everything is already saved."}">${s.update && !s.live ? "Rewrite summary" : "End session"}</button></div>
+    main.innerHTML = `<div class="jhead"><span class="catchip">${esc(fmtDate(s.date) || "Session")}</span><div class="spacer"></div><span class="savestate" data-savestate></span>${s.live ? `<span class="livepill" title="Players can add notes to this session from the Companion">● Live</span>` : ""}<button class="btn sm" data-ses="edit">Edit</button>${s.live ? `<button class="btn sm primary" data-ses="end" ${J.ending ? "disabled" : ""} title="End the session and have Claude write your DM update (NPCs, plot, hooks, what the players are thinking). Everything is already saved.">End session</button>` : `<button class="btn sm" data-ses="end" ${J.ending ? "disabled" : ""} title="Have Claude write your DM-only update for this session: NPCs, plot points, hooks and what the players are thinking">${s.update ? "Redo DM update" : "DM update"}</button><button class="btn sm primary" data-ses="summarize" ${J.summing ? "disabled" : ""} title="Claude writes the player recap from your notes and every player's notes, and flags notes that don't line up">${s.recap ? "Summarize again" : "Summarize"}</button>`}</div>
       <h2 style="font-size:34px">${esc(s.title)}</h2>
       ${endBoxHtml(J.sessId, s)}
-      ${s.recap ? `<div class="secretbox" style="border-color:var(--pc);background:transparent"><div class="row"><div class="eyebrow" style="color:var(--pc)">Recap for players</div><div class="spacer"></div><button class="btn sm primary" data-ses="copyrecap">Copy for Discord</button></div><div class="prose">${md(s.recap)}</div></div>` : `<div class="hint">No player recap yet. Press Edit to write one you can paste into Discord.</div>`}
+      ${sumBoxHtml(J.sessId, s)}
+      ${s.recap ? `<div class="secretbox" style="border-color:var(--pc);background:transparent"><div class="row"><div class="eyebrow" style="color:var(--pc)">Recap for players${window.PLAYER_NOTES_ON ? " · players see this in the Companion" : ""}</div><div class="spacer"></div><button class="btn sm primary" data-ses="copyrecap">Copy for Discord</button></div><div class="prose">${md(s.recap)}</div></div>` : `<div class="hint">No player recap yet. Press Edit to write one you can paste into Discord.</div>`}
       <div class="eyebrow">Session notes</div>
       <div class="prose">${s.notes ? md(s.notes) : `<p class="hint">No notes.</p>`}</div>
       ${playerNotesBox(J.sessId)}
@@ -2115,6 +2116,8 @@ $("#sessMain").addEventListener("click", e => {
   if (a === "copyrecap") copyChunked(`## 📜 ${s.title}${s.date ? ` · ${fmtDate(s.date)}` : ""}\n${s.recap.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (m, t, l) => l || t)}`, null, "recap" + id);
   if (a === "reopen") { s.status = "planned"; sessWrite(id); setTab("prep"); }
   if (a === "end") endSession(id);
+  if (a === "summarize") summarizeSession(id);
+  if (a === "stopsum") J.summing?.ctl.abort();
   if (a === "stopend") J.ending?.ctl.abort();
   if (a === "copyupdate") copyChunked(s.update || "", null, "upd" + id);
   if (a === "copypnotes") copyChunked(`## Player notes: ${s.title}\n${notesMd(id)}`, null, "pn" + id);
@@ -2162,6 +2165,60 @@ function setLive(id, on) {
   s.live = !!on; if (on) { s.started = now(); delete s.ended; }
   sessWrite(id);
 }
+
+/* ---------- summarize: Claude turns the DM's notes and the players' notes into the player recap ---------- */
+const SUM_PROMPT = `You are helping a D&D Dungeon Master write up a session that has ended. Below are the DM's own session notes and the notes each player wrote in their phone app.
+
+Reply with exactly two Markdown sections and nothing else:
+
+## Recap
+A recap of the session for the players, written to them in the second person plural ("you"), past tense, in a few short paragraphs or bullets. Combine what the DM and every player noted into one account of what the party did, saw, learned and decided, in order. Name NPCs and places as written in the notes. Only include things the characters experienced or learned: leave out anything the DM's notes treat as a secret, a hidden motive, a twist not yet revealed, or what's planned next. Don't attribute lines to which player wrote them.
+
+## Contradictions
+A bullet list of places where the notes seem to disagree with each other (who said what, what happened, names, numbers, order of events), each naming whose notes say what. Also list anything a player seems to believe that the DM's notes contradict. Players read this list too, so the same rule applies: never reveal a secret, hidden motive or unrevealed twist from the DM's notes. Keep it neutral and friendly, as a reference, not a correction. Write "None." if the notes line up.`;
+function sumBoxHtml(id, s) {
+  const e = J.summing && J.summing.id === id ? J.summing : null;
+  if (e) return `<div class="updbox"><div class="row"><div class="eyebrow">Summarizing</div><div class="spacer"></div><button class="btn sm" data-ses="stopsum">Stop</button></div><div class="prose" id="sumText">${e.text ? md(e.text) : `<p class="hint">${esc(e.status)}</p>`}</div></div>`;
+  const c = String(s.contradictions || "").trim();
+  if (c && !/^none\.?$/i.test(c)) return `<div class="secretbox"><div class="eyebrow">Notes that don't line up · players see this too</div><div class="prose">${md(c)}</div></div>`;
+  return "";
+}
+function splitSummary(text) {
+  const t = String(text || "");
+  const r = t.search(/^#{1,3}\s*Recap\s*$/mi), c = t.search(/^#{1,3}\s*Contradictions\s*$/mi);
+  if (r < 0) return { recap: t.trim(), contradictions: "" };
+  const strip = x => x.replace(/^#{1,3}\s*(Recap|Contradictions)\s*$/mi, "").trim();
+  return c > r ? { recap: strip(t.slice(r, c)), contradictions: strip(t.slice(c)) } : { recap: strip(t.slice(r)), contradictions: c >= 0 ? strip(t.slice(c, r)) : "" };
+}
+async function summarizeSession(id) {
+  const s = J.sessions[id]; if (!s || J.summing) return;
+  const pn = notesFor(id);
+  if (!(s.notes || "").trim() && !pn.length) { toast("This session has no DM notes or player notes to summarize yet."); return; }
+  let sample = null; try { sample = await window.claude?.use?.("sample"); } catch (e) {}
+  if (!sample) { toast("Claude isn't available here. In the desktop app, add your API key under Claude > Set API Key.", null, null, 7000); return; }
+  const clip = (t, n) => { t = String(t || "").trim(); return t.length > n ? t.slice(0, n) + " […]" : t; };
+  const input = `${SUM_PROMPT}\n\n---\n\n# ${s.title}${s.date ? ` (${s.date})` : ""}\n\n## DM's session notes\n${clip(s.notes, 60000) || "(none)"}\n\n## Players' notes\n${clip(notesMd(id), 60000) || "(none)"}`;
+  J.summing = { id, text: "", status: "Asking Claude to summarize the session…", ctl: new AbortController() };
+  renderSessions();
+  const paint = () => { const box = $("#sumText"); if (box && J.summing) box.innerHTML = J.summing.text ? md(J.summing.text) : `<p class="hint">${esc(J.summing.status)}</p>`; };
+  let err = "";
+  try {
+    const r = await sample(input, { signal: J.summing.ctl.signal, cache: false, onText: ({ text }) => { J.summing.text = text; paint(); } });
+    const out = splitSummary(r.text);
+    if (!out.recap) throw new Error("empty");
+    const prev = { recap: s.recap || "", contradictions: s.contradictions || "" };
+    s.recap = out.recap; s.contradictions = out.contradictions; s.summarized = now();
+    sessWrite(id);
+    J.summing = null; renderSessions();
+    if (prev.recap.trim()) toast("Recap replaced with Claude's summary.", "Undo", () => { Object.assign(s, prev); sessWrite(id); renderSessions(); }, 9000);
+    else toast("Recap written. Press Edit to change it.");
+    return;
+  } catch (e) {
+    err = e?.code === "cancelled" ? "Stopped. The recap wasn't changed." : (SUMMARY_ERR[e?.code] || "Claude couldn't summarize this time. The recap wasn't changed.");
+  }
+  J.summing = null; renderSessions(); toast(err, null, null, 7000);
+}
+const SUMMARY_ERR = { not_granted: "Claude needs your API key (Claude menu > Set API Key) to summarize.", rate_limited: "Claude is busy right now. Try Summarize again in a minute.", prompt_too_large: "This session had too much text to summarize in one go." };
 
 /* ================= PREP ================= */
 function currentPrepId() { const p = sessionsSorted("planned"); return (J.sessions[J.sessId]?.status === "planned" ? J.sessId : p[0]?.id) || null; }

@@ -149,7 +149,7 @@
   // player note into the campaign file (notes/{id}), where it stays even if Supabase loses it. A note the player
   // deletes is removed here too. Needs supabase/fix-04-session-notes.sql in the Companion's Supabase project.
   const hasJournal = typeof J !== "undefined" && typeof writeDoc === "function";
-  let notesOn = false, pubSig = "", pubBusy = false, pulling = false, pulledOnce = false, pullTimer = null, warned = false, quietUntil = 0;
+  let notesOn = false, pubSig = "", pubBusy = false, pulling = false, pulledOnce = false, pullTimer = null, warned = false, recapWarned = false, quietUntil = 0;
   function noteProblem(msg) {
     quietUntil = Date.now() + 60000; // try again in a minute, not every few seconds
     const setup = /game_sessions|session_notes|schema cache|does not exist/i.test(msg || "");
@@ -160,7 +160,7 @@
   function noteFixed() { if (window.PLAYER_NOTES_PROBLEM) { delete window.PLAYER_NOTES_PROBLEM; if (typeof paintPlayerNotes === "function") paintPlayerNotes(); } }
   function publishedSessions() {
     return Object.entries(J.sessions).filter(([, x]) => x.status === "played" || x.live)
-      .map(([id, x]) => ({ id, title: x.title || "", played_on: x.date || "", live: !!x.live, ord: x.order || 0, ended_at: x.ended ? new Date(x.ended).toISOString() : null }))
+      .map(([id, x]) => ({ id, title: x.title || "", played_on: x.date || "", live: !!x.live, ord: x.order || 0, ended_at: x.ended ? new Date(x.ended).toISOString() : null, recap: x.recap || "", contradictions: x.contradictions || "" }))
       .sort((a, b) => a.ord - b.ord);
   }
   async function publishSessions(force) {
@@ -172,6 +172,7 @@
     pubBusy = false;
     if (r && r.error) { pubSig = ""; noteProblem(r.error); return; }
     pubSig = sig; noteFixed();
+    if (r && r.value === "no-recap" && !recapWarned) { recapWarned = true; toast("Players can't see session recaps yet: run fix-05-session-recaps.sql from the Companion repo in the Supabase SQL Editor.", null, null, 9000); }
   }
   async function pullNotes() {
     if (!notesOn || pulling || !J.ready || !J.db) return;
