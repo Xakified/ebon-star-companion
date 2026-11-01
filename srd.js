@@ -241,7 +241,20 @@ const WEAPONS = [
 
 const CONDITIONS = ["Blinded", "Charmed", "Deafened", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
+// Species that ask for a lineage or ancestry in the builder, and what the choice is called.
+const LINEAGES = {
+  Dragonborn: ["Black", "Blue", "Brass", "Bronze", "Copper", "Gold", "Green", "Red", "Silver", "White"],
+  Elf: ["Drow", "High Elf", "Wood Elf"], Gnome: ["Forest Gnome", "Rock Gnome"], Goliath: ["Cloud", "Fire", "Frost", "Hill", "Stone", "Storm"],
+  Tiefling: ["Abyssal", "Chthonic", "Infernal"]
+};
+const LINEAGE_LABEL = { Dragonborn: "Draconic ancestry", Goliath: "Giant ancestry" };
+const ORIGIN_FEATS = ["Alert", "Magic Initiate", "Savage Attacker", "Skilled"];
+// Filled from the campaign's content library (the DM's books) at run time; see Engine.useContent.
+const SUBCLASSES = {};
+const SPELLS = [];
+const SOURCE = {};
 const POINT_COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
-g.SRD = { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, FULL_SLOTS, PACT, ARMOR, WEAPONS, CONDITIONS, STANDARD_ARRAY, POINT_COST };
+g.SRD = { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, FULL_SLOTS, PACT, ARMOR, WEAPONS, CONDITIONS, STANDARD_ARRAY, POINT_COST,
+  LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SUBCLASSES, SPELLS, SOURCE };
 })(typeof window !== "undefined" ? window : globalThis);

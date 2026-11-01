@@ -29,6 +29,7 @@ The anon key is meant to be public. The rules in `schema.sql` are what protect t
 - Players can see and edit only their own characters.
 - You (the DM) can see and edit every character in your campaign, and only you can send things.
 - Your homebrew library is visible only to you.
+- Books you add to the content library are visible only to people in your campaign.
 
 ### 2. Hosting
 The app is a folder of static files, so any static host works. The easiest options:
@@ -71,6 +72,28 @@ Players press **Sessions** (top right) to read the recap of each past session (a
 The DM Suite decides which sessions exist: it publishes the played sessions and the one you've started with **Start session**, and it copies every note into the campaign file's session log. See the DM Screen README for that side.
 
 Recaps come from the DM Suite's **Summarize** button (or whatever you type as the player recap). Needs `supabase/fix-04-session-notes.sql` and `supabase/fix-05-session-recaps.sql` and `supabase/fix-06-party-and-private-notes.sql` run once in the Supabase SQL Editor. Until then the button stays hidden. In demo mode every campaign gets a live "Session 1" to try it with.
+
+## Books (content library)
+The DM can share options from books they own with the players' character builder: species and lineages, backgrounds, feats (including Origin feats), classes with their features and resources, subclasses with their features, and spells. They show up in the builder with the book's short name next to them, subclasses show up at the level-up where you choose one, and book spells can be picked by name when adding a spell.
+
+- In the Companion's DM view (or the DM Suite's Players tab), press **Add a book** under **Books** and choose a book file (`.json`). Tick or untick **Players can use** to turn a book on or off, or remove it. Turning off a book that a character uses takes those numbers and features off their sheet until it's back on, and the app asks first.
+- Book content is stored only in your Supabase project, in the `content_packs` table, and the database rules let only people in that campaign read it and only the DM change it. None of it is in this repository or the published site.
+- Needs `supabase/fix-07-content-library.sql` run once in the Supabase SQL Editor. Until then the Books card tells you to run it, and the builder uses the SRD only.
+
+A book file is JSON in this shape (every section is optional; something with the same name as an SRD option replaces it while the book is on):
+
+```json
+{ "format": "esc-content", "version": 1, "name": "My Book", "abbr": "MB",
+  "species": { "Name": { "size": "Medium", "speed": 30, "traits": [["Trait", "summary"]], "lineages": ["A", "B"], "lineageLabel": "Lineage" } },
+  "backgrounds": { "Name": { "abil": ["str", "dex", "con"], "feat": "Feat", "skills": ["Athletics", "Insight"], "tool": "Tool" } },
+  "feats": { "Feat": { "text": "summary", "origin": true } },
+  "classes": { "Name": { "hd": 8, "primary": "Intelligence", "saves": ["con", "int"], "skillN": 2, "skills": ["Arcana"], "armor": "Light armor",
+      "weapons": "Simple weapons", "gold": 150, "caster": "half", "spellAbil": "int", "subAt": [3, 5, 9, 15],
+      "f": [[1, "Feature", "summary"]], "res": [["Resource", [2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6], "long"]] } },
+  "subclasses": { "Fighter": [{ "name": "Subclass", "text": "summary", "f": [[3, "Feature", "summary"]] }] },
+  "spells": [{ "name": "Spell", "level": 1, "school": "Evocation", "classes": ["Wizard"], "time": "Action", "range": "60 feet", "components": "V, S", "duration": "Instantaneous", "text": "summary" }] }
+```
+A resource's count is a list of 20 numbers (one per level), a single number, or `"mod:cha"` for an ability modifier (at least 1).
 
 ## Moving a character to a new phone
 A player's phone remembers them, so a new phone or cleared browser data makes them a new person. To give them their character back:

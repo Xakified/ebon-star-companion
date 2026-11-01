@@ -103,8 +103,10 @@ function attacks(ch, m, pb) {
 
 function classFeatures(ch) {
   const c = S.CLASSES[ch.cls]; if (!c) return [];
-  const out = c.f.filter(f => f[0] <= ch.level).map(f => ({ level: f[0], name: f[1], text: f[2], source: ch.cls }));
-  for (const L of c.subAt) if (L <= ch.level) out.push({ level: L, name: (ch.subclass || "Subclass") + (L === c.subAt[0] ? "" : " feature"), text: L === c.subAt[0] ? (ch.subclass === c.sub[0] ? c.sub[1] : "Your subclass.") : "See your subclass.", source: "Subclass" });
+  const out = (c.f || []).filter(f => f[0] <= ch.level).map(f => ({ level: f[0], name: f[1], text: f[2], source: ch.cls }));
+  const sd = subclassDef(ch.cls, ch.subclass);
+  if (sd && sd.f && sd.f.length) out.push(...sd.f.filter(f => f[0] <= ch.level).map(f => ({ level: f[0], name: f[1], text: f[2], source: sd.name })));
+  else for (const L of c.subAt || []) if (L <= ch.level) out.push({ level: L, name: (ch.subclass || "Subclass") + (L === c.subAt[0] ? "" : " feature"), text: L === c.subAt[0] ? (sd && sd.text ? sd.text : "Your subclass.") : "See your subclass.", source: "Subclass" });
   if (ch.level >= 19) out.push({ level: 19, name: "Epic Boon", text: "An Epic Boon feat (or another feat).", source: ch.cls });
   return out.sort((a, b) => a.level - b.level);
 }
@@ -135,7 +137,7 @@ function derive(ch) {
   speed = Math.max(0, speed - 5 * (ch.exhaustion || 0)); // 2024 Exhaustion: -5 ft per level
   const spellAbil = c && c.spellAbil;
   const spell = spellAbil ? { abil: spellAbil, dc: 8 + pb + m[spellAbil], atk: pb + m[spellAbil] } : null;
-  const res = c ? (c.res || []).map(([name, f, reset]) => ({ name, max: f(lv, { mods: m }), reset })).filter(r => r.max) : [];
+  const res = c ? (c.res || []).filter(r => typeof r[1] === "function").map(([name, f, reset]) => ({ name, max: f(lv, { mods: m }), reset })).filter(r => r.max) : [];
   const xpNext = lv < 20 ? XP_TABLE[lv] : null;
   return {
     scores: sc, mods: m, pb, saves, skills, hpMax, ac, acHow: how, init, speed, spell, slots: slots(ch), res,
@@ -149,10 +151,12 @@ function derive(ch) {
 function levelUpPlan(ch) {
   const next = ch.level + 1, c = S.CLASSES[ch.cls];
   if (!c || next > 20) return null;
+  const subAt = c.subAt || [], sd = subclassDef(ch.cls, ch.subclass);
   return {
     level: next, hd: c.hd, avg: c.hd / 2 + 1,
-    features: c.f.filter(f => f[0] === next).map(f => ({ name: f[1], text: f[2] })),
-    subclass: next === c.subAt[0] ? c.sub : null, subFeature: c.subAt.includes(next) && next !== c.subAt[0],
+    features: (c.f || []).filter(f => f[0] === next).map(f => ({ name: f[1], text: f[2] })),
+    subclass: subAt[0] === next ? subclassOptions(ch.cls) : null, subFeature: subAt.includes(next) && next !== subAt[0],
+    subFeatures: sd && sd.f ? sd.f.filter(f => f[0] === next).map(f => ({ name: f[1], text: f[2] })) : [],
     asi: asiLevels(ch.cls).includes(next), epic: next === 19, pbUp: profBonus(next) > profBonus(ch.level)
   };
 }
@@ -204,5 +208,125 @@ function fromSuiteItem(x) {
   return it;
 }
 
-g.Engine = { uid, mod, sign, profBonus, blank, derive, levelUpPlan, applyLevelUp, applyGrant, grantLabel, fromSuiteItem, asiLevels, XP_TABLE };
+// ---------- Content library (the DM's own books) ----------
+// The DM adds "content packs" (JSON, format below) to the campaign; they are stored in the campaign's database,
+// readable only by its members, and merged into SRD here so the builder, sheet and level-ups can use them.
+// Nothing from a book is ever part of this code.
+//
+// { "format": "esc-content", "version": 1, "name": "Book title", "abbr": "PHB",
+//   "species":     { "Name": { "size": "Medium", "speed": 30, "hpPerLevel": 0, "traits": [["Trait", "summary"]], "lineages": ["A", "B"], "lineageLabel": "Lineage" } },
+//   "backgrounds": { "Name": { "abil": ["str","dex","con"], "feat": "Feat name", "featNote": "", "skills": ["Athletics","Insight"], "tool": "Tool" } },
+//   "feats":       { "Name": { "text": "summary", "origin": true } }            (or "Name": "summary")
+//   "classes":     { "Name": { "hd": 8, "primary": "Intelligence", "saves": ["con","int"], "skillN": 2, "skills": [...], "armor": "...", "weapons": "...",
+//                    "gold": 150, "caster": "full"|"half"|"pact"|"", "spellAbil": "int", "unarmored": "con"|"wis", "subAt": [3,5,9,15],
+//                    "f": [[1, "Feature", "summary"]], "res": [["Resource", [20 values, one per level] | number | "mod:cha", "long"|"short"|"info"]] } },
+//   "subclasses":  { "Class": [{ "name": "Subclass", "text": "summary", "f": [[3, "Feature", "summary"]] }] },
+//   "spells":      [{ "name": "...", "level": 0, "school": "...", "classes": ["Wizard"], "time": "", "range": "", "components": "", "duration": "", "text": "summary" }] }
+// A class, species, background or feat with the same name as an SRD one replaces it while the book is on.
+const BASE = {};
+const KEEP = ["SPECIES", "BACKGROUNDS", "FEATS", "CLASSES", "LINEAGES", "LINEAGE_LABEL"];
+const str = (v, n = 4000) => String(v == null ? "" : v).slice(0, n);
+const strs = (a, n) => (Array.isArray(a) ? a : []).map(x => str(x, 200)).filter(Boolean).slice(0, n || 60);
+const abils = a => strs(a, 6).map(x => x.toLowerCase().slice(0, 3)).filter(x => S.ABILS.includes(x));
+const feats3 = a => (Array.isArray(a) ? a : []).filter(f => Array.isArray(f) && f.length >= 2).slice(0, 200)
+  .map(f => [Math.max(1, Math.min(20, +f[0] || 1)), str(f[1], 120), str(f[2])]).filter(f => f[1]);
+function resFn(v) {
+  if (Array.isArray(v)) { const a = v.slice(0, 20); return lv => a[Math.min(a.length, lv) - 1]; }
+  if (typeof v === "number") return () => v;
+  const m = /^mod:(str|dex|con|int|wis|cha)$/.exec(String(v));
+  if (m) return (lv, c) => Math.max(1, c.mods[m[1]]);
+  return null;
+}
+function addClass(name, x, src) {
+  const old = S.CLASSES[name] || {};
+  const c = Object.assign({}, old, {
+    hd: [6, 8, 10, 12].includes(+x.hd) ? +x.hd : old.hd || 8, primary: str(x.primary || old.primary, 60),
+    saves: x.saves ? abils(x.saves) : old.saves || [], skillN: x.skillN != null ? Math.max(0, Math.min(6, +x.skillN || 0)) : old.skillN || 2,
+    skills: x.skills ? strs(x.skills).filter(k => k in S.SKILLS) : old.skills || [], armor: str(x.armor != null ? x.armor : old.armor || "None", 200),
+    weapons: str(x.weapons != null ? x.weapons : old.weapons || "Simple weapons", 200), gold: x.gold != null ? +x.gold || 0 : old.gold || 0,
+    caster: ["full", "half", "pact"].includes(x.caster) ? x.caster : x.caster === "" ? undefined : old.caster,
+    spellAbil: x.spellAbil != null ? abils([x.spellAbil])[0] : old.spellAbil, unarmored: x.unarmored != null ? abils([x.unarmored])[0] : old.unarmored,
+    subAt: Array.isArray(x.subAt) ? x.subAt.map(n => +n).filter(n => n >= 1 && n <= 20) : old.subAt || [3],
+    f: x.f ? feats3(x.f) : old.f || [], src
+  });
+  if (Array.isArray(x.asiExtra)) c.asiExtra = x.asiExtra.map(n => +n).filter(n => n >= 1 && n <= 20);
+  if (Array.isArray(x.res)) c.res = x.res.filter(r => Array.isArray(r) && r[0]).map(r => [str(r[0], 80), resFn(r[1]), str(r[2] || "long", 40)]).filter(r => r[1]);
+  if (!c.skills.length) c.skills = S.ALL_SKILLS;
+  S.CLASSES[name] = c;
+}
+// packs: [{ name, abbr, enabled, data }] as stored in the database. Turning books off or on just calls this again.
+function useContent(packs) {
+  if (!BASE.done) { for (const k of KEEP) BASE[k] = Object.assign({}, S[k]); BASE.ORIGIN_FEATS = S.ORIGIN_FEATS.slice(); BASE.done = true; }
+  for (const k of KEEP) { for (const n of Object.keys(S[k])) delete S[k][n]; Object.assign(S[k], BASE[k]); }
+  S.ORIGIN_FEATS.splice(0, S.ORIGIN_FEATS.length, ...BASE.ORIGIN_FEATS);
+  for (const n of Object.keys(S.SUBCLASSES)) delete S.SUBCLASSES[n];
+  for (const n of Object.keys(S.SOURCE)) delete S.SOURCE[n];
+  S.SPELLS.length = 0;
+  const used = [];
+  for (const p of packs || []) {
+    if (!p || p.enabled === false) continue;
+    const d = p.data || {}, src = str(p.abbr || d.abbr || p.name || d.name || "Book", 40);
+    try {
+      for (const [n, x] of Object.entries(d.species || {})) {
+        if (!x || typeof x !== "object") continue;
+        const name = str(n, 80);
+        S.SPECIES[name] = { speed: +x.speed || 30, size: str(x.size || "Medium", 60), traits: feats3((x.traits || []).map(t => [1, t[0], t[1]])).map(t => [t[1], t[2]]), src };
+        if (+x.hpPerLevel) S.SPECIES[name].hpPerLevel = +x.hpPerLevel;
+        if (Array.isArray(x.lineages) && x.lineages.length) { S.LINEAGES[name] = strs(x.lineages); if (x.lineageLabel) S.LINEAGE_LABEL[name] = str(x.lineageLabel, 60); }
+        else delete S.LINEAGES[name];
+        S.SOURCE["species:" + name] = src;
+      }
+      for (const [n, x] of Object.entries(d.backgrounds || {})) {
+        if (!x || typeof x !== "object") continue;
+        const name = str(n, 80), a = abils(x.abil);
+        S.BACKGROUNDS[name] = { abil: a.length === 3 ? a : ["str", "dex", "con"], feat: str(x.feat, 80), featNote: str(x.featNote, 80) || undefined, skills: strs(x.skills, 4).filter(k => k in S.SKILLS), tool: str(x.tool, 120), src };
+        S.SOURCE["background:" + name] = src;
+      }
+      for (const [n, x] of Object.entries(d.feats || {})) {
+        const name = str(n, 80), text = typeof x === "string" ? x : x && x.text;
+        S.FEATS[name] = str(text);
+        if (x && x.origin && !S.ORIGIN_FEATS.includes(name)) S.ORIGIN_FEATS.push(name);
+        S.SOURCE["feat:" + name] = src;
+      }
+      for (const [n, x] of Object.entries(d.classes || {})) if (x && typeof x === "object") { addClass(str(n, 80), x, src); S.SOURCE["class:" + str(n, 80)] = src; }
+      for (const [cls, list] of Object.entries(d.subclasses || {})) for (const x of Array.isArray(list) ? list : []) {
+        if (!x || !x.name) continue;
+        const l = S.SUBCLASSES[cls] = S.SUBCLASSES[cls] || [], sc = { name: str(x.name, 120), text: str(x.text), f: feats3(x.f), src };
+        const i = l.findIndex(o => o.name === sc.name); if (i >= 0) l[i] = sc; else l.push(sc);
+      }
+      for (const x of Array.isArray(d.spells) ? d.spells : []) {
+        if (!x || !x.name) continue;
+        const sp = { name: str(x.name, 120), level: Math.max(0, Math.min(9, +x.level || 0)), school: str(x.school, 40), classes: strs(x.classes, 20),
+          time: str(x.time, 80), range: str(x.range, 80), components: str(x.components, 200), duration: str(x.duration, 80), text: str(x.text, 8000), src };
+        const i = S.SPELLS.findIndex(o => o.name === sp.name); if (i >= 0) S.SPELLS[i] = sp; else S.SPELLS.push(sp);
+      }
+      used.push(src);
+    } catch (e) { if (g.console) console.warn("Couldn't use " + src, e); }
+  }
+  S.SPELLS.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  return used;
+}
+// Every subclass a class can take: the SRD one plus any from the DM's books. [{ name, text, f?, src }]
+function subclassOptions(cls) {
+  const c = S.CLASSES[cls] || {}, out = [];
+  if (c.sub) out.push({ name: c.sub[0], text: c.sub[1], src: "SRD" });
+  for (const x of S.SUBCLASSES[cls] || []) { const i = out.findIndex(o => o.name === x.name); if (i >= 0) out[i] = x; else out.push(x); }
+  return out;
+}
+function subclassDef(cls, name) { return name ? subclassOptions(cls).find(o => o.name === name) || null : null; }
+// Check a content pack before it's saved. Returns a one-line summary, or throws.
+function checkContent(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) throw new Error("That file isn't a content pack.");
+  if (d.format !== "esc-content") throw new Error("That file isn't a content pack (it needs \"format\": \"esc-content\").");
+  if (!d.name) throw new Error("The content pack needs a name.");
+  const n = { species: Object.keys(d.species || {}).length, backgrounds: Object.keys(d.backgrounds || {}).length, feats: Object.keys(d.feats || {}).length,
+    classes: Object.keys(d.classes || {}).length, subclasses: Object.values(d.subclasses || {}).reduce((s, l) => s + (Array.isArray(l) ? l.length : 0), 0), spells: Array.isArray(d.spells) ? d.spells.length : 0 };
+  const one = { species: "species", backgrounds: "background", feats: "feat", classes: "class", subclasses: "subclass", spells: "spell" };
+  const parts = Object.entries(n).filter(([, v]) => v).map(([k, v]) => `${v} ${v === 1 ? one[k] : k}`);
+  if (!parts.length) throw new Error("That content pack is empty.");
+  return parts.join(" · ");
+}
+
+g.Engine = { uid, mod, sign, profBonus, blank, derive, levelUpPlan, applyLevelUp, applyGrant, grantLabel, fromSuiteItem, asiLevels, XP_TABLE,
+  useContent, subclassOptions, subclassDef, checkContent };
 })(typeof window !== "undefined" ? window : globalThis);
