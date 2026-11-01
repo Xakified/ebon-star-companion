@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Connect to Companion</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 20px 22px; background: #171b26; color: #e6e8ef; font: 15px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  p { margin: 0 0 10px; color: #9aa1b4; font-size: 13.5px; }
+  ol { margin: 0 0 12px; padding-left: 20px; color: #9aa1b4; font-size: 13.5px; }
+  textarea { width: 100%; box-sizing: border-box; height: 88px; padding: 8px 10px; border-radius: 6px; border: 1px solid #2c3243; background: #1e2330; color: inherit; font: 12.5px ui-monospace, monospace; resize: none; word-break: break-all; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 12px; }
+  .err { color: #f2776c; font-size: 13px; flex: 1; }
+  button { padding: 7px 14px; border-radius: 6px; border: 1px solid #2c3243; background: #1e2330; color: inherit; font: inherit; cursor: pointer; }
+  button.primary { background: #d9b45c; border-color: #d9b45c; color: #1a1405; font-weight: 700; }
+  button:disabled { opacity: .5; cursor: default; }
+</style></head>
+<body>
+  <h1>Connect to the Companion</h1>
+  <p>Brings your players' characters from the Ebon Star Companion into this campaign's party list and initiative tracker. HP, temp HP, conditions, Exhaustion and Stress then stay in sync both ways.</p>
+  <ol><li>In the Companion, open your campaign as the DM.</li><li>Press <b>Connect DM Suite</b> and copy the code.</li><li>Paste it here.</li></ol>
+  <textarea id="code" placeholder="ESC1.…" spellcheck="false" autofocus></textarea>
+  <div class="row"><span class="err" id="err"></span><button id="cancel">Cancel</button><button class="primary" id="ok">Connect</button></div>
+  <script>
+    const $ = id => document.getElementById(id);
+    async function go() {
+      $("ok").disabled = true; $("ok").textContent = "Connecting…"; $("err").textContent = "";
+      const r = await window.desktop.companionConnect($("code").value);
+      if (r && r.error) { $("err").textContent = r.error; $("ok").disabled = false; $("ok").textContent = "Connect"; }
+    }
+    $("ok").onclick = go;
+    $("cancel").onclick = () => window.desktop.companionCancel();
+    $("code").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); go(); } if (e.key === "Escape") window.desktop.companionCancel(); });
+  </script>
+</body></html>

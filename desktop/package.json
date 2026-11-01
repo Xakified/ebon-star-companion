@@ -1,0 +1,21 @@
+{
+  "name": "ebon-star-dm-screen",
+  "productName": "Ebon Star DM Screen",
+  "version": "1.2.0",
+  "description": "D&D 5e DM screen with campaign save files: initiative, loot, magic items, prep, sessions and lore.",
+  "main": "src/boot.js",
+  "private": true,
+  "scripts": {
+    "build-app": "node tools/make-app.js",
+    "start": "node tools/make-app.js && electron .",
+    "publish-update": "node tools/make-app.js && node tools/publish-update.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.135.0",
+    "@supabase/supabase-js": "2.75.0"
+  },
+  "devDependencies": {
+    "electron": "44.7.2"
+  },
+  "minShell": "1.2.0"
+}
