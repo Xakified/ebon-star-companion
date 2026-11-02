@@ -138,6 +138,21 @@ label.f { display: block; } label.f > span { display: block; font-size: .82rem; 
 .pick button.on { border-color: var(--accent); background: var(--active); box-shadow: inset 0 0 0 1px var(--accent); }
 .pick button b { display: block; font-family: var(--display); }
 .pick button span { font-size: .8rem; color: var(--muted); }
+.chooser { margin-top: 10px; }
+.chooser select { font-family: var(--display); font-weight: 700; font-size: 1.05rem; min-height: 48px; border: 1.5px solid var(--gold); background-color: var(--raised); }
+.pv { border: 1.5px solid var(--gilt); background: linear-gradient(var(--active), var(--raised) 140px); }
+.pv .pvh { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pv .pvh h3 { color: var(--royal); font-size: 1.25rem; }
+.pv .facts { margin: 10px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.pv .facts div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+.pv .facts dt { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pv .facts dd { margin: 0; font-size: .9rem; font-weight: 600; }
+.pv h4 { font-family: var(--display); color: var(--royal); margin: 12px 0 4px; font-size: .95rem; border-bottom: 1px solid var(--gilt); padding-bottom: 2px; }
+.pv .ft { font-size: .88rem; margin: 4px 0; }
+.pv .ft .lv { display: inline-block; min-width: 2.6em; font-size: .7rem; font-weight: 700; color: var(--gold); }
+.pv details.sub { margin-left: 4px; padding-left: 10px; border-left: 2px solid var(--gilt); }
+.pv details.sub summary { color: var(--ink); font-weight: 400; margin-top: 6px; }
+.pv details summary { cursor: pointer; color: var(--royal); font-weight: 600; font-size: .88rem; margin-top: 8px; }
 .party { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .pc { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer; text-align: left; width: 100%; }
 .pc:hover { border-color: var(--accent); }
@@ -448,28 +463,67 @@ function newDraft() {
   Object.assign(d, { abilAssign: {}, bgMode: "21", bg2: "", bg1: "", classSkills: [], extraSkills: [], originFeat2: "" });
   return d;
 }
+// The class / background / species pickers: one dropdown grouped by book, then a preview of the choice.
+function bookNames() { const m = {}; for (const p of A.content) { const d = p.data || {}; const ab = String(p.abbr || d.abbr || p.name || d.name || "Book").slice(0, 40); m[ab] = p.name || d.name || ab; } return m; }
+function chooser(kind, key, list, cur, noun) {
+  const names = bookNames(), groups = new Map([["Core rules (SRD)", []]]);
+  for (const k of Object.keys(list).sort((a, b) => a.localeCompare(b))) { const src = SOURCE[kind + ":" + k], g = src ? names[src] || src : "Core rules (SRD)"; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(k); }
+  const og = [...groups].filter(([, l]) => l.length);
+  const rank = g => g === "Core rules (SRD)" ? 0 : /Player.s Handbook/i.test(g) ? 1 : 2;
+  const sorted = og.sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
+  const opts = l => l.map(k => `<option value="${esc(k)}" ${k === cur ? "selected" : ""}>${esc(k)}</option>`).join("");
+  const n = Object.keys(list).length;
+  return `<label class="f chooser"><span>${n} ${noun} to choose from${sorted.length > 1 ? `, grouped by book` : ""}</span><select data-bpick="${key}"><option value="" ${cur ? "" : "selected"} disabled>Choose…</option>${sorted.length > 1 ? sorted.map(([g, l]) => `<optgroup label="${esc(g)}">${opts(l)}</optgroup>`).join("") : opts(sorted[0] ? sorted[0][1] : [])}</select></label>`;
+}
+const fact = (k, v) => v ? `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>` : "";
+const pvHead = (kind, name, sub) => `<div class="pvh"><h3>${esc(name)}</h3>${srcTag(kind, name)}</div>${sub ? `<div class="small muted">${esc(sub)}</div>` : ""}`;
+const ftRow = (lv, n, t) => `<div class="ft">${lv ? `<span class="lv">Lv ${lv}</span>` : ""}<b>${esc(n)}.</b> <span class="muted">${esc(t || "")}</span></div>`;
+function classPreview(k) {
+  const c = CLASSES[k]; if (!c) return "";
+  const caster = { full: "Full caster", half: "Half caster", pact: "Pact magic" }[c.caster];
+  const subs = E.subclassOptions(k), f = c.f || [], f1 = f.filter(x => x[0] === 1), later = f.filter(x => x[0] > 1);
+  const skills = (c.skills || []).length >= ALL_SKILLS.length ? "any skills" : (c.skills || []).join(", ");
+  return `<div class="card pv">${pvHead("class", k, `Primary ability: ${c.primary}`)}
+    <dl class="facts" style="margin-bottom:0">${fact("Hit die", "d" + c.hd)}${fact("Hit points at level 1", `${c.hd} + Con modifier`)}${fact("Saving throws", (c.saves || []).map(a => ABIL_NAME[a]).join(", "))}${fact("Armor", c.armor)}${fact("Weapons", c.weapons)}${fact("Starting gold", c.gold ? c.gold + " gp" : "")}${caster ? fact("Spellcasting", caster + (c.spellAbil ? " (" + ABIL_NAME[c.spellAbil] + ")" : "")) : ""}${fact("Subclass at level", (c.subAt || [3])[0] + "")}</dl>
+    <h4>Skills</h4><div class="small">Choose ${c.skillN} from ${esc(skills)}.</div>
+    ${f1.length ? `<h4>Level 1 features</h4>${f1.map(x => ftRow(0, x[1], x[2])).join("")}` : ""}
+    ${(c.res || []).length ? `<h4>Resources</h4><div class="small">${c.res.map(r => esc(r[0]) + (r[2] && r[2] !== "info" ? ` <span class="muted">(${esc(r[2])} rest)</span>` : "")).join(" · ")}</div>` : ""}
+    ${later.length ? `<details><summary>Features at higher levels (${later.length})</summary>${later.map(x => ftRow(x[0], x[1], x[2])).join("")}</details>` : ""}
+    ${subs.length ? `<details><summary>Subclasses (${subs.length})</summary><div class="small muted" style="margin:4px 0">You pick one at level ${(c.subAt || [3])[0]}. Tap one to read its features.</div>${subs.map(o => `<details class="sub"><summary><b>${esc(o.name)}</b>${o.src && o.src !== "SRD" ? ` <span class="src">${esc(o.src)}</span>` : ""}</summary><div class="small muted">${esc(o.text || "")}</div>${(o.f || []).map(x => ftRow(x[0], x[1], x[2])).join("")}</details>`).join("")}</details>` : ""}</div>`;
+}
+function backgroundPreview(k) {
+  const b = BACKGROUNDS[k]; if (!b) return "";
+  const feat = b.feat + (b.featNote ? ` (${b.featNote})` : "");
+  return `<div class="card pv">${pvHead("background", k, "")}
+    <dl class="facts">${fact("Ability scores", b.abil.map(a => ABIL_NAME[a]).join(", "))}${fact("Skills", b.skills.join(", "))}${fact("Tool", b.tool)}${fact("Origin feat", b.feat)}${fact("Starting gold", "50 gp")}</dl>
+    ${b.feat ? `<h4>Origin feat</h4><div class="small"><b>${esc(feat)}</b></div><div class="small muted">${esc(FEATS[b.feat] || "Ask your DM for the details of this feat.")}</div>` : ""}</div>`;
+}
+function speciesPreview(k) {
+  const sp = SPECIES[k]; if (!sp) return "";
+  return `<div class="card pv">${pvHead("species", k, "")}
+    <dl class="facts">${fact("Size", sp.size)}${fact("Speed", sp.speed + " ft")}${sp.hpPerLevel ? fact("Extra hit points", `+${sp.hpPerLevel} per level`) : ""}</dl>
+    ${LINEAGES[k] ? `<div class="small muted" style="margin-top:6px">${esc(LINEAGE_LABEL[k] || "Lineage")}: ${esc(LINEAGES[k].join(", "))}</div>` : ""}
+    ${sp.traits.length ? `<h4>Traits</h4>${sp.traits.map(t => ftRow(0, t[0], t[1])).join("")}` : ""}</div>`;
+}
 function vBuild() {
   const d = A.draft, s = A.step;
   let body = "";
   const books = A.content.filter(b => b.enabled !== false).map(b => b.name);
-  const bookNote = books.length ? `<p class="small muted">Includes options from your DM's books: ${esc(books.join(", "))}.</p>` : "";
-  if (s === 0) body = `<h2>Choose a class</h2>${bookNote}<div class="pick" style="margin-top:10px">${Object.entries(CLASSES).map(([k, c]) => `<button class="${d.cls === k ? "on" : ""}" data-a="bset" data-k="cls" data-v="${esc(k)}"><b>${esc(k)}${srcTag("class", k)}</b><span>d${c.hd} · ${esc(c.primary)}</span></button>`).join("")}</div>
-      ${CLASSES[d.cls] ? `<div class="card small"><b>${esc(d.cls)}</b><div class="muted">Saves: ${CLASSES[d.cls].saves.map(a => ABIL_NAME[a]).join(", ")} · Armor: ${esc(CLASSES[d.cls].armor)} · Weapons: ${esc(CLASSES[d.cls].weapons)}</div><div style="margin-top:6px">${(CLASSES[d.cls].f || []).filter(f => f[0] === 1).map(f => `<div><b>${esc(f[1])}.</b> <span class="muted">${esc(f[2])}</span></div>`).join("")}</div></div>` : ""}`;
+  const bookNote = books.length ? `<details class="small muted"><summary>Includes options from ${books.length} of your DM's books</summary>${esc(books.join(", "))}.</details>` : "";
+  if (s === 0) body = `<h2>Choose a class</h2>${bookNote}${chooser("class", "cls", CLASSES, d.cls, "classes")}${classPreview(d.cls)}`;
   if (s === 1) {
     const b = BACKGROUNDS[d.background];
-    body = `<h2>Choose a background</h2><div class="pick" style="margin-top:10px">${Object.entries(BACKGROUNDS).map(([k, x]) => `<button class="${d.background === k ? "on" : ""}" data-a="bset" data-k="background" data-v="${esc(k)}"><b>${esc(k)}${srcTag("background", k)}</b><span>${esc(x.skills.join(", "))} · ${esc(x.feat)}</span></button>`).join("")}</div>
-      ${b ? `<div class="card stack"><div class="small">Skills: <b>${esc(b.skills.join(", "))}</b> · Tool: <b>${esc(b.tool)}</b> · Feat: <b>${esc(b.feat)}${b.featNote ? " (" + esc(b.featNote) + ")" : ""}</b></div>${FEATS[b.feat] ? `<div class="small muted">${esc(FEATS[b.feat])}</div>` : ""}
-        <div><div class="small muted">Ability increases (choose from ${b.abil.map(a => ABIL_NAME[a]).join(", ")})</div>
+    body = `<h2>Choose a background</h2>${chooser("background", "background", BACKGROUNDS, d.background, "backgrounds")}${backgroundPreview(d.background)}
+      ${b ? `<div class="card stack"><div><div class="small muted">Ability increases (choose from ${b.abil.map(a => ABIL_NAME[a]).join(", ")})</div>
         <div class="chips" style="margin:6px 0"><button class="chip ${d.bgMode === "21" ? "on" : ""}" data-a="bset" data-k="bgMode" data-v="21">+2 and +1</button><button class="chip ${d.bgMode === "111" ? "on" : ""}" data-a="bset" data-k="bgMode" data-v="111">+1 to all three</button></div>
         ${d.bgMode === "21" ? `<div class="grid2"><label class="f"><span>+2 to</span><select data-b="bg2">${opt(b.abil, d.bg2, a => ABIL_NAME[a])}</select></label><label class="f"><span>+1 to</span><select data-b="bg1">${opt(b.abil.filter(a => a !== d.bg2), d.bg1, a => ABIL_NAME[a])}</select></label></div>` : ""}</div></div>` : ""}
       <p class="small muted">Your DM may have a custom background for you. Pick the closest one; they can send you features later.</p>`;
   }
   if (s === 2) {
     const sp = SPECIES[d.species];
-    body = `<h2>Choose a species</h2><div class="pick" style="margin-top:10px">${Object.entries(SPECIES).map(([k, x]) => `<button class="${d.species === k ? "on" : ""}" data-a="bset" data-k="species" data-v="${esc(k)}"><b>${esc(k)}${srcTag("species", k)}</b><span>${esc(x.size)} · ${x.speed} ft</span></button>`).join("")}</div>
-      ${sp ? `<div class="card stack">${LINEAGES[d.species] ? `<label class="f"><span>${esc(LINEAGE_LABEL[d.species] || "Lineage")}</span><select data-b="lineage"><option value="">Choose…</option>${opt(LINEAGES[d.species], d.lineage)}</select></label>` : ""}
-        ${d.species === "Human" ? `<label class="f"><span>Versatile: extra Origin feat</span><select data-b="originFeat2"><option value="">Choose…</option>${opt(ORIGIN_FEATS, d.originFeat2)}</select></label>` : ""}
-        ${sp.traits.map(t => `<div class="small"><b>${esc(t[0])}.</b> <span class="muted">${esc(t[1])}</span></div>`).join("")}</div>` : ""}`;
+    body = `<h2>Choose a species</h2>${chooser("species", "species", SPECIES, d.species, "species")}${speciesPreview(d.species)}
+      ${sp && (LINEAGES[d.species] || d.species === "Human") ? `<div class="card stack">${LINEAGES[d.species] ? `<label class="f"><span>${esc(LINEAGE_LABEL[d.species] || "Lineage")}</span><select data-b="lineage"><option value="">Choose…</option>${opt(LINEAGES[d.species], d.lineage)}</select></label>` : ""}
+        ${d.species === "Human" ? `<label class="f"><span>Versatile: extra Origin feat</span><select data-b="originFeat2"><option value="">Choose…</option>${opt(ORIGIN_FEATS, d.originFeat2)}</select></label>${d.originFeat2 && FEATS[d.originFeat2] ? `<div class="small muted">${esc(FEATS[d.originFeat2])}</div>` : ""}` : ""}</div>` : ""}`;
   }
   if (s === 3) body = abilStep(d);
   if (s === 4) body = skillStep(d);
@@ -537,7 +591,7 @@ function finishDraft(d) {
   d.bgBonus = {};
   if (b) { if (d.bgMode === "111") b.abil.forEach(a => d.bgBonus[a] = 1); else { if (d.bg2) d.bgBonus[d.bg2] = 2; if (d.bg1) d.bgBonus[d.bg1] = (d.bgBonus[d.bg1] || 0) + 1; } }
   d.skills = [...new Set([...(b ? b.skills : []), ...d.classSkills, ...d.extraSkills.filter(Boolean)])];
-  d.tools = b ? [b.tool] : [];
+  d.tools = b && b.tool ? [b.tool] : [];
   d.feats = [];
   if (b) d.feats.push({ id: E.uid(), name: b.feat + (b.featNote ? ` (${b.featNote})` : ""), text: FEATS[b.feat] || "", source: d.background });
   if (d.originFeat2) d.feats.push({ id: E.uid(), name: d.originFeat2, text: FEATS[d.originFeat2] || "", source: "Human (Versatile)" });
@@ -874,7 +928,7 @@ const ACT = {
   sheet(el) { A.charId = el.dataset.id; A.view = "sheet"; A.tab = "main"; render(); scrollTo(0, 0); },
   tab(el) { A.tab = el.dataset.v; render(); },
   // builder
-  bset(el) { const k = el.dataset.k, v = el.dataset.v, d = A.draft; d[k] = v; if (k === "cls") d.classSkills = []; if (k === "species") { d.lineage = ""; d.originFeat2 = ""; d.extraSkills = []; } if (k === "background") { d.bg2 = ""; d.bg1 = ""; } render(); },
+  bset(el) { const k = el.dataset.k, v = el.dataset.v ?? el.value, d = A.draft; d[k] = v; if (k === "cls") d.classSkills = []; if (k === "species") { d.lineage = ""; d.originFeat2 = ""; d.extraSkills = []; } if (k === "background") { d.bg2 = ""; d.bg1 = ""; } render(); },
   bnext() { A.step++; render(); scrollTo(0, 0); }, bprev() { A.step--; render(); scrollTo(0, 0); },
   amethod(el) { const d = A.draft; d.abilMethod = el.dataset.v; if (d.abilMethod === "point") ABILS.forEach(a => d.base[a] = 8); if (d.abilMethod === "manual") ABILS.forEach(a => d.base[a] = 10); render(); },
   pt(el) { const d = A.draft, a = el.dataset.ab, v = d.base[a] + +el.dataset.d; if (v < 8 || v > 15) return; d.base[a] = v; if (pointsUsed(d) > 27) d.base[a] -= +el.dataset.d; render(); },
@@ -1100,7 +1154,8 @@ document.addEventListener("change", e => {
   if (el.matches("input[type=checkbox][data-a]")) { const f = ACT[el.dataset.a]; f && Promise.resolve(f(el)).catch(fail); return; }
   if (A.view === "build") {
     const d = A.draft;
-    if (el.dataset.b) { d[el.dataset.b] = el.value; if (!["name", "player", "appearance"].includes(el.dataset.b)) render(); }
+    if (el.dataset.bpick) { ACT.bset({ dataset: { k: el.dataset.bpick, v: el.value } }); }
+    else if (el.dataset.b) { d[el.dataset.b] = el.value; if (!["name", "player", "appearance"].includes(el.dataset.b)) render(); }
     else if (el.dataset.ab) { d.abilAssign[el.dataset.ab] = el.value; render(); }
     else if (el.dataset.raw) { d.base[el.dataset.raw] = Math.max(1, Math.min(30, +el.value || 10)); render(); }
     else if (el.dataset.xs != null) { d.extraSkills[+el.dataset.xs] = el.value; render(); }

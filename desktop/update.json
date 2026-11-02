@@ -1,14 +1,14 @@
 {
-  "version": "1.9.2",
+  "version": "1.9.4",
   "minShell": "1.2.0",
-  "notes": "Monsters from your books (like the Monster Manual) show up in the combat tracker",
-  "published": "2026-11-01T22:26:21.235Z",
+  "notes": "Character builder: class, background and species dropdowns with a full preview",
+  "published": "2026-11-02T00:32:23.712Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "f983f82971bf37c72f9eb7d40da96b123cce068073d17d329c922b5c210a5dcb",
+    "package.json": "15a662bb4d44eb5a0379d93a8d1d94ce3cac371533be4eb33af1c0c265686e85",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "ad14b8a147360c1a99e5708ff91460b5a3ba05229cfae9024f68b5a1cd45c2db",
@@ -25,7 +25,7 @@
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "ad14b8a147360c1a99e5708ff91460b5a3ba05229cfae9024f68b5a1cd45c2db",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "8f14d5eb14855379c5e18e71e9efac4483b611d0f3cc6f843765c3d02762b1c5",
+    "app/companion/index.html": "fd016d51db32aa26c807cd3cf82cc48d70905ac022173bea099bf8753f9b40cd",
     "app/companion/srd.js": "d9844ae816c0e6abeec2cdaa4ef8253b65ae356d0b5aa79dd2556a967a767276",
     "app/index.html": "6fb54e2a5dcad23f32728d9a3cb536e801f25d468dce3aba8834f246b3378f78"
   }
