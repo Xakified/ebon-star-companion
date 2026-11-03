@@ -56,7 +56,7 @@ Open the app, create your campaign, and tap **Copy invite link**. The link fills
 **DM**
 - A live party board showing HP bars, AC, passive Perception, initiative, conditions, Exhaustion, Stress, and anyone who is down.
 - Any character's full sheet, which you can open and edit (for example, applying damage).
-- **Send** to one player or everyone: items (rarity, attunement, +attack, +AC), custom features with uses, spells, coins, XP, and level-ups.
+- **Send** to one player or everyone: items (start from any weapon, armor, gear or book item and change any stat), custom features with uses, spells, coins, XP, and level-ups.
 - A homebrew library to reuse anything you've sent, plus **Import from DM Suite**, which pulls the magic items from your `.dmcampaign` file.
 - A history of sent things showing whether each was accepted or declined.
 

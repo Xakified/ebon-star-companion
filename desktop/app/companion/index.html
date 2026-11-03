@@ -199,6 +199,18 @@ label.f { display: block; } label.f > span { display: block; font-size: .82rem; 
 .spfacts dd { margin: 0; font-size: .88rem; font-weight: 600; }
 .tag { display: inline-block; font-size: .66rem; font-weight: 700; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); vertical-align: 1px; }
 .btn.added { color: var(--good); border-color: var(--good); }
+.ifs { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ifs[hidden] { display: none; }
+.ifs legend { font-family: var(--display); color: var(--royal); padding: 0 6px; font-size: .95rem; }
+.abgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+@media (max-width: 420px) { .abgrid { grid-template-columns: repeat(3, 1fr); } }
+.f[hidden] { display: none; }
+.coinbar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.coinbar input { flex: 1 1 110px; min-width: 0; } .coinbar select { flex: 0 0 76px; }
+.coinbtns { flex: 1 1 210px; display: flex; gap: 6px; } .coinbtns .btn { flex: 1; }
+.qty { display: inline-flex; align-items: center; gap: 2px; }
+.qty .btn.sm { min-height: 28px; padding: 0 8px; }
+.qty .num { min-width: 1.6em; text-align: center; }
 dialog.wide { width: min(780px, calc(100vw - 24px)); }
 dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--raised); color: var(--ink); padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); }
 dialog::backdrop { background: rgb(0 0 0 / .5); }
@@ -266,7 +278,7 @@ dialog .dh h2 { color: var(--royal); }
 <script src="backend.js"></script>
 <script>
 "use strict";
-const { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, ARMOR, WEAPONS, CONDITIONS, STANDARD_ARRAY, POINT_COST } = SRD;
+const { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, ARMOR, WEAPONS, GEAR, CONDITIONS, STANDARD_ARRAY, POINT_COST } = SRD;
 const E = Engine;
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -934,17 +946,232 @@ function filterPicker(q) {
 function spellCustom(intro = "") {
   dialog("Write a spell", intro + spellForm({}, false), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveSpell">Add</button>`);
 }
-function tGear(r, d, x) {
-  const items = d.inventory.map(i => `<div class="feat"><div class="h"><b>${esc(i.name)}${i.qty > 1 ? ` <span class="num muted">×${i.qty}</span>` : ""}</b>${i.fromDM ? `<span class="pill">from DM</span>` : ""}
-      ${i.weapon || i.armor || i.acBonus || i.abil ? `<label class="small row" style="gap:4px"><input type="checkbox" data-a="equip" data-id="${i.id}" ${i.equipped ? "checked" : ""}> Equipped</label>` : ""}
-      ${i.attune ? `<label class="small row" style="gap:4px"><input type="checkbox" data-a="attune" data-id="${i.id}" ${i.attuned ? "checked" : ""}> Attuned</label>` : ""}
+// ---------- Gear ----------
+// The gear catalog: SRD weapons, armor and basic equipment, plus the magic items in the DM's books, each ready to drop in a pack.
+const ITEM_TYPES = ["Weapon", "Armor", "Shield", "Gear", "Tool", "Ammunition", "Spellcasting Focus", "Consumable", "Potion", "Scroll", "Ring", "Wand", "Staff", "Rod", "Wondrous Item", "Treasure"];
+const RARITIES = ["common", "uncommon", "rare", "very rare", "legendary", "artifact"];
+const DMG_TYPES = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
+const MASTERIES = ["Cleave", "Graze", "Nick", "Push", "Sap", "Slow", "Topple", "Vex"];
+const GEAR_TABS = [["weapon", "Weapons"], ["armor", "Armor"], ["gear", "Gear"], ["magic", "Magic items"]];
+const GEAR_TYPE = { "Adventuring gear": "Gear", Consumables: "Consumable", Ammunition: "Ammunition", "Spellcasting focus": "Spellcasting Focus", "Equipment packs": "Gear", Tools: "Tool", "Musical instruments": "Tool", "Gaming sets": "Tool" };
+const COINS = ["cp", "sp", "ep", "gp", "pp"];
+const isRanged = w => /ammunition/i.test(w[3]) || w[0] === "Dart";
+const wStats = w => ({ dmg: w[1], type: w[2], props: w[3], mastery: w[4], cat: w[5] });
+const aStats = a => ({ base: a[1], cap: a[2], cat: a[3], stealth: !!a[4], str: a[7] || 0 });
+const wItem = w => ({ name: w[0], type: "Weapon", qty: 1, cost: w[6] || "", weight: w[7] || 0, weapon: wStats(w) });
+const aItem = a => ({ name: a[0], type: a[3] === "Shield" ? "Shield" : "Armor", qty: 1, cost: a[5] || "", weight: a[6] || 0, armor: aStats(a) });
+// The base weapon or armor named in a magic item ("Flame Tongue Longsword", "+1 Chain Mail").
+const baseIn = (list, name) => [...list].sort((a, b) => b[0].length - a[0].length).find(x => new RegExp(`\\b${x[0].replace(/ Armor$/, "")}\\b`, "i").test(name));
+function bookItem(x) {
+  const it = { name: x.name, type: ITEM_TYPES.includes(x.type) ? x.type : "Wondrous Item", rarity: x.rarity || "", qty: 1, attune: !!x.attune, attuneBy: x.attuneBy || "",
+    bonus: +x.bonus || 0, acBonus: +x.acBonus || 0, charges: +x.charges || 0, desc: x.text || "", src: x.src || "" };
+  if (it.type === "Weapon") { const w = baseIn(WEAPONS, x.name); if (w) it.weapon = wStats(w); }
+  if (it.type === "Armor" || it.type === "Shield") { const a = it.type === "Shield" ? ARMOR.find(a => a[3] === "Shield") : baseIn(ARMOR.filter(a => a[3] !== "Shield"), x.name); if (a) it.armor = aStats(a); }
+  return it;
+}
+function catalog() {
+  const out = [];
+  WEAPONS.forEach(w => out.push({ cat: "weapon", sub: `${w[5]} ${isRanged(w) ? "ranged" : "melee"} weapons`, item: wItem(w) }));
+  ARMOR.forEach(a => out.push({ cat: "armor", sub: a[3] === "Shield" ? "Shields" : a[3] + " armor", item: aItem(a) }));
+  GEAR.forEach(g => {
+    const m = /^(.*) \((\d+)\)$/.exec(g[0]), n = m ? +m[2] : 1;
+    out.push({ cat: "gear", sub: g[3], item: { name: m ? m[1] : g[0], type: /^Potion/.test(g[0]) ? "Potion" : /^Spell Scroll/.test(g[0]) ? "Scroll" : GEAR_TYPE[g[3]] || "Gear", qty: n, cost: g[1], weight: +(g[2] / n).toFixed(3), desc: g[4] } });
+  });
+  ITEMS.forEach(x => out.push({ cat: "magic", sub: ITEM_TYPES.includes(x.type) ? x.type : "Wondrous Item", rar: x.rarity || "", item: bookItem(x) }));
+  return out;
+}
+const needsBase = it => (it.type === "Weapon" && !it.weapon) || ((it.type === "Armor" || it.type === "Shield") && !it.armor);
+const lb = n => n ? `${+(+n).toFixed(2)} lb` : "";
+const dexText = cap => cap === 0 ? "" : cap == null ? " + Dex" : ` + Dex (max ${cap})`;
+// One line about an item, for lists.
+function itemLine(i) {
+  return [i.weapon ? `${i.weapon.dmg}${i.bonus ? sg(i.bonus) : ""} ${i.weapon.type}` : "", i.armor ? (i.armor.cat === "Shield" ? `+${(+i.armor.base || 0) + (+i.acBonus || 0)} AC` : `AC ${(+i.armor.base || 0) + (+i.acBonus || 0)}${dexText(i.armor.cap)}`) : "",
+    i.weapon && i.weapon.props ? i.weapon.props : "", !i.weapon && !i.armor && i.type ? i.type : i.armor && i.armor.cat !== "Shield" ? i.armor.cat : "",
+    !i.armor && i.acBonus ? sg(+i.acBonus) + " AC" : "", i.attune ? "attunement" : "", i.cost || "", lb((+i.weight || 0) * (i.qty == null ? 1 : +i.qty))].filter(Boolean).join(" · ");
+}
+function itemFacts(i, src) {
+  const w = i.weapon, a = i.armor, ab = i.abil ? ABILS.filter(k => +i.abil[k]).map(k => `${ABIL_NAME[k]} ${sg(+i.abil[k])}`).join(", ") : "";
+  return `<dl class="spfacts">${fact("Type", i.type)}${fact("Rarity", i.rarity)}
+    ${w ? fact("Damage", `${w.dmg}${i.bonus ? sg(i.bonus) : ""} ${w.type}`) + fact("Properties", w.props) + fact("Mastery", w.mastery) + fact("Category", w.cat) + (i.bonus ? fact("To hit", sg(i.bonus)) : "") : ""}
+    ${a ? (a.cat === "Shield" ? fact("Armor class", `+${(+a.base || 0) + (+i.acBonus || 0)}`) : fact("Armor class", `${(+a.base || 0) + (+i.acBonus || 0)}${dexText(a.cap)}`) + fact("Category", a.cat)) + (a.str ? fact("Strength", a.str + "+") : "") + (a.stealth ? fact("Stealth", "Disadvantage") : "") : ""}
+    ${!a && i.acBonus ? fact("Armor class", sg(+i.acBonus)) : ""}${ab ? fact("Abilities", ab) : ""}${i.attune ? fact("Attunement", "Required" + (i.attuneBy ? " " + i.attuneBy : "")) : ""}
+    ${i.charges ? fact("Charges", String(i.charges)) : ""}${i.qty > 1 ? fact("Comes as", `${i.qty}`) : ""}${fact("Cost", i.cost)}${fact("Weight", i.qty > 1 && i.weight ? `${lb(i.weight * i.qty)} (all ${i.qty})` : lb(i.weight))}${fact("Source", src || i.src)}</dl>`;
+}
+
+// The gear picker: tabs for each kind of item, a dropdown for the kind within it, tap an item to read it all.
+const GP = { cat: "weapon", sub: "", rar: "" };
+let GCAT = [];
+const gearTabsFor = () => GEAR_TABS.filter(([k]) => k !== "magic" || ITEMS.length);
+function gearTabs() {
+  return gearTabsFor().map(([k, l]) => `<button role="tab" class="${k === GP.cat ? "on" : ""}" data-a="gtab" data-v="${k}" aria-selected="${k === GP.cat}"><b>${l}</b><span>${GCAT.filter(e => e.cat === k).length} items</span></button>`).join("");
+}
+function gearSubs() {
+  const subs = [...new Set(GCAT.filter(e => e.cat === GP.cat).map(e => e.sub))];
+  if (GP.cat === "magic") subs.sort();
+  const all = { weapon: "All weapons", armor: "All armor and shields", gear: "All gear", magic: "All magic items" }[GP.cat];
+  return `<option value="">${all}</option>` + subs.map(s => `<option value="${esc(s)}" ${s === GP.sub ? "selected" : ""}>${esc(s)}</option>`).join("");
+}
+function gearRow(e, i) {
+  const it = e.item;
+  return `<details class="sp" data-i="${i}" data-c="${e.cat}" data-sub="${esc(e.sub)}" data-r="${esc(e.rar || "")}" data-s="${esc((it.name + " " + e.sub + " " + (it.desc || "") + " " + (it.weapon ? it.weapon.props : "")).toLowerCase())}"><summary><span class="grow"><span class="nm">${esc(it.name)}</span>${it.qty > 1 ? ` <span class="tiny muted">×${it.qty}</span>` : ""}${it.rarity ? ` <span class="rar ${RK(it.rarity)}">${esc(it.rarity)}</span>` : ""}<span class="tiny muted"> · ${esc(itemLine(it))}</span></span><span data-gbtn="${i}"></span></summary>
+    <div class="body">${itemFacts(it, e.src)}${it.desc ? `<p>${esc(it.desc)}</p>` : ""}${needsBase(it) ? `<p class="small muted">Pick which ${it.type === "Weapon" ? "weapon" : "armor"} this is when you add it.</p>` : ""}<div class="row" style="margin-top:10px"><button class="btn sm" data-a="gcust" data-i="${i}">Customize, then add</button></div></div></details>`;
+}
+function gearPicker() {
+  if (!charRow(A.charId)) return;
+  GCAT = catalog();
+  if (!gearTabsFor().some(t => t[0] === GP.cat)) GP.cat = "weapon";
+  dialog("Add gear", `<div class="lvbar" role="tablist" id="gTabs" style="margin-top:0">${gearTabs()}</div>
+    <div id="gFilt" class="${GP.cat === "magic" ? "grid2" : ""}" style="margin-top:10px"><label class="f"><span>Kind</span><select id="gSub">${gearSubs()}</select></label>
+      <label class="f" id="gRarBox" ${GP.cat === "magic" ? "" : "hidden"}><span>Rarity</span><select id="gRar"><option value="">Any rarity</option>${opt(RARITIES, GP.rar, r => r[0].toUpperCase() + r.slice(1))}</select></label></div>
+    <input id="gQ" placeholder="Search all gear by name or what it does" autocomplete="off" style="margin-top:8px">
+    <p class="tiny muted" style="margin:6px 0 0">Tap an item to read all of it. <b>Customize</b> lets you change any stat before it goes in your pack, and ✎ on your sheet changes it later.${ITEMS.length ? "" : " Magic items show up here once your DM adds a book that has them."}</p>
+    <div id="gBody" class="sprows">${GCAT.map(gearRow).join("")}</div><p id="gNone" class="small muted" hidden>Nothing matches. Try another kind, or make a custom item.</p>`,
+    `<button class="btn" data-a="gcustom">Make a custom item</button><span class="grow"></span><button class="btn primary" data-a="close">Done</button>`,
+    dlg => { dlg.classList.add("wide"); refreshGear(); filterGear(""); });
+}
+// How many of each catalog item the character has: the Add buttons show it.
+function refreshGear() {
+  const r = charRow(A.charId), dlg = $("#dlg"); if (!r || !$("#gBody", dlg)) return;
+  const inv = r.data.inventory;
+  dlg.querySelectorAll("[data-gbtn]").forEach(el => {
+    const e = GCAT[+el.dataset.gbtn], n = inv.filter(o => o.name.toLowerCase() === e.item.name.toLowerCase()).reduce((s, o) => s + (o.qty == null ? 1 : +o.qty), 0);
+    el.innerHTML = n ? `<button class="btn sm added" data-a="gadd" data-i="${el.dataset.gbtn}" title="Add another">✓ ${n} · Add</button>` : `<button class="btn sm" data-a="gadd" data-i="${el.dataset.gbtn}">Add</button>`;
+  });
+}
+function filterGear(q) {
+  q = (q ?? (($("#gQ") || {}).value || "")).trim().toLowerCase();
+  let n = 0;
+  $("#dlg").querySelectorAll("#gBody .sp").forEach(el => {
+    const ok = q ? el.dataset.s.includes(q) : el.dataset.c === GP.cat && (!GP.sub || el.dataset.sub === GP.sub) && (GP.cat !== "magic" || !GP.rar || el.dataset.r === GP.rar);
+    el.hidden = !ok; if (ok) n++;
+  });
+  const none = $("#gNone"); if (none) none.hidden = n > 0;
+}
+// Put an item in the pack. Plain gear stacks with what's already there; weapons and armor go on equipped.
+function addToPack(d, src) {
+  const it = Object.assign({ qty: 1 }, JSON.parse(JSON.stringify(src)), { id: E.uid(), equipped: false, attuned: false });
+  const plain = o => !o.weapon && !o.armor && !o.attune && !o.charges && !o.abil && !o.acBonus && !o.fromDM;
+  const stack = plain(it) && d.inventory.find(o => plain(o) && o.name === it.name && (o.type || "") === (it.type || "") && (o.desc || "") === (it.desc || ""));
+  if (stack) { stack.qty = (stack.qty == null ? 1 : +stack.qty) + (+it.qty || 1); return stack; }
+  if (it.weapon) it.equipped = true;
+  if (it.armor) { it.equipped = true; d.inventory.forEach(o => { if (o.armor && (o.armor.cat === "Shield") === (it.armor.cat === "Shield")) o.equipped = false; }); }
+  d.inventory.push(it); return it;
+}
+
+// The item editor: every stat of an item, for custom items, tweaks, and the DM's Send.
+// books: start with dropdowns to pick any catalog item as a base.
+function itemForm(i = {}, books = false) {
+  let start = "";
+  if (books) {
+    GCAT = catalog();
+    start = `<div class="card" style="margin:0;padding:10px 12px"><div class="small" style="margin-bottom:6px"><b>Start from</b> <span class="muted">an item from the lists below, then change anything you like. Or leave this and write your own.</span></div>
+      <div class="grid2"><label class="f"><span>Kind</span><select id="iSrcCat">${gearTabsFor().map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></label>
+      <label class="f"><span>Item</span><select id="iSrc">${srcOpts("weapon")}</select></label></div><div id="iPrev"></div></div>`;
+  }
+  return `<div class="stack">${start}<div id="iFields" class="stack">${itemFields(i)}</div></div>`;
+}
+const srcOpts = cat => `<option value="">Choose…</option>` + [...new Set(GCAT.filter(e => e.cat === cat).map(e => e.sub))].sort((a, b) => cat === "magic" ? a.localeCompare(b) : 0)
+  .map(s => `<optgroup label="${esc(s)}">${GCAT.map((e, i) => e.cat === cat && e.sub === s ? `<option value="${i}">${esc(e.item.name)}${e.rar ? " (" + esc(e.rar) + ")" : ""}</option>` : "").join("")}</optgroup>`).join("");
+function itemFields(i) {
+  const w = i.weapon || {}, a = i.armor || {}, ab = i.abil || {};
+  const hasW = !!i.weapon || i.type === "Weapon", hasA = !!i.armor || i.type === "Armor" || i.type === "Shield";
+  const types = ITEM_TYPES.includes(i.type) || !i.type ? ITEM_TYPES : [i.type, ...ITEM_TYPES];
+  const num = (id, v, lab, extra = "") => `<label class="f"><span>${lab}</span><input id="${id}" type="number" class="num" value="${v}" inputmode="decimal" ${extra}></label>`;
+  const wOpts = ["Simple", "Martial"].map(c => `<optgroup label="${c} weapons">${WEAPONS.map((x, k) => x[5] === c ? `<option value="${k}">${esc(x[0])} (${esc(x[1])} ${esc(x[2])})</option>` : "").join("")}</optgroup>`).join("");
+  const aOpts = ["Light", "Medium", "Heavy", "Shield"].map(c => `<optgroup label="${c === "Shield" ? "Shields" : c + " armor"}">${ARMOR.map((x, k) => x[3] === c ? `<option value="${k}">${esc(x[0])} (${x[3] === "Shield" ? "+" + x[1] : "AC " + x[1]})</option>` : "").join("")}</optgroup>`).join("");
+  const cap = a.cap === undefined ? "full" : a.cap == null ? "full" : String(a.cap);
+  return `<label class="f"><span>Name</span><input id="iName" value="${esc(i.name || "")}" autocomplete="off" placeholder="e.g. Grandfather's Lantern"></label>
+    <div class="grid2"><label class="f"><span>Type</span><select id="iType">${opt(types, i.type || "Gear")}</select></label>
+      <label class="f"><span>Rarity</span><select id="iRarity"><option value="">Not magic</option>${opt(RARITIES, i.rarity || "", r => r[0].toUpperCase() + r.slice(1))}</select></label></div>
+    <div class="grid3">${num("iQty", i.qty == null ? 1 : i.qty, "Quantity", 'min="0"')}${num("iWt", i.weight || 0, "Weight each (lb)", 'min="0" step="any"')}<label class="f"><span>Cost</span><input id="iCost" value="${esc(i.cost || "")}" placeholder="e.g. 15 gp"></label></div>
+    <div class="row small" style="gap:14px"><label class="row nw" style="gap:6px"><input type="checkbox" id="iHasW" ${hasW ? "checked" : ""}> Attacks like a weapon</label><label class="row nw" style="gap:6px"><input type="checkbox" id="iHasA" ${hasA ? "checked" : ""}> Worn as armor or a shield</label></div>
+    <fieldset class="ifs" id="iW" ${hasW ? "" : "hidden"}><legend>Weapon</legend>
+      <label class="f"><span>Copy stats from</span><select id="iBaseW"><option value="">Choose a weapon…</option>${wOpts}</select></label>
+      <div class="grid3"><label class="f"><span>Damage dice</span><input id="iDmg" value="${esc(w.dmg || "")}" placeholder="1d8"></label>
+        <label class="f"><span>Damage type</span><select id="iDType">${opt(DMG_TYPES.includes(w.type) || !w.type ? DMG_TYPES : [w.type, ...DMG_TYPES], w.type || "slashing")}</select></label>
+        <label class="f"><span>Category</span><select id="iWCat">${opt(["Simple", "Martial"], w.cat || "Simple")}</select></label></div>
+      <label class="f"><span>Properties</span><input id="iProps" value="${esc(w.props || "")}" placeholder="e.g. Finesse, Light, Thrown (20/60)"></label>
+      <div class="grid3"><label class="f"><span>Mastery</span><select id="iMast"><option value="">None</option>${opt(MASTERIES.includes(w.mastery) || !w.mastery ? MASTERIES : [w.mastery, ...MASTERIES], w.mastery || "")}</select></label>
+        ${num("iBonus", i.bonus || 0, "+ to hit and damage")}<label class="row nw small" style="gap:6px;align-self:end;min-height:40px"><input type="checkbox" id="iProf" ${i.proficient === false ? "" : "checked"}> Proficient</label></div></fieldset>
+    <fieldset class="ifs" id="iA" ${hasA ? "" : "hidden"}><legend>Armor</legend>
+      <label class="f"><span>Copy stats from</span><select id="iBaseA"><option value="">Choose armor…</option>${aOpts}</select></label>
+      <div class="grid3"><label class="f"><span>Category</span><select id="iACat">${opt(["Light", "Medium", "Heavy", "Shield"], a.cat || (i.type === "Shield" ? "Shield" : "Light"))}</select></label>
+        ${num("iBase", a.base != null ? a.base : i.type === "Shield" ? 2 : 11, "Base AC (shield: bonus)")}
+        <label class="f"><span>Adds Dex</span><select id="iCap">${opt(["full", "3", "2", "1", "0"], cap, v => ({ full: "Full Dex", 0: "No Dex" })[v] || `Up to +${v}`)}</select></label></div>
+      <div class="grid2">${num("iStr", a.str || 0, "Strength needed")}<label class="row nw small" style="gap:6px;align-self:end;min-height:40px"><input type="checkbox" id="iStealth" ${a.stealth ? "checked" : ""}> Stealth disadvantage</label></div></fieldset>
+    <fieldset class="ifs"><legend>Magic and bonuses</legend>
+      <div class="grid2">${num("iAc", i.acBonus || 0, "+ to AC")}${num("iCh", i.charges || 0, "Charges", 'min="0"')}</div>
+      <div class="grid2"><label class="row nw small" style="gap:6px;min-height:40px"><input type="checkbox" id="iAttune" ${i.attune ? "checked" : ""}> Requires attunement</label><input id="iAttBy" value="${esc(i.attuneBy || "")}" placeholder="by… (optional, e.g. a wizard)"></div>
+      <div class="tiny muted">Ability scores (added while the item is equipped or attuned, like a Belt of Giant Strength)</div>
+      <div class="abgrid">${ABILS.map(k => `<label class="f"><span>${k.toUpperCase()}</span><input id="iAb_${k}" type="number" class="num" value="${+ab[k] || 0}" inputmode="numeric"></label>`).join("")}</div></fieldset>
+    <label class="f"><span>Description</span><textarea id="iDesc" placeholder="What it looks like and what it does">${esc(i.desc || "")}</textarea></label>`;
+}
+function readItem(base = {}) {
+  const q = val("iQty");
+  Object.assign(base, { name: val("iName") || "Unnamed item", type: val("iType"), rarity: val("iRarity"), qty: q === "" ? 1 : Math.max(0, Math.floor(+q || 0)),
+    weight: Math.max(0, +val("iWt") || 0), cost: val("iCost"), acBonus: +val("iAc") || 0, charges: Math.max(0, Math.floor(+val("iCh") || 0)),
+    attune: val("iAttune"), attuneBy: val("iAttune") ? val("iAttBy").replace(/^by\s+/i, "") : "", desc: val("iDesc") });
+  if (val("iHasW")) { base.weapon = { dmg: val("iDmg") || "1d4", type: val("iDType"), props: val("iProps"), mastery: val("iMast"), cat: val("iWCat") }; base.bonus = +val("iBonus") || 0; if (val("iProf")) delete base.proficient; else base.proficient = false; }
+  else { delete base.weapon; delete base.proficient; base.bonus = 0; }
+  if (val("iHasA")) { const c = val("iCap"); base.armor = { cat: val("iACat"), base: +val("iBase") || 0, cap: c === "full" ? null : +c, stealth: val("iStealth"), str: +val("iStr") || 0 }; }
+  else delete base.armor;
+  const ab = {}; ABILS.forEach(k => { const v = Math.floor(+val("iAb_" + k) || 0); if (v) ab[k] = v; });
+  if (Object.keys(ab).length) base.abil = ab; else delete base.abil;
+  return base;
+}
+// A generic magic item named for its base: "Weapon, +1" + Rapier = "+1 Rapier", "Armor of Resistance" + Chain Mail = "Chain Mail of Resistance".
+function baseName(cur, base) {
+  cur = cur.trim(); if (!cur) return base;
+  const m = /^(?:weapon|armor)(?:,\s*(\+\d)\b.*|(\s+of\b.*)?)$/i.exec(cur);
+  return !m ? cur : m[1] ? `${m[1]} ${base}` : base + (m[2] || "");
+}
+// Put what the editor read onto an item on the sheet, dropping stat blocks the editor turned off.
+function applyItem(it, form) {
+  ["weapon", "armor", "abil", "proficient"].forEach(k => delete it[k]);
+  Object.assign(it, JSON.parse(JSON.stringify(form)));
+  if (!it.attune) it.attuned = false;
+  if (!it.charges) delete it.chargesUsed; else if (it.chargesUsed > it.charges) it.chargesUsed = it.charges;
+  return it;
+}
+// o: { id } to edit an item on the sheet, { back: true } to return to the gear picker after.
+function itemEditor(it, o = {}) {
+  const foot = o.id ? `<button class="btn danger" data-a="delitem" data-id="${o.id}">Remove</button><span class="grow"></span><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveItem" data-id="${o.id}">Save</button>`
+    : `${o.back ? `<button class="btn" data-a="gback">‹ Back</button>` : `<button class="btn" data-a="close">Cancel</button>`}<span class="grow"></span><button class="btn primary" data-a="saveItem" ${o.back ? `data-back="1"` : ""}>Add to pack</button>`;
+  dialog(o.title || (o.id ? "Edit item" : "Custom item"), (o.note ? `<div class="banner" style="margin:0 0 10px">${o.note}</div>` : "") + itemForm(it), foot);
+}
+
+// The Gear tab: coins with quick spend and gain, then the pack.
+function coinCard(d) {
+  const worth = E.coinWorth(d.coins) / 100;
+  return `<div class="card"><div class="row"><h3 class="grow">Coins</h3><span class="small muted">Worth <b class="num">${worth.toLocaleString(undefined, { maximumFractionDigits: 2 })}</b> gp in all</span></div>
+    <div class="grid3" style="grid-template-columns:repeat(5,1fr)">${COINS.map(k => `<label class="f"><span>${k.toUpperCase()}</span><input type="number" class="num" data-coin="${k}" value="${d.coins[k] || 0}" inputmode="numeric"></label>`).join("")}</div>
+    <div class="coinbar"><input id="cAmt" type="number" class="num" min="1" inputmode="numeric" placeholder="Amount" aria-label="Amount" value="${esc(A.coinAmt || "")}">
+      <select id="cKind" aria-label="Coin">${COINS.map(k => `<option value="${k}" ${k === (A.coinKind || "gp") ? "selected" : ""}>${k.toUpperCase()}</option>`).join("")}</select>
+      <span class="coinbtns"><button class="btn" data-a="coin" data-v="-1">− Spend</button><button class="btn primary" data-a="coin" data-v="1">+ Gain</button></span></div>
+    <div class="chips" style="margin-top:6px">${[1, 5, 10, 25, 50, 100].map(n => `<button class="chip" data-a="camt" data-v="${n}">${n}</button>`).join("")}</div>
+    <p class="tiny muted" style="margin:6px 0 0">Pick an amount and a coin, then Spend or Gain. Short on that coin? Spending breaks a bigger one and gives you the change.</p></div>`;
+}
+function invRow(i) {
+  const qty = i.qty == null ? 1 : +i.qty, stackable = !i.weapon && !i.armor;
+  const left = i.charges ? i.charges - (+i.chargesUsed || 0) : 0;
+  return `<div class="feat"><div class="h"><b>${esc(i.name)}${!stackable && qty > 1 ? ` <span class="num muted">×${qty}</span>` : ""}</b>${i.fromDM ? `<span class="pill">from DM</span>` : ""}
+      ${stackable ? `<span class="qty"><button class="btn sm ghost" data-a="iqty" data-id="${i.id}" data-v="-1" aria-label="One fewer">−</button><span class="num ${qty ? "" : "muted"}">${qty}</span><button class="btn sm ghost" data-a="iqty" data-id="${i.id}" data-v="1" aria-label="One more">+</button></span>` : ""}
+      ${i.weapon || i.armor || i.acBonus || i.abil ? `<label class="small row nw" style="gap:4px"><input type="checkbox" data-a="equip" data-id="${i.id}" ${i.equipped ? "checked" : ""}> Equipped</label>` : ""}
+      ${i.attune ? `<label class="small row nw" style="gap:4px"><input type="checkbox" data-a="attune" data-id="${i.id}" ${i.attuned ? "checked" : ""}> Attuned</label>` : ""}
       <button class="btn sm ghost" data-a="edititem" data-id="${i.id}" aria-label="Edit">✎</button></div>
-      <div class="tiny muted">${[i.type, i.rarity ? `<span class="rar ${RK(i.rarity)}">${esc(i.rarity)}</span>` : "", i.attune ? "requires attunement" + (i.attuneBy ? " " + esc(i.attuneBy) : "") : "", i.weapon ? esc(i.weapon.dmg + " " + i.weapon.type) : "", i.armor ? (i.armor.cat === "Shield" ? "+2 AC" : "AC " + i.armor.base) : "", i.bonus ? "+" + i.bonus + " attack/damage" : "", i.acBonus ? "+" + i.acBonus + " AC" : ""].filter(Boolean).map(v => typeof v === "string" && v.startsWith("<") ? v : esc(v)).join(" · ")}</div>
-      ${i.desc ? `<details class="small"><summary class="muted">Description</summary><p>${esc(i.desc)}</p></details>` : ""}</div>`).join("");
-  const attuned = d.inventory.filter(i => i.attuned).length;
-  return `<div class="card"><h3>Coins</h3><div class="grid3" style="grid-template-columns:repeat(5,1fr)">${["cp", "sp", "ep", "gp", "pp"].map(k => `<label class="f"><span>${k.toUpperCase()}</span><input type="number" class="num" data-coin="${k}" value="${d.coins[k] || 0}" inputmode="numeric"></label>`).join("")}</div></div>
-    <div class="card"><div class="row"><h3 class="grow">Inventory</h3><span class="small muted">Attuned ${attuned}/3</span></div>${items || `<p class="muted small">Nothing yet.</p>`}</div>
-    <div class="row" style="margin-top:12px"><button class="btn grow" data-a="addweapon">Add weapon</button><button class="btn grow" data-a="addarmor">Add armor</button><button class="btn grow" data-a="additem">Add item</button></div>`;
+    <div class="tiny muted">${i.rarity ? `<span class="rar ${RK(i.rarity)}">${esc(i.rarity)}</span> · ` : ""}${esc(itemLine(Object.assign({}, i, { cost: "" })))}</div>
+    ${i.charges ? `<div class="row small" style="gap:6px;margin-top:4px"><span class="muted">Charges</span><button class="btn sm ghost" data-a="ichg" data-id="${i.id}" data-v="1" aria-label="Use a charge">−</button><b class="num">${left} / ${i.charges}</b><button class="btn sm ghost" data-a="ichg" data-id="${i.id}" data-v="-1" aria-label="Regain a charge">+</button></div>` : ""}
+    ${i.desc ? `<details class="small"><summary class="muted">Description</summary><p>${esc(i.desc)}</p></details>` : ""}</div>`;
+}
+function tGear(r, d, x) {
+  const inv = d.inventory, attuned = inv.filter(i => i.attuned).length;
+  const groups = [["Weapons and armor", inv.filter(i => i.weapon || i.armor)], ["Magic items", inv.filter(i => !i.weapon && !i.armor && (i.rarity || i.attune || i.charges || i.abil || i.acBonus))]];
+  groups.push(["Gear", inv.filter(i => !groups.some(g => g[1].includes(i)))]);
+  const weight = inv.reduce((s, i) => s + (+i.weight || 0) * (i.qty == null ? 1 : +i.qty), 0);
+  const body = groups.filter(g => g[1].length).map(([t, l]) => `<div class="tiny muted" style="margin-top:12px;text-transform:uppercase;letter-spacing:.06em">${t}</div>${l.map(invRow).join("")}`).join("");
+  return `${coinCard(d)}
+    <div class="card"><div class="row"><h3 class="grow">Inventory</h3><span class="small muted">${weight ? `${+weight.toFixed(1)} of ${x.scores.str * 15} lb · ` : ""}Attuned ${attuned}/3</span></div>${body || `<p class="muted small">Nothing yet. Add weapons, armor, gear and magic items below.</p>`}</div>
+    <div class="row" style="margin-top:12px"><button class="btn primary grow" data-a="addgear">Add gear</button><button class="btn grow" data-a="additem">Make a custom item</button></div>`;
 }
 function tFeatures(r, d, x) {
   const sec = (title, list, editable) => list.length ? `<div class="card"><h3>${title}</h3>${list.map(f => `<div class="feat"><div class="h"><b>${esc(f.name)}</b>${f.level ? `<span class="tiny muted">Lvl ${f.level}</span>` : ""}${f.source === "DM" ? `<span class="pill">from DM</span>` : f.source && editable ? `<span class="tiny muted">${esc(f.source)}</span>` : ""}${editable ? `<button class="btn sm ghost" data-a="editfeat" data-id="${f.id}" aria-label="Edit">✎</button>` : ""}</div>${f.text ? `<p>${esc(f.text)}</p>` : ""}${f.uses && f.uses.max ? `<div class="tiny muted">${f.uses.max} use${f.uses.max > 1 ? "s" : ""} per ${esc(f.uses.reset)} rest</div>` : ""}</div>`).join("")}</div>` : "";
@@ -1027,18 +1254,6 @@ function ask({ title, text = "", input = null, value = "", ok = "OK", danger = f
 const closeDlg = () => $("#dlg").open && $("#dlg").close();
 const val = id => { const el = $("#" + id); return el ? (el.type === "checkbox" ? el.checked : el.value.trim()) : ""; };
 
-function itemForm(i = {}) {
-  return `<div class="stack"><label class="f"><span>Name${ITEMS.length ? " (start typing to pick one from your books)" : ""}</span><input id="iName" value="${esc(i.name || "")}" ${ITEMS.length ? `list="itemList" autocomplete="off"` : ""}></label>
-    ${ITEMS.length ? `<datalist id="itemList">${ITEMS.map(x => `<option value="${esc(x.name)}">${esc(x.type)}, ${esc(x.rarity)} · ${esc(x.src)}</option>`).join("")}</datalist>` : ""}
-    <div class="grid2"><label class="f"><span>Type</span><select id="iType">${opt(["Wondrous Item", "Weapon", "Armor", "Shield", "Potion", "Scroll", "Ring", "Wand", "Staff", "Rod", "Gear", "Treasure"], i.type || "Wondrous Item")}</select></label>
-    <label class="f"><span>Rarity</span><select id="iRarity"><option value="">–</option>${opt(["common", "uncommon", "rare", "very rare", "legendary", "artifact"], i.rarity || "")}</select></label></div>
-    <div class="grid3"><label class="f"><span>Quantity</span><input id="iQty" type="number" class="num" value="${i.qty || 1}"></label><label class="f"><span>+ Attack/dmg</span><input id="iBonus" type="number" class="num" value="${i.bonus || 0}"></label><label class="f"><span>+ AC</span><input id="iAc" type="number" class="num" value="${i.acBonus || 0}"></label></div>
-    <label class="row small"><input type="checkbox" id="iAttune" ${i.attune ? "checked" : ""}> Requires attunement</label>
-    <label class="f"><span>Description</span><textarea id="iDesc">${esc(i.desc || "")}</textarea></label></div>`;
-}
-function readItem(base = {}) {
-  return Object.assign(base, { name: val("iName") || "Unnamed item", type: val("iType"), rarity: val("iRarity"), qty: +val("iQty") || 1, bonus: +val("iBonus") || 0, acBonus: +val("iAc") || 0, attune: val("iAttune"), desc: val("iDesc") });
-}
 function featForm(f = {}) {
   return `<div class="stack"><label class="f"><span>Name${FEATURES.length ? " (or pick a blessing, charm or other gift from your books)" : ""}</span><input id="fName" value="${esc(f.name || "")}" placeholder="e.g. Starborn Sight" ${FEATURES.length ? `list="featList" autocomplete="off"` : ""}></label>
     ${FEATURES.length ? `<datalist id="featList">${FEATURES.map(x => `<option value="${esc(x.name)}">${esc(x.kind)} · ${esc(x.src)}</option>`).join("")}</datalist>` : ""}
@@ -1060,14 +1275,6 @@ const spellPickOpts = L => `<option value="">Choose a spell…</option>` + SPELL
 // Picking a spell from the books fills in the rest of the form.
 document.addEventListener("input", e => {
   const pickedName = list => list.find(o => o.name.toLowerCase() === e.target.value.trim().toLowerCase());
-  if (e.target.id === "iName") {
-    const x = pickedName(ITEMS); if (!x) return;
-    const type = $("#iType"); type.value = [...type.options].some(o => o.value === x.type) ? x.type : "Wondrous Item";
-    $("#iRarity").value = ["common", "uncommon", "rare", "very rare", "legendary", "artifact"].includes(x.rarity) ? x.rarity : "";
-    $("#iBonus").value = x.bonus || 0; $("#iAc").value = x.acBonus || 0; $("#iAttune").checked = x.attune;
-    $("#iDesc").value = [x.attuneBy ? `Requires attunement by ${x.attuneBy}.` : "", x.charges ? `Charges: ${x.charges}.` : "", x.text].filter(Boolean).join(" ");
-    return;
-  }
   if (e.target.id === "fName") {
     const x = pickedName(FEATURES); if (!x) return;
     $("#fText").value = x.text; $("#fUses").value = x.uses || ""; $("#fReset").value = x.reset;
@@ -1105,7 +1312,7 @@ function sendDialog(preset = {}) {
   const kind = preset.kind || "item";
   const targets = A.chars.map(r => `<label class="chip ${preset.to && preset.to.includes(r.id) ? "on" : ""}" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" class="sendTo" value="${r.id}" ${preset.to && preset.to.includes(r.id) ? "checked" : ""} hidden>${esc(r.data.name || "Unnamed")}</label>`).join("");
   const forms = {
-    item: () => itemForm(preset.data || {}), feature: () => featForm(preset.data || {}), spell: () => spellForm(preset.data || {}),
+    item: () => itemForm(preset.data || {}, true), feature: () => featForm(preset.data || {}), spell: () => spellForm(preset.data || {}),
     coins: () => `<div class="grid3" style="grid-template-columns:repeat(5,1fr)">${["cp", "sp", "ep", "gp", "pp"].map(k => `<label class="f"><span>${k.toUpperCase()}</span><input type="number" class="num" id="c_${k}" value="0"></label>`).join("")}</div>`,
     xp: () => `<label class="f"><span>Experience points</span><input type="number" class="num" id="xpAmt" value="0"></label>`,
     level: () => `<p class="small muted">Each chosen player gets a "Level up" button on their sheet. Use this for milestone leveling.</p>`
@@ -1262,19 +1469,45 @@ const ACT = {
     if (el.checked && d0.inventory.filter(i => i.attuned).length >= 3) { el.checked = false; return toast("You can attune to at most 3 items"); }
     edit(A.charId, d => { const it = d.inventory.find(i => i.id === id); if (it) it.attuned = el.checked; });
   },
-  addweapon() { dialog("Add a weapon", `<div class="list">${WEAPONS.map((w, i) => `<div class="li"><div class="grow"><b>${w[0]}</b><div class="tiny muted">${w[1]} ${w[2]}${w[3] ? " · " + w[3] : ""} · ${w[4]}</div></div><button class="btn sm" data-a="pickW" data-i="${i}">Add</button></div>`).join("")}</div>`); },
-  pickW(el) { const w = WEAPONS[+el.dataset.i]; edit(A.charId, d => { d.inventory.push({ id: E.uid(), name: w[0], type: "Weapon", qty: 1, equipped: true, weapon: { dmg: w[1], type: w[2], props: w[3], mastery: w[4], cat: w[5] } }); }); closeDlg(); toast(w[0] + " added and equipped"); },
-  addarmor() { dialog("Add armor", `<div class="list">${ARMOR.map((a, i) => `<div class="li"><div class="grow"><b>${a[0]}</b><div class="tiny muted">${a[3]} · ${a[3] === "Shield" ? "+2 AC" : "AC " + a[1] + (a[2] === 0 ? "" : a[2] == null ? " + Dex" : " + Dex (max 2)")}${a[4] ? " · Stealth disadvantage" : ""}</div></div><button class="btn sm" data-a="pickA" data-i="${i}">Add</button></div>`).join("")}</div>`); },
-  pickA(el) { const a = ARMOR[+el.dataset.i]; edit(A.charId, d => { const it = { id: E.uid(), name: a[0], type: a[3] === "Shield" ? "Shield" : "Armor", qty: 1, equipped: true, armor: { base: a[1], cap: a[2], cat: a[3] } }; d.inventory.forEach(o => { if (o.armor && (o.armor.cat === "Shield") === (a[3] === "Shield")) o.equipped = false; }); d.inventory.push(it); }); closeDlg(); toast(a[0] + " added and equipped"); },
-  additem() { dialog("Add an item", itemForm(), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveItem">Add</button>`); },
+  addgear() { gearPicker(); },
+  gtab(el) { GP.cat = el.dataset.v; GP.sub = ""; GP.rar = ""; const dl = $("#dlg"); $("#gTabs", dl).innerHTML = gearTabs(); $("#gSub", dl).innerHTML = gearSubs(); $("#gRarBox", dl).hidden = GP.cat !== "magic"; $("#gFilt", dl).className = GP.cat === "magic" ? "grid2" : ""; $("#gRar", dl).value = ""; $("#gQ", dl).value = ""; filterGear(""); $("#gBody", dl).scrollTop = 0; },
+  gadd(el) {
+    const e = GCAT[+el.dataset.i]; if (!e) return;
+    if (needsBase(e.item)) return itemEditor(JSON.parse(JSON.stringify(e.item)), { back: true, title: e.item.name, note: `Which ${e.item.type === "Weapon" ? "weapon" : "armor"} is it? Pick it under <b>Copy stats from</b>, then add it.` });
+    let it; edit(A.charId, d => { it = addToPack(d, e.item); }); refreshGear();
+    toast(`${e.item.name} added${it && it.equipped ? " and equipped" : it && it.qty > 1 ? ` (${it.qty} now)` : ""}`);
+  },
+  gcust(el) { const e = GCAT[+el.dataset.i]; if (e) itemEditor(JSON.parse(JSON.stringify(e.item)), { back: true, title: "Customize " + e.item.name }); },
+  gcustom() { itemEditor({ type: "Gear" }, { back: true }); },
+  gback() { gearPicker(); },
+  additem() { itemEditor({ type: "Gear" }); },
   saveItem(el) {
-    const id = el.dataset.id;
-    edit(A.charId, d => { if (id) { const it = d.inventory.find(i => i.id === id); if (it) readItem(it); } else d.inventory.push(readItem({ id: E.uid(), equipped: false })); });
-    closeDlg();
+    // Read the form now: edit() runs again on the saved copy after the dialog has changed.
+    const id = el.dataset.id, form = readItem({});
+    edit(A.charId, d => { if (id) { const it = d.inventory.find(i => i.id === id); if (it) applyItem(it, form); } else addToPack(d, form); });
+    if (el.dataset.back) { gearPicker(); toast(form.name + " added"); } else closeDlg();
   },
   edititem(el) {
     const it = charRow(A.charId).data.inventory.find(i => i.id === el.dataset.id); if (!it) return;
-    dialog("Edit item", itemForm(it), `<button class="btn danger" data-a="delitem" data-id="${it.id}">Remove</button><span class="grow"></span><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveItem" data-id="${it.id}">Save</button>`);
+    itemEditor(it, { id: it.id });
+  },
+  iqty(el) { const id = el.dataset.id, v = +el.dataset.v; edit(A.charId, d => { const it = d.inventory.find(i => i.id === id); if (it) it.qty = Math.max(0, (it.qty == null ? 1 : +it.qty) + v); }); },
+  ichg(el) { const id = el.dataset.id, v = +el.dataset.v; edit(A.charId, d => { const it = d.inventory.find(i => i.id === id); if (it && it.charges) it.chargesUsed = Math.max(0, Math.min(it.charges, (+it.chargesUsed || 0) + v)); }); },
+  camt(el) { A.coinAmt = el.dataset.v; const i = $("#cAmt"); if (i) i.value = el.dataset.v; },
+  coin(el) {
+    const n = Math.floor(+val("cAmt") || 0), k = val("cKind") || "gp", gain = +el.dataset.v > 0;
+    A.coinKind = k;
+    if (n <= 0) return toast("Enter an amount first");
+    const d0 = charRow(A.charId).data;
+    if (!gain && !E.spendCoins(d0.coins, n, k)) return toast(`Not enough coin: you have ${(E.coinWorth(d0.coins) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} gp worth`);
+    let broke = null;
+    A.coinAmt = "";
+    edit(A.charId, d => {
+      if (gain) d.coins[k] = (+d.coins[k] || 0) + n;
+      else { const r = E.spendCoins(d.coins, n, k); if (!r) return; d.coins = r.coins; broke = r.broke; }
+      d.log.unshift({ t: Date.now(), text: `${gain ? "Gained" : "Spent"} ${n} ${k}` });
+    });
+    toast(gain ? `+${n} ${k}` : `Spent ${n} ${k}${broke ? ` (broke 1 ${broke} for change)` : ""}`);
   },
   delitem(el) { const id = el.dataset.id; edit(A.charId, d => { d.inventory = d.inventory.filter(i => i.id !== id); }); closeDlg(); },
   addfeat() { dialog("Custom feature or skill", featForm(), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveFeat">Add</button>`); },
@@ -1451,6 +1684,7 @@ document.addEventListener("click", e => {
 document.addEventListener("change", e => {
   const el = e.target;
   if (el.id === "nSess") { A.noteSess = el.value; return; }
+  if (el.id === "cKind") { A.coinKind = el.value; return; }
   if (el.matches("input[type=checkbox][data-a]")) { const f = ACT[el.dataset.a]; f && Promise.resolve(f(el)).catch(fail); return; }
   if (A.view === "build") {
     const d = A.draft;
@@ -1470,10 +1704,48 @@ document.addEventListener("change", e => {
 document.addEventListener("input", e => {
   if (e.target.id === "nBody") A.noteDraft = e.target.value;
   if (e.target.id === "spQ") filterPicker(e.target.value);
+  if (e.target.id === "gQ") filterGear(e.target.value);
+  if (e.target.id === "cAmt") A.coinAmt = e.target.value;
   if (A.view === "build" && e.target.dataset.b === "name") { A.draft.name = e.target.value; const b = document.querySelector('[data-a="bdone"]'); if (b) b.disabled = !e.target.value.trim(); }
 });
 $("#dlg").addEventListener("click", e => { if (e.target === $("#dlg")) closeDlg(); });
 $("#dlg").addEventListener("change", e => {
+  const id = e.target.id, dl = $("#dlg");
+  if (id === "gSub") { GP.sub = e.target.value; filterGear(); return; }
+  if (id === "gRar") { GP.rar = e.target.value; filterGear(); return; }
+  // Item editor: the type sets which stat sections show; "Copy stats from" fills them in.
+  const showSec = () => { $("#iW", dl).hidden = !$("#iHasW", dl).checked; $("#iA", dl).hidden = !$("#iHasA", dl).checked; };
+  if (id === "iType") {
+    const t = e.target.value;
+    if (t === "Weapon") { $("#iHasW", dl).checked = true; $("#iHasA", dl).checked = false; }
+    if (t === "Armor" || t === "Shield") { $("#iHasA", dl).checked = true; $("#iHasW", dl).checked = false; $("#iACat", dl).value = t === "Shield" ? "Shield" : $("#iACat", dl).value === "Shield" ? "Light" : $("#iACat", dl).value; if (t === "Shield") $("#iBase", dl).value = 2; }
+    showSec(); return;
+  }
+  if (id === "iHasW" || id === "iHasA") { showSec(); return; }
+  if (id === "iBaseW") {
+    const w = WEAPONS[+e.target.value]; if (!w || e.target.value === "") return;
+    $("#iDmg", dl).value = w[1]; $("#iDType", dl).value = w[2]; $("#iWCat", dl).value = w[5]; $("#iProps", dl).value = w[3]; $("#iMast", dl).value = w[4];
+    const n = $("#iName", dl); n.value = baseName(n.value, w[0]);
+    if (!+$("#iWt", dl).value) $("#iWt", dl).value = w[7] || 0;
+    e.target.value = ""; toast(w[0] + " stats copied"); return;
+  }
+  if (id === "iBaseA") {
+    const a = ARMOR[+e.target.value]; if (!a || e.target.value === "") return;
+    $("#iACat", dl).value = a[3]; $("#iBase", dl).value = a[1]; $("#iCap", dl).value = a[2] == null ? "full" : String(a[2]); $("#iStr", dl).value = a[7] || 0; $("#iStealth", dl).checked = !!a[4];
+    const n = $("#iName", dl); n.value = baseName(n.value, a[0]);
+    if (!+$("#iWt", dl).value) $("#iWt", dl).value = a[6] || 0;
+    e.target.value = ""; toast(a[0] + " stats copied"); return;
+  }
+  if (id === "iACat" && e.target.value === "Shield" && !+$("#iBase", dl).value) { $("#iBase", dl).value = 2; return; }
+  // Send > Item: pick a starting item, which fills the whole form.
+  if (id === "iSrcCat") { $("#iSrc", dl).innerHTML = srcOpts(e.target.value); $("#iPrev", dl).innerHTML = ""; return; }
+  if (id === "iSrc") {
+    const x = GCAT[+e.target.value]; if (!x || e.target.value === "") { $("#iPrev", dl).innerHTML = ""; return; }
+    $("#iFields", dl).innerHTML = itemFields(JSON.parse(JSON.stringify(x.item)));
+    $("#iPrev", dl).innerHTML = `<details class="small" style="margin-top:6px"><summary class="muted">Everything about ${esc(x.item.name)}</summary><div style="margin-top:6px">${itemFacts(x.item, x.src)}${x.item.desc ? `<p class="small" style="margin:8px 0 0;white-space:pre-wrap">${esc(x.item.desc)}</p>` : ""}</div></details>`;
+    if (needsBase(x.item)) toast(`Pick which ${x.item.type === "Weapon" ? "weapon" : "armor"} it is under Copy stats from`);
+    return;
+  }
   if (e.target.id === "sPickL") { $("#sPick").innerHTML = spellPickOpts(+e.target.value); $("#sPrev").innerHTML = ""; return; }
   if (e.target.id === "sPick") {
     const x = SPELLS[+e.target.value]; if (!x || e.target.value === "") { $("#sPrev").innerHTML = ""; return; }
