@@ -1,14 +1,14 @@
 {
-  "version": "1.10.1",
+  "version": "1.10.2",
   "minShell": "1.2.0",
-  "notes": "Companion: spell picker grouped by level, with spell limits and full spell details",
-  "published": "2026-11-03T02:38:32.535Z",
+  "notes": "Companion: spell picker with a level toggle, slots and spells left per level; real dropdowns for picking spells",
+  "published": "2026-11-03T02:46:41.382Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "0c827ba30dcd3eb7ef15dfc31fe2a46cbdc2ea65670029867cd2126542278b0b",
+    "package.json": "feb32e4b7c7c17e9e8523f350f900116e93077d782a394fc326f2b2afabf1cd4",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "51470c737e97e16a47b139b2d4d63b0391a6dea3b97058abc28ac491a6e85232",
@@ -25,7 +25,7 @@
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "51470c737e97e16a47b139b2d4d63b0391a6dea3b97058abc28ac491a6e85232",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "2b4010f8fbe32eef07493c1ba275e28e2d1f08505f0c7c106568126e2360ffa1",
+    "app/companion/index.html": "205d5fbb7f02c0c94bf54415c61e0407ed11313d7e89dd0094cedc39319c48e3",
     "app/companion/srd.js": "5b4e145a42b801685d7f53950722ab37fad871e92311d5dad96b7eddf9302099",
     "app/index.html": "6fb54e2a5dcad23f32728d9a3cb536e801f25d468dce3aba8834f246b3378f78"
   }
