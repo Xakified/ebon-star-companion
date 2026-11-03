@@ -1,14 +1,14 @@
 {
-  "version": "1.10.4",
+  "version": "1.10.5",
   "minShell": "1.2.0",
-  "notes": "Companion: tap anything rollable on Main and Combat to roll 3D dice, hold for advantage, crits and dice color",
-  "published": "2026-11-03T03:19:58.092Z",
+  "notes": "Companion: Combat tab lists your spells with tap-to-roll attacks, damage, healing and upcasting",
+  "published": "2026-11-03T03:28:22.280Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "4cc87f91625da488a00ff0a0794f473f79a7defa0dfd728843745c9853febf3c",
+    "package.json": "3b62b5b0e56a429e3c5245141ef72d15777ca47dd683feca84fa0895c8d68f62",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "3d4e9f41cdb8aa35144ebc01d43a537bfdee989cf8083e081448d3891292a5a7",
@@ -25,7 +25,7 @@
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "3d4e9f41cdb8aa35144ebc01d43a537bfdee989cf8083e081448d3891292a5a7",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "b149293656be1b53be0089465fdfada9b37afe3e93d6a5c38c2e8eeef5aa2a43",
+    "app/companion/index.html": "e553742fe4a1c61ff18073923bbaef822e190d922a3b88aeebb052f69a869fb5",
     "app/companion/srd.js": "c081ef3a6fee32eb0cd05d3538f86366b3964c8a2f28d55d2362438c34b6e39c",
     "app/index.html": "6fb54e2a5dcad23f32728d9a3cb536e801f25d468dce3aba8834f246b3378f78"
   }
