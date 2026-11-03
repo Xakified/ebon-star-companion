@@ -44,12 +44,15 @@ Open the app, create your campaign, and tap **Copy invite link**. The link fills
 ## What's in the prototype
 
 **Players**
-- A step-by-step builder: class, background (with the 2024 +2/+1 or +1/+1/+1 ability increases), species and lineage, abilities (standard array, point buy, or rolled), and skills. It covers all 12 SRD classes, 9 species, and 4 backgrounds.
+- A step-by-step builder that makes the whole character: class, background (with the 2024 +2/+1 or +1/+1/+1 ability increases and Magic Initiate's spell list), species, lineage and size, abilities (standard array, point buy, or rolled), skills, class features (Fighting Style, Weapon Mastery, Expertise, Divine and Primal Order, Eldritch Invocations, tool and instrument picks), background tool, languages, spells (the class's cantrips and prepared spells, Magic Initiate picks, and species spells added for you), starting equipment (the class and background packages or gold), alignment, and a name. It covers all 12 SRD classes, 9 species, and 4 backgrounds, plus your DM's books.
+- Choices you haven't made yet are outlined in amber with how many are left. The step bar turns amber for earlier steps with choices left, and the last step lists everything still to choose with a link back to each.
 - A phone sheet that does the math for you:
   - Combat basics: HP with damage, healing, and temp HP; AC from equipped armor, shields, magic bonuses, and Unarmored Defense; initiative; speed; saves; and skills with proficiency and expertise.
   - Tracking: attacks from equipped weapons with mastery properties, spell slots (including half casters and Warlock pact slots), and class resources such as Rage, Second Wind, Focus, and Sorcery Points.
   - Condition and rest tracking: death saves, conditions, short and long rests, Exhaustion 0 to 6 (2024 rules), and your Stress 0 to 4 house rule.
-- Level-ups from 1 to 20: roll or average HP, pick a subclass at 3 (the SRD option or a custom one), and take ASIs or feats. Leveling can be triggered by XP or by a milestone you send.
+- Level-ups from 1 to 20: roll or average HP, pick a subclass at 3 (the SRD option or a custom one), take ASIs or feats (with the feat's +1 ability), and make that level's class choices. Leveling can be triggered by XP or by a milestone you send. When a level gives new cantrips or spells, the spell picker opens afterwards.
+- **Multiclassing** (2024 rules): the level-up dialog asks which class takes the level, including any class you don't have yet. It checks the 13-in-the-main-ability requirement for the new class and your current ones (your DM can still allow it), lists the proficiencies you gain, and asks for the multiclass skill or instrument. Spell slots add up across spellcasting classes (full casters, half of Paladin and Ranger rounded up, a third of Eldritch Knight and Arcane Trickster), Warlock pact slots stay separate, and cantrips and prepared spells add up per class. Features, resources, hit dice and the header all show each class.
+- A **still to choose** card at the top of the sheet lists anything not decided yet (class choices, subclass, cantrips, spells, Magic Initiate spells), with buttons to make them.
 - Custom features and skills, with optional limited uses that reset on a short rest, long rest, or dawn. Players can also add custom items and spells.
 - An inbox for things the DM sends, with Accept and Decline.
 
@@ -61,8 +64,7 @@ Open the app, create your campaign, and tap **Copy invite link**. The link fills
 - A history of sent things showing whether each was accepted or declined.
 
 ## Not yet (next stages)
-- The full SRD spell list to pick from (players can type in spells or you can send them for now), and starting equipment packages.
-- Subclass feature text beyond level 3, and multiclassing.
+- Subclass feature text beyond level 3.
 - A Party tab inside the DM Suite desktop app. Right now the DM side lives in this app.
 - Linking an email so a player can move their character to a new phone. Anonymous sign-in is tied to the device.
 

@@ -24,7 +24,7 @@ function summarize(row, members, parties = []) {
   return {
     id: row.id, version: row.version, name: d.name || "Unnamed", player: m ? m.display_name : "",
     partyId: pt ? pt.id : "", partyName: pt ? pt.name || "Party" : "",
-    summary: `${d.species || ""} ${d.cls || ""} ${d.level || 1}`.trim(),
+    summary: `${d.species || ""} ${E.classLabel ? E.classLabel(d) : `${d.cls || ""} ${d.level || 1}`}`.trim(),
     ac: x.ac, maxHp: x.hpMax, hp: d.hp && d.hp.cur != null ? d.hp.cur : x.hpMax, temp: (d.hp && d.hp.temp) || 0,
     mod: x.init, passive: x.passive, speed: x.speed,
     conditions: (d.conditions || []).filter(c => SRD_CONDS.includes(c)), exhaustion: d.exhaustion || 0, stress: d.stress || 0
