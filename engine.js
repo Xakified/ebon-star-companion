@@ -43,8 +43,15 @@ function scores(ch) {
   return out;
 }
 
+// An Eldritch Knight or Arcane Trickster: a subclass that brings spellcasting to a class without it.
+function subCaster(ch) {
+  const c = S.CLASSES[ch.cls], sc = S.SUB_CASTERS[ch.subclass];
+  return (!c || !c.caster) && sc && sc.cls === ch.cls && ch.level >= 3 ? sc : null;
+}
+
 function slots(ch) {
   const c = S.CLASSES[ch.cls];
+  if (subCaster(ch)) return { slots: S.FULL_SLOTS[Math.ceil(ch.level / 3) - 1] || [], pact: null };
   if (!c || !c.caster) return { slots: [], pact: null };
   if (c.caster === "pact") return { slots: [], pact: S.PACT(ch.level) };
   const lv = c.caster === "half" ? Math.ceil(ch.level / 2) : ch.level;
@@ -135,7 +142,7 @@ function derive(ch) {
   if (ch.cls === "Barbarian" && lv >= 5) speed += 10;
   if (ch.cls === "Monk" && lv >= 2) speed += lv >= 18 ? 30 : lv >= 14 ? 25 : lv >= 10 ? 20 : lv >= 6 ? 15 : 10;
   speed = Math.max(0, speed - 5 * (ch.exhaustion || 0)); // 2024 Exhaustion: -5 ft per level
-  const spellAbil = c && c.spellAbil;
+  const sub = subCaster(ch), spellAbil = (c && c.spellAbil) || (sub && sub.abil);
   const spell = spellAbil ? { abil: spellAbil, dc: 8 + pb + m[spellAbil], atk: pb + m[spellAbil] } : null;
   const res = c ? (c.res || []).filter(r => typeof r[1] === "function").map(([name, f, reset]) => ({ name, max: f(lv, { mods: m }), reset })).filter(r => r.max) : [];
   const xpNext = lv < 20 ? XP_TABLE[lv] : null;
@@ -144,6 +151,33 @@ function derive(ch) {
     passive: 10 + skills.Perception.mod, attacks: attacks(ch, m, pb), classFeatures: classFeatures(ch),
     speciesTraits: sp ? sp.traits.map(t => ({ name: t[0], text: t[1], source: ch.species })) : [],
     hitDie: c ? c.hd : 8, d20Penalty: 2 * (ch.exhaustion || 0), xpNext, canLevelByXp: xpNext != null && ch.xp >= xpNext
+  };
+}
+
+// How many cantrips and prepared spells the character can have (2024 rules), what they have now,
+// the highest spell level they can cast, and which class lists they choose from.
+// Spells marked bonus (from a feat, species, subclass or item) or always prepared don't count.
+function spellRules(ch) {
+  const lv = Math.max(1, Math.min(20, ch.level || 1)), adj = ch.spellAdjust || {};
+  const own = (ch.spells || []).filter(s => !s.bonus && !s.alwaysPrepared);
+  const have = {
+    cantrips: own.filter(s => !s.level).length,
+    prepared: own.filter(s => s.level && s.prepared).length,
+    spellbook: own.filter(s => s.level).length
+  };
+  const r = S.SPELLCASTING[ch.cls] || subCaster(ch);
+  const { slots: sl, pact } = slots(ch);
+  let maxLevel = pact ? pact.lvl : sl.length;
+  const arcanum = ch.cls === "Warlock" ? [[11, 6], [13, 7], [15, 8], [17, 9]].filter(([l]) => lv >= l).map(([, s]) => s) : [];
+  if (arcanum.length) maxLevel = Math.max(maxLevel, ...arcanum);
+  if (!r) return { known: false, cantrips: null, prepared: null, spellbook: null, maxLevel, arcanum, lists: [], have };
+  const lists = r.lists.slice();
+  if (ch.cls === "Bard" && lv >= 10) lists.push("Cleric", "Druid", "Wizard"); // Magical Secrets
+  return {
+    known: true, have, maxLevel, arcanum, lists,
+    cantrips: Math.max(0, (r.cantrips[lv - 1] || 0) + (+adj.cantrips || 0)),
+    prepared: Math.max(0, (r.prepared[lv - 1] || 0) + (+adj.prepared || 0)),
+    spellbook: r.spellbook ? 6 + 2 * (lv - 1) + (+adj.spellbook || 0) : null
   };
 }
 
@@ -343,6 +377,6 @@ function checkContent(d) {
   return parts.join(" · ");
 }
 
-g.Engine = { uid, mod, sign, profBonus, blank, derive, levelUpPlan, applyLevelUp, applyGrant, grantLabel, fromSuiteItem, asiLevels, XP_TABLE,
+g.Engine = { uid, mod, sign, profBonus, blank, derive, spellRules, levelUpPlan, applyLevelUp, applyGrant, grantLabel, fromSuiteItem, asiLevels, XP_TABLE,
   useContent, subclassOptions, subclassDef, checkContent };
 })(typeof window !== "undefined" ? window : globalThis);

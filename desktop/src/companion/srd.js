@@ -210,6 +210,28 @@ const FULL_SLOTS = [
   [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 3, 2, 2, 1, 1]];
 const PACT = lv => ({ n: lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, lvl: Math.min(5, Math.ceil(lv / 2)) });
 
+// Spells a character can have, from the 2024 Player's Handbook class tables (index 0 = level 1).
+// "prepared" is the Prepared Spells column; wizards also keep a spellbook (6 spells, +2 a level).
+const by3 = (a, b, c) => Array.from({ length: 20 }, (_, i) => (i < 3 ? a : i < 9 ? b : c));
+const PREP_FULL = [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22];
+const PREP_HALF = [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15];
+const PREP_THIRD = [0, 0, 3, 4, 4, 4, 5, 6, 6, 7, 8, 8, 9, 10, 10, 11, 11, 11, 12, 13];
+const SPELLCASTING = {
+  Bard: { cantrips: by3(2, 3, 4), prepared: PREP_FULL, lists: ["Bard"] },
+  Cleric: { cantrips: by3(3, 4, 5), prepared: PREP_FULL, lists: ["Cleric"] },
+  Druid: { cantrips: by3(2, 3, 4), prepared: PREP_FULL, lists: ["Druid"] },
+  Paladin: { cantrips: by3(0, 0, 0), prepared: PREP_HALF, lists: ["Paladin"] },
+  Ranger: { cantrips: by3(0, 0, 0), prepared: PREP_HALF, lists: ["Ranger"] },
+  Sorcerer: { cantrips: by3(4, 5, 6), prepared: [2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22], lists: ["Sorcerer"] },
+  Warlock: { cantrips: by3(2, 3, 4), prepared: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15], lists: ["Warlock"] },
+  Wizard: { cantrips: by3(3, 4, 5), prepared: [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25], lists: ["Wizard"], spellbook: true }
+};
+// Subclasses that give a non-caster spellcasting from level 3, with slots as a full caster of a third their level.
+const SUB_CASTERS = {
+  "Eldritch Knight": { cls: "Fighter", abil: "int", cantrips: [0, 0, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], prepared: PREP_THIRD, lists: ["Wizard"] },
+  "Arcane Trickster": { cls: "Rogue", abil: "int", cantrips: [0, 0, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4], prepared: PREP_THIRD, lists: ["Wizard"] }
+};
+
 // [name, base AC, dex cap (null = no cap, 0 = none), category, stealth disadvantage]
 const ARMOR = [
   ["Padded Armor", 11, null, "Light", true], ["Leather Armor", 11, null, "Light", false], ["Studded Leather Armor", 12, null, "Light", false],
@@ -257,6 +279,6 @@ const FEATURES = [];
 const SOURCE = {};
 const POINT_COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
-g.SRD = { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, FULL_SLOTS, PACT, ARMOR, WEAPONS, CONDITIONS, STANDARD_ARRAY, POINT_COST,
+g.SRD = { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, FULL_SLOTS, PACT, SPELLCASTING, SUB_CASTERS, ARMOR, WEAPONS, CONDITIONS, STANDARD_ARRAY, POINT_COST,
   LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SUBCLASSES, SPELLS, ITEMS, FEATURES, SOURCE };
 })(typeof window !== "undefined" ? window : globalThis);
