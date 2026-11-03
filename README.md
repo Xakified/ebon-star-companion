@@ -71,6 +71,7 @@ Everything with a bonus on the **Main** and **Combat** tabs rolls when you tap i
 
 - Hold anything rollable (or right-click on a computer) to roll with advantage or disadvantage, roll critical damage (double dice), or two-handed damage for versatile weapons. The same menu picks the dice color.
 - After an attack, the card offers **Roll damage**, and **Roll critical damage** on a natural 20.
+- **Spells on the Combat tab.** The Spellcasting card lists every cantrip and prepared spell by level (a button shows the unprepared ones). Each row has its spell attack, save DC and main dice ready to tap; tap the spell's name to open its full text and details, where every dice expression in the text is tappable. Cantrips grow their dice at levels 5, 11 and 17, healing adds your spellcasting modifier, and **Cast at** (or holding the dice) picks a higher slot level for spells that upcast.
 - A death save marks the success or failure on the sheet for you (a 20 brings you back with 1 HP).
 - Exhaustion's −2 per level is taken off every d20 roll.
 - The numbers come from the browser's secure random generator. Phones set to reduce motion skip the animation and show the result straight away.

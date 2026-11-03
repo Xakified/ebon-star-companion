@@ -263,6 +263,21 @@ dialog { border-color: var(--gold); background: var(--raised); box-shadow: 0 12p
 dialog .dh h2 { color: var(--royal); }
 .row > .grow:is(h1, h2, h3) { min-width: min(100%, max-content); }
 
+
+.cstitle { margin: 12px 0 2px; font-family: var(--display); color: var(--royal); font-size: .9rem; }
+.cshead { margin: 10px 0 2px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.csp { border-top: 1px solid var(--line); }
+.csp > summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 7px 0; cursor: pointer; }
+.csp > summary::-webkit-details-marker { display: none; }
+.csp > summary .grow::before { content: "▸"; display: inline-block; width: 1em; color: var(--muted); transition: transform .15s; }
+.csp[open] > summary .grow::before { transform: rotate(90deg); }
+.csp.unprep > summary b { color: var(--muted); }
+.csmeta { display: block; margin-left: 1em; }
+.csacts { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.csbody { padding: 0 0 10px 1em; }
+.cstext { margin: 4px 0 6px; font-family: var(--book); font-size: 1rem; line-height: 1.55; }
+.cstext .rbtn { min-height: 26px; padding: 1px 6px; vertical-align: 1px; }
+.rbtn.heal { color: var(--good); border-color: #6aa874; background: linear-gradient(#ffffff, #e3f3e5); }
 /* ---- dice ---- */
 #diceTray { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 90; pointer-events: none; display: none; }
 #diceTray.on { display: block; }
@@ -573,7 +588,9 @@ const Dice = (() => {
       if (sides === 100) { const r = v % 100; dice.push({ sides: 10, kind: "tens", want: Math.floor(r / 10), idx }, { sides: 10, kind: "ones", want: r % 10, idx }); }
       else dice.push({ sides, kind: "", want: v - 1, idx });
     });
-    const shown = dice.slice(0, 24); // a big fireball still rolls them all, but only this many tumble on screen
+    // a big fireball still rolls them all, but only this many tumble on screen (and only the shapes we have)
+    const shown = dice.filter(d => [4, 6, 8, 10, 12, 20].includes(d.sides)).slice(0, 24);
+    if (!shown.length) return Promise.resolve(values);
     const fromRight = vis() < 0.5, side = fromRight ? 1 : -1;
     shown.forEach((d, i) => {
       d.s = shape(d.sides); d.labels = labelsFor(d.kind, d.sides);
@@ -1106,7 +1123,8 @@ function tCombat(r, d, x) {
     <div class="card"><h3>Attacks</h3><div class="list">${x.attacks.map((a, i) => { const dm = parseDice(a.dmg), dtxt = esc(a.dmg.replace(/\s+[a-z]+$/i, "")), dtype = esc((a.dmg.match(/[a-z]{3,}$/i) || [""])[0]);
       return `<div class="li"><div class="grow"><b>${esc(a.name)}</b>${a.props ? `<div class="tiny muted">${esc(a.props)}${a.mastery ? " · Mastery: " + esc(a.mastery) : ""}</div>` : ""}</div><button class="rbtn" ${rollAttr("atk", i, a.name + " attack")}>${sg(a.hit)}</button>${dm.groups.length ? `<button class="rbtn dmg" ${rollAttr("dmg", i, a.name + " damage")}>${dtxt} <small>${dtype}</small></button>` : `<span class="num small" style="min-width:5em;text-align:right">${esc(a.dmg)}</span>`}</div>`; }).join("")}</div>
       <p class="tiny muted">Tap the bonus to attack and the damage to roll it; hold either for advantage, a critical hit or two-handed damage. Equip weapons on the Gear tab to see them here.${x.d20Penalty ? ` Exhaustion: −${x.d20Penalty} to attack rolls.` : ""}</p></div>
-    ${x.spell ? `<div class="card"><div class="row"><h3 class="grow">Spellcasting</h3><span class="small">Save DC <b class="num">${x.spell.dc}</b> · Attack <button class="rbtn" ${rollAttr("spatk", null, "a spell attack")}>${sg(x.spell.atk)}</button></span></div><div class="list">${slotRows}${pact}</div></div>` : ""}
+    ${x.spell || d.spells.length ? `<div class="card"><div class="row"><h3 class="grow">Spellcasting</h3>${x.spell ? `<span class="small">Save DC <b class="num">${x.spell.dc}</b> · Attack <button class="rbtn" ${rollAttr("spatk", null, "a spell attack")}>${sg(x.spell.atk)}</button></span>` : ""}</div>${slotRows || pact ? `<div class="list">${slotRows}${pact}</div>` : ""}
+      <h4 class="cstitle">Spells</h4>${combatSpells(d, x)}<p class="tiny muted" style="margin:8px 0 0">Tap a spell for its details. Tap any dice to roll; hold for a critical hit or a higher slot level.</p></div>` : ""}
     ${res || custom ? `<div class="card"><h3>Resources</h3><div class="list">${res}${custom}</div></div>` : ""}`;
 }
 // ---------- spells ----------
@@ -2012,6 +2030,73 @@ const ACT = {
   }
 };
 
+
+// ---------- spells on the Combat tab ----------
+// Reads the dice out of a spell's text: "2d8 + your spellcasting modifier", "8d6 Fire", "+1d6 per slot above 3rd",
+// cantrips that grow at levels 5, 11 and 17, "three darts", "Ranged spell attack", "Dex save".
+const DMG_RE = /\b(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)\b/i;
+const NUMW = { two: 2, three: 3, four: 4, five: 5, six: 6 };
+function spellRolls(s, d) {
+  const text = String(s.text || ""), rolls = [];
+  const up = text.match(/\+\s*(\d+)d(\d+)\s+(?:per|for each)\s+(?:spell\s+)?slot(?:\s+level)?\s+above\s+(\d)/i);
+  const upAt = up ? text.indexOf(up[0]) : -1;
+  const tier = 1 + (d.level >= 5) + (d.level >= 11) + (d.level >= 17);
+  const scales = !s.level && /levels?\s+5,\s*11,?\s+and\s+17/i.test(text), beams = scales && /\bbeams?\b/i.test(text);
+  const re = /(\d+)d(\d+)(\s*\+\s*(?:your\s+)?spellcasting(?:\s+ability)?\s+modifier|\s*\+\s*\d+(?![\dd]))?/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    if (upAt >= 0 && m.index >= upAt && m.index < upAt + up[0].length) continue;
+    const before = text.slice(Math.max(0, m.index - 45), m.index), after = text.slice(m.index + m[0].length, m.index + m[0].length + 26);
+    const heal = /heal|regain/i.test(before) && !DMG_RE.test(after), mod = m[3] || "";
+    rolls.push({ at: m.index, len: m[0].length, n: +m[1] * (scales && !beams ? tier : 1), sides: +m[2], useMod: /spellcasting/i.test(mod), flat: mod && !/spellcasting/i.test(mod) ? +mod.replace(/\s/g, "") : 0,
+      heal, type: heal ? "" : ((after.match(DMG_RE) || [])[1] || ""), up: up && +up[2] === +m[2] ? { n: +up[1], base: +up[3] } : null });
+  }
+  const cnt = text.match(/\b(two|three|four|five|six)\s+(darts|rays|beams|bolts|missiles)\b/i);
+  const times = beams ? { n: tier, what: "beams" } : cnt ? { n: NUMW[cnt[1].toLowerCase()], what: cnt[2].toLowerCase(), extra: /one (?:extra|more) \w+ per (?:spell )?slot/i.test(text) } : null;
+  const save = (text.match(/\b(Str|Dex|Con|Int|Wis|Cha)[a-z]*\s+sav/i) || [])[1];
+  return { rolls, attack: /spell attack/i.test(text), save: save && save.slice(0, 3).toUpperCase(), times };
+}
+// Slot levels this character could cast a spell at (its own level up to their highest slot).
+function castLevels(d, s) {
+  if (!s.level) return [];
+  const sl = E.derive(d).slots, top = sl.pact ? sl.pact.lvl : sl.slots.length, out = [];
+  for (let L = s.level; L <= Math.max(s.level, top); L++) out.push(L);
+  return out;
+}
+const castLvl = s => Math.max(s.level || 0, ((A.castLvl || {})[s.id]) || 0);
+function rollLabel(ro, s, d, x) {
+  const L = castLvl(s), n = ro.n + (ro.up && L > ro.up.base ? ro.up.n * (L - ro.up.base) : 0), smod = x.spell ? x.mods[x.spell.abil] : 0;
+  const m = (ro.useMod ? smod : 0) + (ro.flat || 0);
+  return `${n}d${ro.sides}${m ? (m > 0 ? "+" : "−") + Math.abs(m) : ""}`;
+}
+function spellBtn(s, j, ro, d, x, small) {
+  return `<button class="rbtn dmg${ro.heal ? " heal" : ""}" ${rollAttr("spell", null, s.name + (ro.heal ? " healing" : " damage"))} data-id="${s.id}" data-j="${j}">${rollLabel(ro, s, d, x)}${small ? "" : ` <small>${ro.heal ? "healing" : esc(ro.type.toLowerCase())}</small>`}</button>`;
+}
+function combatSpells(d, x) {
+  const can = s => !s.level || s.prepared || s.alwaysPrepared || s.bonus;
+  const hidden = d.spells.filter(s => !can(s)).length;
+  const list = d.spells.filter(s => A.showUnprep || can(s)).slice().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  if (!list.length && !hidden) return `<p class="small muted" style="margin:8px 0 0">No spells yet. Choose them on the Spells tab.</p>`;
+  const open = A.openSpells || (A.openSpells = new Set());
+  let lastL = -1;
+  const rows = list.map(s => {
+    const info = spellRolls(s, d), L = castLvl(s), head = s.level !== lastL ? `<div class="cshead">${s.level ? ordinal(s.level) + " level" : "Cantrips"}</div>` : ""; lastL = s.level;
+    const times = info.times ? `<span class="tiny muted" title="${info.times.n} ${esc(info.times.what)}">×${info.times.n + (info.times.extra && L > s.level ? L - s.level : 0)}</span>` : "";
+    const acts = `${info.attack && x.spell ? `<button class="rbtn" ${rollAttr("spatk", null, s.name + " attack")} data-id="${s.id}" data-lvl="${L}">${sg(x.spell.atk)}</button>` : ""}${info.save && x.spell ? `<span class="pill" title="Targets make a saving throw">DC ${x.spell.dc} ${info.save}</span>` : ""}${times}${info.rolls[0] ? spellBtn(s, 0, info.rolls[0], d, x, true) : ""}`;
+    // the full text, with every dice expression in it tappable
+    let body = "", at = 0;
+    info.rolls.forEach((ro, j) => { body += esc(String(s.text).slice(at, ro.at)) + spellBtn(s, j, ro, d, x, true); at = ro.at + ro.len; });
+    body += esc(String(s.text || "").slice(at));
+    const lv = info.rolls.some(r => r.up) || (info.times && info.times.extra) ? castLevels(d, s) : [];
+    const meta = [shortTime(s.time), s.range].filter(Boolean).join(" · ");
+    return `${head}<details class="csp${can(s) ? "" : " unprep"}" data-sp="${s.id}" ${open.has(s.id) ? "open" : ""}><summary><span class="grow"><b>${esc(s.name)}</b>${spellTags(s)}${can(s) ? "" : ` <span class="tiny muted">not prepared</span>`}${meta ? `<span class="tiny muted csmeta">${esc(meta)}</span>` : ""}</span><span class="csacts">${acts}</span></summary>
+      <div class="csbody">${lv.length > 1 ? `<div class="row small" style="gap:6px;margin-bottom:6px"><span class="muted">Cast at</span>${lv.map(n => `<button class="chip${n === L ? " on" : ""}" data-a="castlvl" data-id="${s.id}" data-v="${n}">${ordinal(n)}</button>`).join("")}</div>` : ""}
+        ${s.text ? `<p class="cstext">${body}</p>` : ""}${s.time || s.range || s.duration ? spellFacts(s) : ""}</div></details>`;
+  }).join("");
+  return `<div class="cslist">${rows}</div>${hidden ? `<button class="btn sm ghost" style="margin-top:6px" data-a="unprep">${A.showUnprep ? "Hide" : "Show"} ${hidden} not prepared</button>` : ""}`;
+}
+document.addEventListener("toggle", e => { const t = e.target; if (t.matches && t.matches("details.csp")) { const o = A.openSpells || (A.openSpells = new Set()); t.open ? o.add(t.dataset.sp) : o.delete(t.dataset.sp); } }, true);
+
 // ---------- rolling from the sheet ----------
 // Anything with data-a="roll" rolls when tapped. Hold it (or right-click) for advantage, disadvantage, a critical hit,
 // two-handed damage, and the dice color. data-r says what it is: abil/save/skill (data-k), init, atk/dmg (data-i), spatk, death.
@@ -2032,10 +2117,22 @@ function rollSpec(el, opt = {}) {
   if (kind === "save") return { who, title: ABIL_NAME[k] + " save", d20: true, parts: [[ABIL_NAME[k] + " save", x.saves[k].mod], ...pen] };
   if (kind === "skill") { const s = x.skills[k]; return s && { who, title: k, sub: ABIL_NAME[s.abil] + " check", d20: true, parts: [[k, s.mod], ...pen] }; }
   if (kind === "init") return { who, title: "Initiative", d20: true, parts: [["Initiative", x.init], ...pen] };
-  if (kind === "spatk") return x.spell && { who, title: "Spell attack", d20: true, attack: true, parts: [["Spell attack", x.spell.atk], ...pen] };
+  if (kind === "spatk") {
+    if (!x.spell) return null;
+    const sp = el.dataset.id && d.spells.find(s => s.id === el.dataset.id), info = sp && spellRolls(sp, d);
+    return { who, title: sp ? sp.name : "Spell attack", sub: sp ? "Spell attack" : "", d20: true, follow: info && info.rolls.length ? { r: "spell", id: sp.id, j: "0", lvl: el.dataset.lvl || "" } : null, parts: [["Spell attack", x.spell.atk], ...pen] };
+  }
+  if (kind === "spell") {
+    const sp = d.spells.find(s => s.id === el.dataset.id); if (!sp) return null;
+    const ro = spellRolls(sp, d).rolls[+el.dataset.j || 0]; if (!ro) return null;
+    const L = +opt.lvl || +el.dataset.lvl || castLvl(sp), crit = !!opt.crit && !ro.heal;
+    const n = (ro.n + (ro.up && L > ro.up.base ? ro.up.n * (L - ro.up.base) : 0)) * (crit ? 2 : 1), smod = x.spell ? x.mods[x.spell.abil] : 0;
+    return { who, title: sp.name, heal: ro.heal, sub: [ro.heal ? "Healing" : crit ? "Critical hit" : "Damage", sp.level && L > sp.level ? "cast at " + ordinal(L) + " level" : "", ro.type].filter(Boolean).join(" · "),
+      groups: [[n, ro.sides]], parts: [ro.useMod ? ["Spellcasting modifier", smod] : null, ro.flat ? ["Bonus", ro.flat] : null].filter(Boolean) };
+  }
   if (kind === "death") return { who, title: "Death save", d20: true, death: true, parts: pen };
   const a = x.attacks[+k]; if (!a) return null;
-  if (kind === "atk") return { who, title: a.name, sub: "Attack roll", d20: true, attack: +k, parts: [["To hit", a.hit], ...pen] };
+  if (kind === "atk") return { who, title: a.name, sub: "Attack roll", d20: true, follow: { r: "dmg", k: String(k) }, parts: [["To hit", a.hit], ...pen] };
   if (kind === "dmg") {
     const two = opt.versatile && (String(a.props || "").match(/versatile\s*\((\d*d\d+)\)/i) || [])[1];
     const p = parseDice(two ? a.dmg.replace(/\d*d\d+/i, two) : a.dmg);
@@ -2080,9 +2177,10 @@ async function doRoll(spec, mode = "") {
     });
     note = `<div class="rnote ${kept === 20 || total >= 10 ? "good" : "bad"}">${esc(msg)} Marked on your sheet.</div>`;
   }
-  if (typeof spec.attack === "number") {
-    const dm = rollSpec({ dataset: { r: "dmg", k: String(spec.attack) } });
-    if (dm) acts = `<div class="row" style="margin-top:8px">${kept === 20 ? `<button class="btn sm primary" data-a="rolldmg" data-k="${spec.attack}" data-crit="1">Roll critical damage</button>` : ""}<button class="btn sm${kept === 20 ? "" : " primary"}" data-a="rolldmg" data-k="${spec.attack}">Roll damage</button></div>`;
+  ROLL.follow = spec.follow || null;
+  if (spec.follow) {
+    const dm = rollSpec({ dataset: spec.follow });
+    if (dm) acts = `<div class="row" style="margin-top:8px">${kept === 20 ? `<button class="btn sm primary" data-a="rolldmg" data-crit="1">Roll critical damage</button>` : ""}<button class="btn sm${kept === 20 ? "" : " primary"}" data-a="rolldmg">Roll damage</button></div>`;
   }
   card.innerHTML = `<div class="row nw"><div class="grow"><div class="rt">${esc(spec.title)}</div><div class="tiny muted">${esc([spec.sub, mode === "adv" ? "Advantage" : mode === "dis" ? "Disadvantage" : "", spec.who].filter(Boolean).join(" · "))}</div></div>
     <div class="rtotal">${total}</div><button class="btn sm icon ghost" data-a="rollclose" aria-label="Close">×</button></div>
@@ -2097,7 +2195,11 @@ function rollMenu(el) {
   const m = document.createElement("div"); m.className = "rmenu"; m.setAttribute("role", "menu");
   const r = charRow(A.charId), a = el.dataset.r === "dmg" && r ? E.derive(r.data).attacks[+el.dataset.k] : null;
   const vers = a && /versatile\s*\(\d*d\d+\)/i.test(a.props || "");
-  const items = spec.d20 ? [["", "Roll"], ["adv", "Roll with advantage"], ["dis", "Roll with disadvantage"]] : [["", "Roll damage"], ["crit", "Critical hit (double dice)"], ...(vers ? [["vers", "Two-handed"], ["vers crit", "Two-handed critical"]] : [])];
+  let items = spec.d20 ? [["", "Roll"], ["adv", "Roll with advantage"], ["dis", "Roll with disadvantage"]] : [["", spec.heal ? "Roll healing" : "Roll damage"], ...(spec.heal ? [] : [["crit", "Critical hit (double dice)"]]), ...(vers ? [["vers", "Two-handed"], ["vers crit", "Two-handed critical"]] : [])];
+  if (el.dataset.r === "spell" && r) {
+    const sp = r.data.spells.find(s => s.id === el.dataset.id), ro = sp && spellRolls(sp, r.data).rolls[+el.dataset.j || 0];
+    if (ro && ro.up) items = items.concat(castLevels(r.data, sp).filter(L => L > sp.level).map(L => ["L" + L, `Cast at ${ordinal(L)} level`]));
+  }
   m.innerHTML = `<div class="tiny muted" style="padding:2px 8px 4px">${esc(spec.title)}</div>${items.map(([v, l]) => `<button role="menuitem" data-v="${v}">${l}</button>`).join("")}
     <div class="rsw"><span class="tiny muted">Dice</span>${Object.entries(Dice.PALETTES).map(([k, p]) => `<button class="sw${Dice.palette === k ? " on" : ""}" data-pal="${k}" title="${p.name}" aria-label="${p.name} dice" style="background:${p.body};color:${p.ink}">●</button>`).join("")}</div>`;
   document.body.appendChild(m); ROLL.menu = m;
@@ -2110,13 +2212,15 @@ function rollMenu(el) {
     if (pal) { Dice.setPalette(pal.dataset.pal); m.querySelectorAll(".sw").forEach(s => s.classList.toggle("on", s === pal)); return; }
     const it = e.target.closest("[data-v]"); if (!it) return;
     const v = it.dataset.v;
-    if (spec.d20) doRoll(spec, v); else doRoll(rollSpec(el, { crit: v.includes("crit"), versatile: v.includes("vers") }));
+    if (spec.d20) doRoll(spec, v); else doRoll(rollSpec(el, { crit: v.includes("crit"), versatile: v.includes("vers"), lvl: v[0] === "L" ? +v.slice(1) : 0 }));
   });
   (m.querySelector("button") || m).focus();
 }
 Object.assign(ACT, {
   roll(el) { if (ROLL.press && ROLL.press.fired && ROLL.press.el === el) { ROLL.press = null; return; } doRoll(rollSpec(el)); },
-  rolldmg(el) { doRoll(rollSpec({ dataset: { r: "dmg", k: el.dataset.k } }, { crit: !!el.dataset.crit })); },
+  rolldmg(el) { if (ROLL.follow) doRoll(rollSpec({ dataset: ROLL.follow }, { crit: !!el.dataset.crit })); },
+  castlvl(el) { (A.castLvl = A.castLvl || {})[el.dataset.id] = +el.dataset.v; render(); },
+  unprep() { A.showUnprep = !A.showUnprep; render(); },
   rollclose() { $("#rollCard").classList.remove("on"); Dice.clear(); ROLL.last = null; }
 });
 // hold to open the roll menu (right-click on a computer)
