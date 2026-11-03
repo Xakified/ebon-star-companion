@@ -165,6 +165,35 @@ label.f { display: block; } label.f > span { display: block; font-size: .82rem; 
 @keyframes flash { from { box-shadow: 0 0 0 3px var(--accent); } to { box-shadow: 0 0 0 0 transparent; } }
 .code { font-family: var(--mono); font-size: 1.6rem; letter-spacing: .2em; font-weight: 600; color: var(--accent); }
 .banner { background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; font-size: .88rem; margin-top: 12px; }
+.quota { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.quota > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+.quota .k { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.quota .v { font-family: var(--mono); font-size: 1.25rem; font-weight: 600; color: var(--royal); }
+.quota .v small { font-size: .8rem; color: var(--muted); font-weight: 400; }
+.quota .st { font-size: .76rem; color: var(--muted); }
+.quota .full { border-color: var(--good); } .quota .full .st { color: var(--good); }
+.quota .over { border-color: var(--bad); } .quota .over .st, .quota .over .v { color: var(--bad); }
+.splvl { border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; background: var(--raised); }
+.splvl > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; cursor: pointer; list-style: none; }
+.splvl > summary::-webkit-details-marker { display: none; }
+.splvl > summary::before { content: "▸"; color: var(--gold); transition: transform .15s; }
+.splvl[open] > summary::before { transform: rotate(90deg); }
+.splvl > summary b { font-family: var(--display); color: var(--royal); }
+.splvl .rows { padding: 0 12px 6px; }
+.sp { border-top: 1px solid var(--line); }
+.sp > summary { display: flex; align-items: center; gap: 8px; padding: 8px 0; cursor: pointer; list-style: none; }
+.sp > summary::-webkit-details-marker { display: none; }
+.sp > summary .nm { font-family: var(--book); font-weight: 700; font-size: 1.02rem; }
+.sp[open] > summary .nm { color: var(--royal); }
+.sp .body { padding: 0 0 12px; }
+.sp .body p { margin: 8px 0 0; font-family: var(--book); white-space: pre-wrap; }
+.spfacts { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin: 0; }
+.spfacts div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.spfacts dt { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.spfacts dd { margin: 0; font-size: .88rem; font-weight: 600; }
+.tag { display: inline-block; font-size: .66rem; font-weight: 700; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); vertical-align: 1px; }
+.btn.added { color: var(--good); border-color: var(--good); }
+dialog.wide { width: min(780px, calc(100vw - 24px)); }
 dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--raised); color: var(--ink); padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); }
 dialog::backdrop { background: rgb(0 0 0 / .5); }
 dialog .dh { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--raised); z-index: 1; }
@@ -724,14 +753,137 @@ function tCombat(r, d, x) {
     ${x.spell ? `<div class="card"><div class="row"><h3 class="grow">Spellcasting</h3><span class="small">Save DC <b class="num">${x.spell.dc}</b> · Attack <b class="num">${sg(x.spell.atk)}</b></span></div><div class="list">${slotRows}${pact}</div></div>` : ""}
     ${res || custom ? `<div class="card"><h3>Resources</h3><div class="list">${res}${custom}</div></div>` : ""}`;
 }
+// ---------- spells ----------
+// When a character can change their choices, from the 2024 class descriptions.
+const SPELL_SWAP = {
+  Bard: "When you gain a level, you can swap one cantrip and one prepared spell.",
+  Cleric: "After a Long Rest you can change your whole list of prepared spells. When you gain a level, you can swap one cantrip.",
+  Druid: "After a Long Rest you can change your whole list of prepared spells. When you gain a level, you can swap one cantrip.",
+  Paladin: "After a Long Rest you can swap one prepared spell.",
+  Ranger: "After a Long Rest you can swap one prepared spell.",
+  Sorcerer: "When you gain a level, you can swap one cantrip and one prepared spell.",
+  Warlock: "When you gain a level, you can swap one cantrip and one prepared spell.",
+  Wizard: "Your spellbook holds the spells you've learned; tick the ones you prepare. After a Long Rest you can change which are prepared and swap one cantrip. You add two Wizard spells to your spellbook each level.",
+  Fighter: "When you gain a level, you can swap one cantrip and one prepared spell.",
+  Rogue: "When you gain a level, you can swap one cantrip and one prepared spell."
+};
+const lvlName = L => L ? "Level " + L : "Cantrip";
+const ordinal = n => n + ([, "st", "nd", "rd"][n % 100 >> 3 ^ 1 && n % 10] || "th");
+const isConc = s => /concentration/i.test(s.duration || "") || /^concentration/i.test(s.text || "");
+const isRitual = s => /ritual/i.test(s.time || "");
+const shortTime = t => String(t || "").split(/,\s*which/i)[0];
+const spellTags = s => `${isConc(s) ? ` <span class="tag" title="Concentration">C</span>` : ""}${isRitual(s) ? ` <span class="tag" title="Ritual">R</span>` : ""}`;
+function spellFacts(s) {
+  const f = [["Level", s.level ? ordinal(s.level) + " level" : "Cantrip"], ["School", s.school], ["Casting time", s.time], ["Range", s.range], ["Components", s.components], ["Duration", s.duration],
+    ["Classes", (s.classes || []).join(", ")], ["Source", s.src]].filter(([, v]) => v);
+  return `<dl class="spfacts">${f.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`;
+}
+// The "how many can I have" tiles. sr comes from Engine.spellRules.
+function quotaTile(label, have, max, unit) {
+  if (max == null) return `<div><div class="k">${label}</div><div class="v">${have}</div><div class="st">${unit}</div></div>`;
+  const left = max - have, cls = left < 0 ? "over" : left === 0 ? "full" : "";
+  return `<div class="${cls}"><div class="k">${label}</div><div class="v">${have}<small> / ${max}</small></div><div class="st">${left < 0 ? `${-left} too many` : left === 0 ? "All chosen" : `${left} more to choose`}</div></div>`;
+}
+function spellQuota(d, sr) {
+  const tiles = [quotaTile("Cantrips", sr.have.cantrips, sr.cantrips, "known"),
+    sr.spellbook != null ? quotaTile("Spellbook", sr.have.spellbook, sr.spellbook, "spells") : "",
+    quotaTile("Prepared spells", sr.have.prepared, sr.prepared, "prepared"),
+    sr.maxLevel ? `<div><div class="k">Highest spell level</div><div class="v">${sr.maxLevel}</div><div class="st">${sr.arcanum.length ? "6th+ from Mystic Arcanum" : "from your spell slots"}</div></div>` : ""];
+  return `<div class="quota">${tiles.join("")}</div>`;
+}
+function spellSummary(d, sr) {
+  if (!sr.known) return E.derive(d).spell ? `Your class's book doesn't list how many spells you get, so there are no limits to show. Ask your DM, and use Adjust if you like.`
+    : `${esc(d.cls || "Your class")} doesn't cast spells${SRD.SUB_CASTERS && Object.values(SRD.SUB_CASTERS).some(x => x.cls === d.cls) && d.level < 3 ? " yet" : ""}, so any spells here come from a feat, your species or your DM. Mark them as not counting toward your limits.`;
+  const cls = SRD.SUB_CASTERS[d.subclass] && !SRD.SPELLCASTING[d.cls] ? d.subclass : d.cls;
+  const parts = [];
+  if (sr.cantrips) parts.push(`know ${sr.cantrips} cantrip${sr.cantrips === 1 ? "" : "s"}`);
+  if (sr.spellbook != null) parts.push(`keep ${sr.spellbook} spells in your spellbook`);
+  parts.push(`prepare ${sr.prepared} spell${sr.prepared === 1 ? "" : "s"} of level ${sr.maxLevel > 1 ? "1 to " + Math.min(sr.maxLevel, sr.arcanum.length ? 5 : 9) : "1"}`);
+  return `As a level ${d.level} ${esc(cls)} you ${parts.join(", ").replace(/, ([^,]*)$/, " and $1")} from the ${esc(sr.lists.join(", ").replace(/, ([^,]*)$/, " and $1"))} spell list${sr.lists.length > 1 ? "s" : ""}.${sr.arcanum.length ? ` Mystic Arcanum also gives you one spell each of level ${sr.arcanum.join(", ")}, cast once per Long Rest without a slot.` : ""} ${esc(SPELL_SWAP[d.cls] || "")}`;
+}
 function tSpells(r, d, x) {
+  const sr = E.spellRules(d);
   const by = {};
   d.spells.forEach(s => (by[s.level] = by[s.level] || []).push(s));
   const lv = Object.keys(by).map(Number).sort((a, b) => a - b);
+  const row = s => {
+    const extra = s.bonus || s.alwaysPrepared;
+    const meta = [s.school, shortTime(s.time), s.range, s.components, s.duration].filter(Boolean).join(" · ");
+    return `<div class="feat"><div class="h"><b>${esc(s.name)}${spellTags(s)}</b>${s.source === "DM" ? `<span class="pill">from DM</span>` : ""}${extra ? `<span class="pill good" title="Doesn't count toward your limits">${s.alwaysPrepared ? "always prepared" : "bonus"}</span>` : ""}${s.level && !s.alwaysPrepared ? `<label class="small row" style="gap:4px"><input type="checkbox" data-a="prep" data-id="${s.id}" ${s.prepared ? "checked" : ""}> Prepared</label>` : ""}<button class="btn sm ghost danger" data-a="delspell" data-id="${s.id}" aria-label="Remove">✕</button></div>
+      ${meta ? `<div class="tiny muted">${esc(meta)}</div>` : ""}${s.text ? `<p>${esc(s.text)}</p>` : ""}
+      <details class="small"><summary class="muted">More</summary>${s.time || s.range ? spellFacts(s) : ""}<label class="row nw small" style="margin-top:6px;gap:6px;align-items:flex-start"><input style="margin-top:3px" type="checkbox" data-a="spbonus" data-id="${s.id}" ${extra ? "checked" : ""} ${s.alwaysPrepared && !s.bonus ? "disabled" : ""}><span>Doesn't count toward my limits (from a feat, species, subclass or item)</span></label></details></div>`;
+  };
+  const showQuota = sr.known || x.spell || d.spells.length;
   return `${x.spell ? `<div class="banner">Save DC <b class="num">${x.spell.dc}</b> · Spell attack <b class="num">${sg(x.spell.atk)}</b> · ${ABIL_NAME[x.spell.abil]}</div>` : ""}
-    ${lv.map(L => `<div class="card"><h3>${L === 0 ? "Cantrips" : "Level " + L}</h3>${by[L].map(s => `<div class="feat"><div class="h"><b>${esc(s.name)}</b>${s.source === "DM" ? `<span class="pill">from DM</span>` : ""}${L ? `<label class="small row" style="gap:4px"><input type="checkbox" data-a="prep" data-id="${s.id}" ${s.prepared ? "checked" : ""}> Prepared</label>` : ""}<button class="btn sm ghost danger" data-a="delspell" data-id="${s.id}" aria-label="Remove">✕</button></div>${s.text ? `<p>${esc(s.text)}</p>` : ""}</div>`).join("")}</div>`).join("")}
+    ${showQuota ? `<div class="card"><div class="row"><h3 class="grow">Spells you can have</h3><button class="btn sm ghost" data-a="spelladj">Adjust</button></div>${spellQuota(d, sr)}<p class="small muted" style="margin:8px 0 0">${spellSummary(d, sr)}</p></div>` : ""}
+    ${lv.map(L => `<div class="card"><h3>${L === 0 ? "Cantrips" : "Level " + L}</h3>${by[L].map(row).join("")}</div>`).join("")}
     ${d.spells.length ? "" : `<div class="card empty">No spells yet.${x.spell ? " Add the spells you know or have prepared." : ""}</div>`}
-    <button class="btn" style="margin-top:12px;width:100%" data-a="addspell">Add a spell</button>`;
+    <button class="btn primary" style="margin-top:12px;width:100%" data-a="addspell">Choose spells</button>`;
+}
+
+// The spell picker: every spell from the DM's books, one section per spell level, with the full text.
+const SP = { all: false, higher: false, bonus: false };
+const hasSpell = (d, name) => d.spells.some(s => s.name.toLowerCase() === name.toLowerCase());
+function pickerPool(sr) {
+  if (SP.all || !sr.lists.length) return SPELLS;
+  return SPELLS.filter(x => (x.classes || []).some(c => sr.lists.includes(c)));
+}
+function pickerSections(d, sr) {
+  const pool = pickerPool(sr), cap = SP.higher || !sr.maxLevel ? 9 : sr.maxLevel;
+  const slotN = L => { const x = E.derive(d).slots; return x.pact ? (x.pact.lvl >= L ? `${x.pact.n} pact slots` : "") : x.slots[L - 1] ? `${x.slots[L - 1]} slot${x.slots[L - 1] > 1 ? "s" : ""}` : ""; };
+  const firstOpen = sr.known && sr.cantrips > sr.have.cantrips ? 0 : 1;
+  let out = "";
+  for (let L = 0; L <= cap; L++) {
+    const list = pool.filter(x => x.level === L); if (!list.length) continue;
+    const note = L === 0 ? "" : sr.arcanum.includes(L) && !slotN(L) ? "Mystic Arcanum: pick one" : sr.maxLevel && L > sr.maxLevel ? "You can't cast these yet" : slotN(L);
+    out += `<details class="splvl" data-lvl="${L}" ${L === firstOpen ? "open" : ""}><summary><b>${L ? ordinal(L) + " level" : "Cantrips"}</b><span class="small muted grow" data-cnt>${list.length} spells</span>${note ? `<span class="tiny muted">${note}</span>` : ""}<span class="pill" data-have></span></summary>
+      <div class="rows">${list.map(x => { const i = SPELLS.indexOf(x); return `<details class="sp" data-i="${i}" data-s="${esc((x.name + " " + x.school + " " + x.text).toLowerCase())}"><summary><span class="grow"><span class="nm">${esc(x.name)}</span>${spellTags(x)}<span class="tiny muted"> · ${esc([x.school, shortTime(x.time), x.range].filter(Boolean).join(" · "))}</span></span><span data-btn="${i}"></span></summary>
+        <div class="body">${spellFacts(x)}${x.text ? `<p>${esc(x.text)}</p>` : ""}</div></details>`; }).join("")}</div></details>`;
+  }
+  return out || `<p class="small muted">No spells match. Try “All spells”.</p>`;
+}
+function spellPicker() {
+  const r = charRow(A.charId); if (!r) return;
+  const d = r.data, sr = E.spellRules(d);
+  if (!SPELLS.length) return spellCustom(`<div class="banner" style="margin:0 0 10px">Your DM hasn't turned on any books with spells yet, so write the spell in. Once they add one (like the Player's Handbook), you can browse every spell here.</div>`);
+  const listName = sr.lists.length ? sr.lists.join(", ").replace(/, ([^,]*)$/, " and $1") + " spells" : "";
+  dialog("Choose spells", `<div id="spQuota">${spellQuota(d, sr)}</div>
+    <p class="small muted" style="margin:8px 0">${spellSummary(d, sr)}</p>
+    <input id="spQ" placeholder="Search by name, school or effect" autocomplete="off" style="margin-top:4px">
+    <div class="row" style="margin-top:8px">${listName ? `<div class="chips"><button class="chip ${SP.all ? "" : "on"}" data-a="splist" data-v="0">${esc(listName)}</button><button class="chip ${SP.all ? "on" : ""}" data-a="splist" data-v="1">All spells</button></div>` : ""}
+      ${sr.maxLevel && sr.maxLevel < 9 ? `<label class="row nw small" style="gap:6px"><input type="checkbox" data-a="sphigher" ${SP.higher ? "checked" : ""}><span>Show higher levels</span></label>` : ""}</div>
+    <label class="row nw small" style="gap:6px;margin-top:8px;align-items:flex-start"><input type="checkbox" data-a="spbonusmode" ${SP.bonus ? "checked" : ""} style="margin-top:3px"><span>Spells I add now don't count toward my limits (from a feat, species, subclass or item)</span></label>
+    <p class="tiny muted" style="margin:6px 0 0">Tap a spell to read it. C = concentration, R = ritual.</p>
+    <div id="spBody">${pickerSections(d, sr)}</div>`,
+    `<button class="btn" data-a="spcustom">Write my own</button><span class="grow"></span><button class="btn primary" data-a="close">Done</button>`,
+    dlg => { dlg.classList.add("wide"); refreshPicker(); });
+}
+// Bring the counters, section badges and Add buttons up to date without redrawing the list.
+function refreshPicker() {
+  const r = charRow(A.charId), dlg = $("#dlg"); if (!r || !$("#spBody", dlg)) return;
+  const d = r.data, sr = E.spellRules(d);
+  $("#spQuota", dlg).innerHTML = spellQuota(d, sr);
+  dlg.querySelectorAll("[data-btn]").forEach(el => {
+    const x = SPELLS[+el.dataset.btn], on = hasSpell(d, x.name);
+    el.innerHTML = on ? `<button class="btn sm added" data-a="spdel" data-i="${el.dataset.btn}" title="Remove from your spells">✓ Added</button>` : `<button class="btn sm" data-a="spadd" data-i="${el.dataset.btn}">Add</button>`;
+  });
+  dlg.querySelectorAll(".splvl").forEach(sec => {
+    const L = +sec.dataset.lvl, n = d.spells.filter(s => s.level === L).length, pill = $("[data-have]", sec);
+    pill.textContent = L === 0 && sr.known ? `${sr.have.cantrips} of ${sr.cantrips} known` : n ? `${n} on your sheet` : "";
+    pill.style.display = pill.textContent ? "" : "none";
+  });
+}
+function filterPicker(q) {
+  q = q.trim().toLowerCase();
+  $("#dlg").querySelectorAll(".splvl").forEach(sec => {
+    let n = 0;
+    sec.querySelectorAll(".sp").forEach(el => { const ok = !q || el.dataset.s.includes(q); el.hidden = !ok; if (ok) n++; });
+    sec.hidden = !n; $("[data-cnt]", sec).textContent = `${n} spell${n === 1 ? "" : "s"}${q ? " match" : ""}`;
+    if (q) sec.open = n > 0 && n <= 40;
+  });
+}
+function spellCustom(intro = "") {
+  dialog("Write a spell", intro + spellForm(), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveSpell">Add</button>`);
 }
 function tGear(r, d, x) {
   const items = d.inventory.map(i => `<div class="feat"><div class="h"><b>${esc(i.name)}${i.qty > 1 ? ` <span class="num muted">×${i.qty}</span>` : ""}</b>${i.fromDM ? `<span class="pill">from DM</span>` : ""}
@@ -808,6 +960,7 @@ function vNotes() {
 // ---------- dialogs ----------
 function dialog(title, body, foot, onOpen) {
   const d = $("#dlg");
+  d.className = "";
   d.innerHTML = `<div class="dh"><h2>${esc(title)}</h2><button class="btn icon ghost" data-a="close" aria-label="Close">✕</button></div><div class="db">${body}</div>${foot ? `<div class="df">${foot}</div>` : ""}`;
   if (!d.open) d.showModal();
   onOpen && onOpen(d);
@@ -1025,7 +1178,32 @@ const ACT = {
   fuse(el) { const id = el.dataset.id, j = +el.dataset.j; edit(A.charId, d => { const f = [...d.features, ...d.feats].find(f => f.id === id); if (!f) return; const max = f.uses.max, avail = max - (f.uses.used || 0); f.uses.used = j < avail ? max - j : max - j - 1; }); },
   prep(el) { const id = el.dataset.id; edit(A.charId, d => { const s = d.spells.find(s => s.id === id); if (s) s.prepared = el.checked; }); },
   async delspell(el) { if (!await ask({ title: "Remove this spell?", ok: "Remove", danger: true })) return; const id = el.dataset.id; edit(A.charId, d => { d.spells = d.spells.filter(s => s.id !== id); }); },
-  addspell() { dialog("Add a spell", spellForm(), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveSpell">Add</button>`); },
+  addspell() { spellPicker(); },
+  spcustom() { spellCustom(); },
+  spadd(el) {
+    const x = SPELLS[+el.dataset.i]; if (!x) return;
+    edit(A.charId, d => {
+      if (hasSpell(d, x.name)) return;
+      const sr = E.spellRules(d);
+      // Wizards add to their spellbook; it's prepared while there's room. Everyone else prepares what they add.
+      const prepared = !x.level || SP.bonus || sr.spellbook == null || sr.have.prepared < sr.prepared;
+      d.spells.push({ id: E.uid(), name: x.name, level: x.level, school: x.school, time: x.time, range: x.range, components: x.components, duration: x.duration,
+        classes: x.classes, src: x.src, text: x.text, prepared, bonus: SP.bonus || undefined, source: "Player" });
+    });
+    refreshPicker();
+  },
+  spdel(el) { const x = SPELLS[+el.dataset.i]; if (!x) return; edit(A.charId, d => { d.spells = d.spells.filter(s => s.name.toLowerCase() !== x.name.toLowerCase() || s.source === "DM"); }); refreshPicker(); },
+  splist(el) { SP.all = el.dataset.v === "1"; spellPicker(); },
+  sphigher(el) { SP.higher = el.checked; spellPicker(); },
+  spbonusmode(el) { SP.bonus = el.checked; },
+  spbonus(el) { const id = el.dataset.id; edit(A.charId, d => { const s = d.spells.find(s => s.id === id); if (s) s.bonus = el.checked || undefined; }); },
+  spelladj() {
+    const d = charRow(A.charId).data, a = d.spellAdjust || {}, sr = E.spellRules(d);
+    dialog("Adjust spell limits", `<p class="small muted" style="margin-top:0">Add to (or take away from) the numbers your class gives you, for things like Divine Order: Thaumaturge, Primal Order: Magician, or anything your DM allows.</p>
+      <div class="grid3"><label class="f"><span>Extra cantrips</span><input id="adjC" type="number" class="num" value="${+a.cantrips || 0}"></label><label class="f"><span>Extra prepared</span><input id="adjP" type="number" class="num" value="${+a.prepared || 0}"></label>${sr.spellbook != null ? `<label class="f"><span>Extra spellbook</span><input id="adjB" type="number" class="num" value="${+a.spellbook || 0}"></label>` : ""}</div>`,
+      `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveAdj">Save</button>`);
+  },
+  saveAdj() { const c = +val("adjC") || 0, p = +val("adjP") || 0, b = +val("adjB") || 0; edit(A.charId, d => { d.spellAdjust = { cantrips: c, prepared: p, spellbook: b }; }); closeDlg(); },
   saveSpell() { const s = readSpell(); edit(A.charId, d => { d.spells.push(Object.assign(s, { id: E.uid(), prepared: true, source: "Player" })); }); closeDlg(); },
   equip(el) { const id = el.dataset.id; edit(A.charId, d => { const it = d.inventory.find(i => i.id === id); if (!it) return; it.equipped = el.checked; if (el.checked && it.armor) d.inventory.forEach(o => { if (o !== it && o.armor && (o.armor.cat === "Shield") === (it.armor.cat === "Shield")) o.equipped = false; }); }); },
   attune(el) {
@@ -1240,6 +1418,7 @@ document.addEventListener("change", e => {
 });
 document.addEventListener("input", e => {
   if (e.target.id === "nBody") A.noteDraft = e.target.value;
+  if (e.target.id === "spQ") filterPicker(e.target.value);
   if (A.view === "build" && e.target.dataset.b === "name") { A.draft.name = e.target.value; const b = document.querySelector('[data-a="bdone"]'); if (b) b.disabled = !e.target.value.trim(); }
 });
 $("#dlg").addEventListener("click", e => { if (e.target === $("#dlg")) closeDlg(); });
