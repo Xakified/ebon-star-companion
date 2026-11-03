@@ -262,6 +262,43 @@ header.top .btn.primary { background: linear-gradient(#ffe7a0, #e0b44a); color: 
 dialog { border-color: var(--gold); background: var(--raised); box-shadow: 0 12px 40px rgb(10 30 60 / .35); }
 dialog .dh h2 { color: var(--royal); }
 .row > .grow:is(h1, h2, h3) { min-width: min(100%, max-content); }
+
+/* ---- dice ---- */
+#diceTray { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 90; pointer-events: none; display: none; }
+#diceTray.on { display: block; }
+[data-a="roll"] { cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+.rl { border-radius: 8px; transition: background .12s, box-shadow .12s; }
+.rl:hover, .rl:focus-visible { background: #fff4d3; }
+.rl:active, .rbtn:active { transform: scale(.97); }
+.list > .li.rl { margin: 0 -6px; padding-left: 6px; padding-right: 6px; }
+.rbtn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 3.2em; min-height: 32px; padding: 3px 9px; border: 1px solid var(--gold); border-radius: 8px; background: linear-gradient(#ffffff, #fbefc8); font-family: var(--mono); font-weight: 600; color: var(--royal); box-shadow: 0 1px 2px rgb(20 42 76 / .12); white-space: nowrap; }
+.rbtn:hover, .rbtn:focus-visible { border-color: var(--royal); background: linear-gradient(#fffaf0, #f6dc8e); }
+.rbtn.dmg { font-size: .85rem; color: var(--ink); }
+.rbtn.dmg small { font-family: var(--body); font-weight: 400; color: var(--muted); }
+.abil.rl:hover { background: linear-gradient(#fffaf0, #fbefc8); }
+.abil .sv.rl { margin: 4px -4px 0; padding: 4px; }
+.stat.rl:hover { background: #fff4d3; border-color: var(--gilt); }
+.die-ico { width: 14px; height: 14px; vertical-align: -2px; opacity: .7; }
+#rollCard { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); width: min(440px, calc(100vw - 24px)); z-index: 95; background: var(--raised); border: 1px solid var(--gold); border-radius: 14px; padding: 10px 12px 12px 14px; box-shadow: 0 10px 34px rgb(10 30 60 / .3); opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; }
+#rollCard.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#rollCard .rt { font-family: var(--display); font-weight: 700; color: var(--royal); font-size: 1.05rem; }
+#rollCard .rtotal { font-family: var(--display); font-weight: 700; font-size: 2.2rem; line-height: 1; color: var(--ink); min-width: 1.6em; text-align: center; padding: 4px 10px; border-radius: 10px; background: linear-gradient(#fffaf0, #fbefc8); border: 1px solid var(--gilt); }
+.rline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-family: var(--mono); }
+.rdie { display: inline-flex; flex-direction: column; align-items: center; min-width: 34px; padding: 2px 5px; border-radius: 7px; background: #1f4f95; color: #f2c75c; line-height: 1.1; }
+.rdie b { font-size: 1rem; } .rdie i { font-style: normal; font-size: .62rem; color: #cfe0f4; }
+.rdie.drop { opacity: .4; text-decoration: line-through; }
+.rdie.nat20 { background: #b8862a; color: #fff; } .rdie.nat20 i { color: #fff4d3; }
+.rdie.nat1 { background: var(--bad); color: #fff; } .rdie.nat1 i { color: #ffd9d4; }
+.rmod { color: var(--muted); } .req { font-weight: 600; color: var(--ink); }
+.rnote { margin-top: 6px; font-weight: 600; font-size: .93rem; } .rnote.good { color: var(--good); } .rnote.bad { color: var(--bad); }
+.rmenu { position: fixed; z-index: 96; background: var(--raised); border: 1px solid var(--gold); border-radius: 12px; padding: 6px; box-shadow: 0 10px 30px rgb(10 30 60 / .3); min-width: 210px; display: flex; flex-direction: column; }
+.rmenu > button { appearance: none; border: 0; background: none; text-align: left; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+.rmenu > button:hover, .rmenu > button:focus-visible { background: #fff4d3; }
+.rsw { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--line); margin-top: 4px; padding: 8px 8px 2px; }
+.rsw .tiny { margin-right: auto; }
+.sw { width: 24px; height: 24px; border-radius: 6px; border: 2px solid transparent; padding: 0; cursor: pointer; font-size: 10px; line-height: 1; }
+.sw.on { border-color: var(--gilt); box-shadow: 0 0 0 1px var(--ink); }
+.rhint { margin: 0 0 8px; }
 </style>
 </head>
 <body>
@@ -270,6 +307,7 @@ dialog .dh h2 { color: var(--royal); }
 <dialog id="dlg"></dialog>
 <dialog id="ask"></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="rollCard" role="status" aria-live="polite"></div>
 <footer class="wrap tiny muted" style="padding-bottom:24px;margin-top:-72px">Includes material from the System Reference Document 5.2 by Wizards of the Coast LLC, licensed under <a href="https://creativecommons.org/licenses/by/4.0/legalcode" style="color:inherit">CC-BY-4.0</a>.</footer>
 
 <script src="config.js"></script>
@@ -278,11 +316,310 @@ dialog .dh h2 { color: var(--royal); }
 <script src="backend.js"></script>
 <script>
 "use strict";
+// ---------- 3D dice ----------
+// Our own little dice tray: real rigid-body tumbling (gravity, bounces, friction, spin) drawn on a canvas over the sheet.
+// Each throw is simulated first, then played back, so it always finishes; the number that lands face up is
+// picked with crypto randomness and the die's face labels are arranged so that face carries it.
+const Dice = (() => {
+  const V = {
+    add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+    mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s], dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+    cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+    len: a => Math.hypot(a[0], a[1], a[2]), norm: a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+  };
+  const Q = {
+    mul: (a, b) => [a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3], a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2], a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1], a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0]],
+    norm: q => { const l = Math.hypot(...q) || 1; return q.map(x => x / l); },
+    axis: (ax, ang) => { const s = Math.sin(ang / 2); return [Math.cos(ang / 2), ax[0] * s, ax[1] * s, ax[2] * s]; },
+    rot: (q, v) => { const [w, x, y, z] = q, ix = w * v[0] + y * v[2] - z * v[1], iy = w * v[1] + z * v[0] - x * v[2], iz = w * v[2] + x * v[1] - y * v[0], iw = -x * v[0] - y * v[1] - z * v[2];
+      return [ix * w + iw * -x + iy * -z - iz * -y, iy * w + iw * -y + iz * -x - ix * -z, iz * w + iw * -z + ix * -y - iy * -x]; },
+    slerp: (a, b, t) => { let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]; if (d < 0) { b = b.map(x => -x); d = -d; }
+      if (d > 0.9995) return Q.norm(a.map((x, i) => x + (b[i] - x) * t)); const th = Math.acos(d), s = Math.sin(th);
+      return a.map((x, i) => (x * Math.sin((1 - t) * th) + b[i] * Math.sin(t * th)) / s); }
+  };
+  const rnd = () => { try { const u = new Uint32Array(1); crypto.getRandomValues(u); return u[0] / 4294967296; } catch (e) { return Math.random(); } };
+  const randInt = n => Math.floor(rnd() * n); // 0..n-1, fair
+  const vis = Math.random; // for the look of the throw only
+
+  // --- shapes: list the corners, find the faces as the convex hull ---
+  const PHI = (1 + Math.sqrt(5)) / 2;
+  function hull(P) {
+    const faces = [], seen = new Set(), eps = 1e-5;
+    for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) for (let k = j + 1; k < P.length; k++) {
+      let n = V.cross(V.sub(P[j], P[i]), V.sub(P[k], P[i])); if (V.len(n) < 1e-9) continue; n = V.norm(n);
+      let d = V.dot(n, P[i]), pos = 0, neg = 0;
+      for (const p of P) { const s = V.dot(n, p) - d; if (s > eps) pos++; else if (s < -eps) neg++; }
+      if (pos && neg) continue; if (pos) { n = V.mul(n, -1); d = -d; }
+      const on = P.map((p, idx) => Math.abs(V.dot(n, p) - d) < eps ? idx : -1).filter(x => x >= 0);
+      const key = on.join(","); if (seen.has(key)) continue; seen.add(key);
+      const c = V.mul(on.reduce((s, idx) => V.add(s, P[idx]), [0, 0, 0]), 1 / on.length);
+      const e1 = V.norm(V.sub(P[on[0]], c)), e2 = V.cross(n, e1);
+      on.sort((a, b) => Math.atan2(V.dot(V.sub(P[a], c), e2), V.dot(V.sub(P[a], c), e1)) - Math.atan2(V.dot(V.sub(P[b], c), e2), V.dot(V.sub(P[b], c), e1)));
+      faces.push({ v: on, n, c });
+    }
+    return faces;
+  }
+  function makeShape(sides) {
+    let P, size;
+    if (sides === 4) { P = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]]; size = 1.25; }
+    else if (sides === 6) { P = []; for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) P.push([x, y, z]); size = 1.02; }
+    else if (sides === 8) { P = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]; size = 1.12; }
+    else if (sides === 10) {
+      const h = 1, dz = h * (1 - Math.cos(Math.PI / 5)) / (1 + Math.cos(Math.PI / 5)); P = [[0, 0, h], [0, 0, -h]];
+      for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5; P.push([Math.cos(a), Math.sin(a), i % 2 ? -dz : dz]); }
+      size = 1.08;
+    } else if (sides === 12) {
+      const a = 1 / PHI; P = [];
+      for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) P.push([x, y, z]);
+      for (const s1 of [-1, 1]) for (const s2 of [-1, 1]) { P.push([0, s1 * a, s2 * PHI]); P.push([s1 * a, s2 * PHI, 0]); P.push([s1 * PHI, 0, s2 * a]); }
+      size = 1.12;
+    } else {
+      P = []; for (const s1 of [-1, 1]) for (const s2 of [-1, 1]) { P.push([0, s1, s2 * PHI]); P.push([s1, s2 * PHI, 0]); P.push([s2 * PHI, 0, s1]); }
+      size = 1.15;
+    }
+    const R = Math.max(...P.map(V.len)); P = P.map(p => V.mul(p, size / R));
+    const faces = hull(P);
+    for (const f of faces) {
+      f.c = V.mul(f.v.reduce((s, i) => V.add(s, P[i]), [0, 0, 0]), 1 / f.v.length);
+      // how big a number fits: distance from the centre to the nearest edge
+      f.inr = Math.min(...f.v.map((a, i) => { const b = f.v[(i + 1) % f.v.length], e = V.norm(V.sub(P[b], P[a])), w = V.sub(f.c, P[a]); return V.len(V.sub(w, V.mul(e, V.dot(w, e)))); }));
+      let up;
+      if (sides === 6) up = V.sub(V.mul(V.add(P[f.v[0]], P[f.v[1]]), .5), f.c);
+      else if (sides === 10) up = V.sub(P[f.v.reduce((b, i) => V.len(V.sub(P[i], f.c)) > V.len(V.sub(P[b], f.c)) ? i : b, f.v[0])], f.c);
+      else up = V.sub(P[f.v[0]], f.c);
+      f.up = V.norm(up);
+    }
+    return { sides, P, faces, R: size, I: 0.4 * size * size };
+  }
+  const SHAPES = {};
+  const shape = s => SHAPES[s] || (SHAPES[s] = makeShape(s));
+
+  // --- colors ---
+  const PALETTES = {
+    royal: { name: "Royal", body: "#1f4f95", ink: "#f2c75c", edge: "#5d8fd6" },
+    ebon: { name: "Ebon", body: "#20222b", ink: "#e9bf55", edge: "#4c5062" },
+    crimson: { name: "Crimson", body: "#9b2222", ink: "#fff3e0", edge: "#d46060" },
+    ivory: { name: "Ivory", body: "#efe6d2", ink: "#1d3d6e", edge: "#ffffff" },
+    emerald: { name: "Emerald", body: "#1f7046", ink: "#fbf4dc", edge: "#5fb486" },
+    amethyst: { name: "Amethyst", body: "#5b3290", ink: "#f2c75c", edge: "#9a74cf" }
+  };
+  let palette = "royal";
+  try { const p = localStorage.getItem("esc-dice"); if (PALETTES[p]) palette = p; } catch (e) {}
+  const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const shadeRgb = (rgb, k, add) => `rgb(${rgb.map(c => Math.max(0, Math.min(255, Math.round(c * k + add)))).join(",")})`;
+
+  // --- physics ---
+  const G = 70, DT = 1 / 240, STEPS_PER_FRAME = 4;
+  function simulate(dice, W, H) {
+    const frames = [];
+    const walls = [[[1, 0, 0], W.x0], [[-1, 0, 0], -W.x1], [[0, 1, 0], W.y0], [[0, -1, 0], -W.y1]]; // n·p >= d
+    let calm = 0;
+    for (let step = 0; step < 240 * 7; step++) {
+      for (const d of dice) {
+        if (d.sleep) continue;
+        d.v[2] -= G * DT;
+        d.p = V.add(d.p, V.mul(d.v, DT));
+        const wl = V.len(d.w); if (wl > 1e-6) d.q = Q.norm(Q.mul(Q.axis(V.mul(d.w, 1 / wl), wl * DT), d.q));
+        // dice fly in from off screen: the wall they come through only starts once they're past it
+        if (!d.inside && d.p[0] > W.x0 + d.s.R * 0.3 && d.p[0] < W.x1 - d.s.R * 0.3) d.inside = true;
+        if (!d.inside && (d.age || 0) > 20) d.v[0] += -Math.sign(d.p[0]) * 60 * DT;
+        const planes = [[[0, 0, 1], 0, 0.32], ...walls.filter((w, wi) => d.inside || wi !== d.entry).map(w => [w[0], w[1], 0.5])];
+        let ground = false;
+        for (const [n, off, e] of planes) {
+          let maxPen = 0;
+          for (const lp of d.s.P) {
+            const r = Q.rot(d.q, lp), wp = V.add(d.p, r), pen = off - V.dot(n, wp);
+            if (pen <= 0) continue;
+            if (n[2] === 1) ground = true;
+            maxPen = Math.max(maxPen, pen);
+            const vp = V.add(d.v, V.cross(d.w, r)), vn = V.dot(vp, n);
+            if (vn >= 0) continue;
+            const rn = V.cross(r, n), j = -(1 + (vn < -2 ? e : 0)) * vn / (1 + V.dot(rn, rn) / d.s.I);
+            d.v = V.add(d.v, V.mul(n, j)); d.w = V.add(d.w, V.mul(rn, j / d.s.I));
+            const vp2 = V.add(d.v, V.cross(d.w, r)), vt = V.sub(vp2, V.mul(n, V.dot(vp2, n))), vtl = V.len(vt);
+            if (vtl > 1e-6) {
+              const t = V.mul(vt, 1 / vtl), rt = V.cross(r, t), jt = Math.min(vtl / (1 + V.dot(rt, rt) / d.s.I), 0.5 * j);
+              d.v = V.sub(d.v, V.mul(t, jt)); d.w = V.sub(d.w, V.mul(rt, jt / d.s.I));
+            }
+          }
+          if (maxPen > 0) d.p = V.add(d.p, V.mul(n, maxPen * 0.9));
+        }
+        if (ground) {
+          // rolling resistance, stronger as the die slows and the longer it has been down, so every throw comes to rest
+          d.age = (d.age || 0) + 1;
+          const slow = V.len(d.v) < 1.5 && V.len(d.w) < 3, late = d.age > 240 * 1.6 ? 0.04 : 0, k = (slow ? 0.985 : 0.996) - late;
+          d.v = [d.v[0] * k, d.v[1] * k, d.v[2]]; d.w = V.mul(d.w, (slow ? 0.975 : 0.99) - late);
+        }
+        if (d.age > 30 && d.inside && Math.hypot(d.v[0], d.v[1]) < 0.15 && Math.abs(d.v[2]) < 0.6 && V.len(d.w) < 0.3) { if (++d.still > 40) { d.sleep = true; d.v = [0, 0, 0]; d.w = [0, 0, 0]; } } else d.still = 0;
+      }
+      // dice knocking into each other: treat each as a ball for this
+      for (let i = 0; i < dice.length; i++) for (let k = i + 1; k < dice.length; k++) {
+        const a = dice[i], b = dice[k], rr = (a.s.R + b.s.R) * 0.82, dv = [b.p[0] - a.p[0], b.p[1] - a.p[1], 0], dist = V.len(dv);
+        if (Math.abs(b.p[2] - a.p[2]) > rr) continue;
+        if (dist >= rr || dist < 1e-6) continue;
+        const n = V.mul(dv, 1 / dist), push = (rr - dist) / 2;
+        a.p = V.sub(a.p, V.mul(n, push)); b.p = V.add(b.p, V.mul(n, push));
+        for (const d of [a, b]) if (d.inside) { const m = d.s.R * 0.75; d.p[0] = Math.max(W.x0 + m, Math.min(W.x1 - m, d.p[0])); d.p[1] = Math.max(W.y0 + m, Math.min(W.y1 - m, d.p[1])); }
+        const rel = V.dot(V.sub(b.v, a.v), n);
+        if (rel < -0.8) { const j = -(1.4) * rel / 2; a.v = V.sub(a.v, V.mul(n, j)); b.v = V.add(b.v, V.mul(n, j)); a.sleep = b.sleep = false; a.still = b.still = 0;
+          a.w = V.add(a.w, [vis() * 4 - 2, vis() * 4 - 2, vis() * 4 - 2]); b.w = V.add(b.w, [vis() * 4 - 2, vis() * 4 - 2, vis() * 4 - 2]); }
+      }
+      if (step % STEPS_PER_FRAME === 0) frames.push(dice.map(d => ({ p: d.p.slice(), q: d.q.slice() })));
+      if (dice.every(d => d.sleep)) { if (++calm > 8) break; } else calm = 0;
+    }
+    // Settle each die flat on the face it's showing (a die balanced on an edge falls over), in a short ease.
+    const ends = dice.map(d => {
+      const want = d.s.sides === 4 ? -1 : 1;
+      let best = 0, bestDot = -2;
+      d.s.faces.forEach((f, i) => { const z = Q.rot(d.q, f.n)[2] * want; if (z > bestDot) { bestDot = z; best = i; } });
+      const n = Q.rot(d.q, d.s.faces[best].n), target = [0, 0, want], ax = V.cross(n, target), s = V.len(ax);
+      const q2 = s < 1e-6 ? d.q : Q.norm(Q.mul(Q.axis(V.mul(ax, 1 / s), Math.atan2(s, V.dot(n, target))), d.q));
+      const low = Math.min(...d.s.P.map(lp => Q.rot(q2, lp)[2]));
+      return { face: best, q0: d.q.slice(), q2, p0: d.p.slice(), p2: [d.p[0], d.p[1], d.p[2] - low] };
+    });
+    for (let f = 1; f <= 10; f++) { const t = f / 10, e = t * t * (3 - 2 * t); frames.push(ends.map(x => ({ p: x.p0.map((v, i) => v + (x.p2[i] - v) * e), q: Q.slerp(x.q0, x.q2, e) }))); }
+    return { frames, faces: ends.map(e => e.face) };
+  }
+
+  // --- drawing ---
+  let cv, ctx, raf = 0, state = null, onTap = null;
+  const L = V.norm([-0.45, -0.6, 1]), CAMD = 22;
+  function ensureCanvas() {
+    if (cv) return;
+    cv = document.createElement("canvas"); cv.id = "diceTray"; cv.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cv); ctx = cv.getContext("2d");
+  }
+  function view() {
+    const w = innerWidth, h = innerHeight, dpr = Math.min(2, devicePixelRatio || 1);
+    const ppu = Math.max(24, Math.min(44, Math.min(w, h) / 10));
+    return { w, h, dpr, ppu };
+  }
+  function proj(vw, p) { const k = CAMD / (CAMD - p[2]); return [vw.w / 2 + p[0] * vw.ppu * k, vw.h / 2 + p[1] * vw.ppu * k]; }
+  function drawDie(vw, d, fr, alpha) {
+    const s = d.s, pal = PALETTES[palette], body = hexRgb(pal.body), ink = hexRgb(pal.ink);
+    const pts = s.P.map(lp => V.add(fr.p, Q.rot(fr.q, lp))), sp = pts.map(p => proj(vw, p));
+    const cam = [0, 0, CAMD];
+    ctx.globalAlpha = alpha;
+    s.faces.forEach((f, fi) => {
+      const n = Q.rot(fr.q, f.n), c = V.add(fr.p, Q.rot(fr.q, f.c));
+      const toCam = V.norm(V.sub(cam, c)); if (V.dot(n, toCam) <= 0.02) return;
+      const diff = Math.max(0, V.dot(n, L)), refl = V.sub(V.mul(n, 2 * V.dot(n, L)), L), spec = Math.pow(Math.max(0, V.dot(refl, toCam)), 24);
+      const k = 0.42 + 0.7 * diff;
+      ctx.beginPath(); f.v.forEach((i, j) => j ? ctx.lineTo(sp[i][0], sp[i][1]) : ctx.moveTo(sp[i][0], sp[i][1])); ctx.closePath();
+      ctx.fillStyle = shadeRgb(body, k, 120 * spec); ctx.fill();
+      ctx.strokeStyle = shadeRgb(hexRgb(pal.edge), 0.6 + 0.5 * diff, 0); ctx.lineWidth = 1.4; ctx.lineJoin = "round"; ctx.stroke();
+      // the number(s), drawn in the plane of the face
+      const inkCol = shadeRgb(ink, 0.55 + 0.5 * diff, 60 * spec);
+      const put = (label, at, up, size) => {
+        const r0 = V.cross(n, up), p0 = proj(vw, at), pu = proj(vw, V.add(at, V.mul(up, 0.1))), pr = proj(vw, V.add(at, V.mul(r0, 0.1)));
+        const sc = 0.1 * vw.ppu; let a = (pr[0] - p0[0]) / sc, b = (pr[1] - p0[1]) / sc; const cc = -(pu[0] - p0[0]) / sc, dd = -(pu[1] - p0[1]) / sc;
+        if (a * dd - b * cc < 0) { a = -a; b = -b; }
+        ctx.setTransform(vw.dpr * a, vw.dpr * b, vw.dpr * cc, vw.dpr * dd, vw.dpr * p0[0], vw.dpr * p0[1]);
+        const px = Math.max(6, size * vw.ppu);
+        ctx.font = `700 ${px.toFixed(1)}px Cinzel, Georgia, serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.lineWidth = Math.max(1, px / 9); ctx.strokeStyle = shadeRgb(body, 0.35, 0); ctx.strokeText(label, 0, px * 0.06);
+        ctx.fillStyle = inkCol; ctx.fillText(label, 0, px * 0.06);
+        if (label === "6" || label === "9") ctx.fillRect(-px * 0.24, px * 0.5, px * 0.48, Math.max(1, px * 0.07));
+        ctx.setTransform(vw.dpr, 0, 0, vw.dpr, 0, 0);
+      };
+      const upW = Q.rot(fr.q, f.up);
+      if (s.sides === 4) {
+        // a d4 reads from the top: each corner shows the number of the face opposite it
+        f.v.forEach(vi => { const opp = s.faces.findIndex(g => !g.v.includes(vi)), corner = pts[vi], at = V.add(c, V.mul(V.sub(corner, c), 0.56));
+          put(d.labels[opp], at, V.norm(V.sub(corner, c)), f.inr * 0.8); });
+      } else {
+        const size = f.inr * ({ 6: 1.05, 8: 0.95, 10: 0.78, 12: 0.9, 20: 0.92 }[s.sides] || 1) * (d.labels[fi].length > 2 ? 0.75 : d.labels[fi].length > 1 ? 0.9 : 1.1);
+        put(d.labels[fi], s.sides === 10 ? V.add(c, V.mul(upW, -f.inr * 0.15)) : c, upW, size);
+      }
+    });
+    ctx.globalAlpha = 1;
+  }
+  function drawFrame(i, alpha) {
+    const vw = view();
+    if (cv.width !== Math.round(vw.w * vw.dpr) || cv.height !== Math.round(vw.h * vw.dpr)) { cv.width = Math.round(vw.w * vw.dpr); cv.height = Math.round(vw.h * vw.dpr); }
+    ctx.setTransform(vw.dpr, 0, 0, vw.dpr, 0, 0); ctx.clearRect(0, 0, vw.w, vw.h);
+    const fr = state.frames[Math.min(i, state.frames.length - 1)];
+    // soft shadows on the page
+    state.dice.forEach((d, k) => {
+      const f = fr[k], c = proj(vw, [f.p[0] + f.p[2] * 0.35, f.p[1] + f.p[2] * 0.45, 0]), r = d.s.R * vw.ppu * (1.05 + f.p[2] * 0.04);
+      const g = ctx.createRadialGradient(c[0], c[1], r * 0.2, c[0], c[1], r * 1.15);
+      g.addColorStop(0, `rgba(10,25,50,${0.32 * alpha / (1 + f.p[2] * 0.15)})`); g.addColorStop(1, "rgba(10,25,50,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c[0], c[1], r * 1.15, 0, 7); ctx.fill();
+    });
+    state.dice.map((d, k) => [d, fr[k]]).sort((a, b) => a[1].p[2] - b[1].p[2]).forEach(([d, f]) => drawDie(vw, d, f, alpha));
+  }
+  function clear() { cancelAnimationFrame(raf); raf = 0; state = null; if (cv) { cv.classList.remove("on"); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); } }
+
+  // Faces for one die: d10 shows 1-10; the percentile pair shows 00-90 and 0-9.
+  function labelsFor(kind, sides) {
+    if (kind === "tens") return Array.from({ length: 10 }, (_, i) => String(i * 10).padStart(2, "0"));
+    if (kind === "ones") return Array.from({ length: 10 }, (_, i) => String(i));
+    return Array.from({ length: sides }, (_, i) => String(i + 1));
+  }
+
+  // Roll a list of dice like [20, 20] or [6, 6, 6] (100 = percentile). Resolves with each die's value once they've landed.
+  function roll(list, opts = {}) {
+    clear();
+    const values = list.map(sides => sides === 100 ? randInt(100) + 1 : randInt(sides) + 1);
+    const reduce = opts.instant || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if (reduce) return Promise.resolve(values);
+    ensureCanvas();
+    const vw = view(), pad = 0.15;
+    const W = { x0: -vw.w / 2 / vw.ppu + pad, x1: vw.w / 2 / vw.ppu - pad, y0: -vw.h / 2 / vw.ppu + pad, y1: (vw.h / 2 - (opts.bottom || 0)) / vw.ppu - pad };
+    // physical dice: the percentile roll is two d10s
+    const dice = [];
+    list.forEach((sides, idx) => {
+      const v = values[idx];
+      if (sides === 100) { const r = v % 100; dice.push({ sides: 10, kind: "tens", want: Math.floor(r / 10), idx }, { sides: 10, kind: "ones", want: r % 10, idx }); }
+      else dice.push({ sides, kind: "", want: v - 1, idx });
+    });
+    const shown = dice.slice(0, 24); // a big fireball still rolls them all, but only this many tumble on screen
+    const fromRight = vis() < 0.5, side = fromRight ? 1 : -1;
+    shown.forEach((d, i) => {
+      d.s = shape(d.sides); d.labels = labelsFor(d.kind, d.sides);
+      const row = (i % 6) - 2.5, col = Math.floor(i / 6);
+      d.p = [side * (vw.w / 2 / vw.ppu + 1.5 + col * 1.6 + vis()), row * 1.5 + (vis() - 0.5) * 1.5 + (W.y0 + W.y1) / 2 * 0.6, 3 + vis() * 2];
+      const sp = 19 + vis() * 8;
+      d.v = [-side * sp, (vis() - 0.5) * 10 - row * 0.8, 2 + vis() * 4];
+      d.w = [(vis() - 0.5) * 40, (vis() - 0.5) * 40, (vis() - 0.5) * 20];
+      d.q = Q.norm([vis() - 0.5, vis() - 0.5, vis() - 0.5, vis() - 0.5]);
+      d.still = 0; d.sleep = false; d.inside = false; d.entry = fromRight ? 1 : 0; d.age = 0;
+    });
+    const sim = simulate(shown, W);
+    // put the chosen number on the face that ended up showing
+    shown.forEach((d, i) => { const f = sim.faces[i], j = d.want; if (f !== j) [d.labels[f], d.labels[j]] = [d.labels[j], d.labels[f]]; });
+    state = { dice: shown, frames: sim.frames };
+    cv.classList.add("on");
+    return new Promise(res => {
+      const t0 = performance.now(), hold = opts.hold ?? 2600, fade = 500, total = sim.frames.length;
+      let resolved = false;
+      const tick = now => {
+        if (!state) return;
+        const i = Math.max(0, Math.floor((now - t0) / (1000 / 60)));
+        if (i < total) drawFrame(i, 1);
+        else {
+          if (!resolved) { resolved = true; res(values); }
+          const t = now - t0 - total * (1000 / 60);
+          if (t > hold + fade) return clear();
+          drawFrame(total - 1, t > hold ? 1 - (t - hold) / fade : 1);
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    });
+  }
+  return { roll, clear, PALETTES, get palette() { return palette; }, setPalette(p) { if (PALETTES[p]) { palette = p; try { localStorage.setItem("esc-dice", p); } catch (e) {} } },  };
+})();
+
+</script>
+<script>
+"use strict";
 const { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, ARMOR, WEAPONS, GEAR, CONDITIONS, STANDARD_ARRAY, POINT_COST } = SRD;
 const E = Engine;
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const sg = E.sign;
+const DIE_ICO = `<svg class="die-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 21 7v10l-9 5-9-5V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 2 7.5 13h9zM3 7l4.5 6M21 7l-4.5 6M7.5 13 12 22l4.5-9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
 const RK = r => String(r || "").replace(/\s/g, "").toLowerCase();
 // Lineages, origin feats, subclasses and spells grow when the DM turns on books in the content library.
 const { LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SPELLS, ITEMS, FEATURES, SOURCE } = SRD;
@@ -728,7 +1065,7 @@ function vSheet() {
       <div class="row small" style="margin-top:8px"><button class="btn sm ghost" data-a="temp">Temp HP</button><button class="btn sm ghost" data-a="rest" data-v="short">Short rest</button><button class="btn sm ghost" data-a="rest" data-v="long">Long rest</button><span class="grow"></span><span class="muted">Hit dice ${d.level - (d.hitDiceUsed || 0)}/${d.level} d${x.hitDie}</span></div>
       ${h.cur <= 0 ? deathSaves(d) : ""}
     </div>
-    <div class="stats"><div class="stat"><div class="v">${x.ac}</div><div class="k">AC</div></div><div class="stat"><div class="v">${sg(x.init)}</div><div class="k">Initiative</div></div><div class="stat"><div class="v">${x.speed}</div><div class="k">Speed</div></div><div class="stat"><div class="v">${sg(x.pb)}</div><div class="k">Prof.</div></div></div>
+    <div class="stats"><div class="stat"><div class="v">${x.ac}</div><div class="k">AC</div></div><div class="stat rl" ${rollAttr("init", null, "initiative")}><div class="v">${sg(x.init)}</div><div class="k">Initiative ${DIE_ICO}</div></div><div class="stat"><div class="v">${x.speed}</div><div class="k">Speed</div></div><div class="stat"><div class="v">${sg(x.pb)}</div><div class="k">Prof.</div></div></div>
     <nav class="tabs">${TABS.map(([k, l]) => `<button class="${A.tab === k ? "on" : ""}" data-a="tab" data-v="${k}">${l}</button>`).join("")}</nav>
     ${tabBody}`;
 }
@@ -740,12 +1077,12 @@ function grantDetail(g) {
 function deathSaves(d) {
   const ds = d.deathSaves || { s: 0, f: 0 };
   const pips = (k, n) => [0, 1, 2].map(i => `<button class="pip ${i < n ? "" : "used"}" style="${k === "f" ? "border-color:var(--bad);" + (i < n ? "background:var(--bad)" : "") : ""}" data-a="ds" data-k="${k}" data-i="${i}" aria-label="${k === "s" ? "success" : "failure"} ${i + 1}"></button>`).join("");
-  return `<div class="row" style="margin-top:10px"><b class="small">Death saves</b><span class="small muted">Successes</span><span class="pips">${pips("s", ds.s)}</span><span class="small muted">Failures</span><span class="pips">${pips("f", ds.f)}</span></div>`;
+  return `<div class="row" style="margin-top:10px"><b class="small">Death saves</b><button class="rbtn" ${rollAttr("death", null, "a death save")}>${DIE_ICO} Roll</button><span class="small muted">Successes</span><span class="pips">${pips("s", ds.s)}</span><span class="small muted">Failures</span><span class="pips">${pips("f", ds.f)}</span></div>`;
 }
 function tMain(r, d, x) {
-  const skills = Object.entries(x.skills).map(([k, s]) => `<div class="li skill">${A.editSkills ? `<button class="btn sm icon ghost" data-a="skillcyc" data-v="${esc(k)}" aria-label="Change ${k} proficiency"><span class="dot ${s.exp ? "ex" : s.prof ? "on" : ""}"></span></button>` : `<span class="dot ${s.exp ? "ex" : s.prof ? "on" : ""}"></span>`}<span class="grow">${k} <span class="tiny muted">${s.abil.toUpperCase()}</span></span><span class="mod">${sg(s.mod)}</span></div>`).join("");
+  const skills = Object.entries(x.skills).map(([k, s]) => `<div class="li skill${A.editSkills ? "" : " rl"}" ${A.editSkills ? "" : rollAttr("skill", k, k)}>${A.editSkills ? `<button class="btn sm icon ghost" data-a="skillcyc" data-v="${esc(k)}" aria-label="Change ${k} proficiency"><span class="dot ${s.exp ? "ex" : s.prof ? "on" : ""}"></span></button>` : `<span class="dot ${s.exp ? "ex" : s.prof ? "on" : ""}"></span>`}<span class="grow">${k} <span class="tiny muted">${s.abil.toUpperCase()}</span></span><span class="mod${A.editSkills ? "" : " rbtn"}">${sg(s.mod)}</span></div>`).join("");
   return `
-    <div class="card"><div class="abils">${ABILS.map(a => `<div class="abil"><div class="n">${ABIL_NAME[a]}</div><div class="m">${sg(x.mods[a])}</div><div class="s">${x.scores[a]}</div><div class="sv"><span class="dot ${x.saves[a].prof ? "on" : ""}"></span> Save <b class="num">${sg(x.saves[a].mod)}</b></div></div>`).join("")}</div>
+    <div class="card"><p class="tiny muted rhint">${DIE_ICO} Tap anything with a bonus to roll it. Hold it (or right-click) for advantage, disadvantage and dice colors.</p><div class="abils">${ABILS.map(a => `<div class="abil rl" ${rollAttr("abil", a, ABIL_NAME[a] + " check")}><div class="n">${ABIL_NAME[a]}</div><div class="m">${sg(x.mods[a])}</div><div class="s">${x.scores[a]}</div><div class="sv rl" ${rollAttr("save", a, ABIL_NAME[a] + " save")}><span class="dot ${x.saves[a].prof ? "on" : ""}"></span> Save <b class="num">${sg(x.saves[a].mod)}</b></div></div>`).join("")}</div>
       ${d.exhaustion ? `<div class="small" style="margin-top:8px;color:var(--bad)">Exhaustion ${d.exhaustion}: −${x.d20Penalty} to every d20 test, −${5 * d.exhaustion} ft speed.</div>` : ""}</div>
     <div class="card"><div class="row"><h3 class="grow">Conditions</h3></div>
       <div class="chips">${CONDITIONS.map(c => `<button class="chip ${d.conditions.includes(c) ? "on" : ""}" data-a="cond" data-v="${c}">${c}</button>`).join("")}</div>
@@ -766,9 +1103,10 @@ function tCombat(r, d, x) {
   const res = x.res.map(rs => typeof rs.max === "number" && rs.reset !== "info" ? `<div class="li"><span class="grow">${rs.name} <span class="tiny muted">${rs.reset} rest</span></span>${rs.max > 8 ? `<div class="row nw"><button class="btn sm icon" data-a="res" data-k="${esc(rs.name)}" data-d="1" data-max="${rs.max}">−</button><b class="num">${rs.max - (d.resUsed[rs.name] || 0)}/${rs.max}</b><button class="btn sm icon" data-a="res" data-k="${esc(rs.name)}" data-d="-1" data-max="${rs.max}">+</button></div>` : `<span class="pips">${Array.from({ length: rs.max }, (_, j) => `<button class="pip ${j < rs.max - (d.resUsed[rs.name] || 0) ? "" : "used"}" data-a="respip" data-k="${esc(rs.name)}" data-j="${j}" data-max="${rs.max}"></button>`).join("")}</span>`}</div>` : `<div class="li"><span class="grow">${rs.name}</span><b class="num">${esc(rs.max)}</b></div>`).join("");
   const custom = [...d.features, ...d.feats].filter(f => f.uses && f.uses.max).map(f => `<div class="li"><span class="grow">${esc(f.name)} <span class="tiny muted">${esc(f.uses.reset)} rest</span></span><span class="pips">${Array.from({ length: f.uses.max }, (_, j) => `<button class="pip ${j < f.uses.max - (f.uses.used || 0) ? "" : "used"}" data-a="fuse" data-id="${f.id}" data-j="${j}"></button>`).join("")}</span></div>`).join("");
   return `
-    <div class="card"><h3>Attacks</h3><div class="list">${x.attacks.map(a => `<div class="li"><div class="grow"><b>${esc(a.name)}</b>${a.props ? `<div class="tiny muted">${esc(a.props)}${a.mastery ? " · Mastery: " + esc(a.mastery) : ""}</div>` : ""}</div><span class="num">${sg(a.hit)}</span><span class="num small" style="min-width:8em;text-align:right">${esc(a.dmg)}</span></div>`).join("")}</div>
-      <p class="tiny muted">Equip weapons on the Gear tab to see them here.${x.d20Penalty ? ` Exhaustion: −${x.d20Penalty} to attack rolls.` : ""}</p></div>
-    ${x.spell ? `<div class="card"><div class="row"><h3 class="grow">Spellcasting</h3><span class="small">Save DC <b class="num">${x.spell.dc}</b> · Attack <b class="num">${sg(x.spell.atk)}</b></span></div><div class="list">${slotRows}${pact}</div></div>` : ""}
+    <div class="card"><h3>Attacks</h3><div class="list">${x.attacks.map((a, i) => { const dm = parseDice(a.dmg), dtxt = esc(a.dmg.replace(/\s+[a-z]+$/i, "")), dtype = esc((a.dmg.match(/[a-z]{3,}$/i) || [""])[0]);
+      return `<div class="li"><div class="grow"><b>${esc(a.name)}</b>${a.props ? `<div class="tiny muted">${esc(a.props)}${a.mastery ? " · Mastery: " + esc(a.mastery) : ""}</div>` : ""}</div><button class="rbtn" ${rollAttr("atk", i, a.name + " attack")}>${sg(a.hit)}</button>${dm.groups.length ? `<button class="rbtn dmg" ${rollAttr("dmg", i, a.name + " damage")}>${dtxt} <small>${dtype}</small></button>` : `<span class="num small" style="min-width:5em;text-align:right">${esc(a.dmg)}</span>`}</div>`; }).join("")}</div>
+      <p class="tiny muted">Tap the bonus to attack and the damage to roll it; hold either for advantage, a critical hit or two-handed damage. Equip weapons on the Gear tab to see them here.${x.d20Penalty ? ` Exhaustion: −${x.d20Penalty} to attack rolls.` : ""}</p></div>
+    ${x.spell ? `<div class="card"><div class="row"><h3 class="grow">Spellcasting</h3><span class="small">Save DC <b class="num">${x.spell.dc}</b> · Attack <button class="rbtn" ${rollAttr("spatk", null, "a spell attack")}>${sg(x.spell.atk)}</button></span></div><div class="list">${slotRows}${pact}</div></div>` : ""}
     ${res || custom ? `<div class="card"><h3>Resources</h3><div class="list">${res}${custom}</div></div>` : ""}`;
 }
 // ---------- spells ----------
@@ -1673,6 +2011,129 @@ const ACT = {
     await A.be.deleteNote(n.id); A.notes = A.notes.filter(x => x !== n); render();
   }
 };
+
+// ---------- rolling from the sheet ----------
+// Anything with data-a="roll" rolls when tapped. Hold it (or right-click) for advantage, disadvantage, a critical hit,
+// two-handed damage, and the dice color. data-r says what it is: abil/save/skill (data-k), init, atk/dmg (data-i), spatk, death.
+const ROLL = { last: null, menu: null, press: null };
+const rollAttr = (r, k, label) => `data-a="roll" data-r="${r}"${k != null ? ` data-k="${esc(k)}"` : ""} role="button" tabindex="0" title="Roll ${esc(label)} (hold for advantage and more)"`;
+function parseDice(s) {
+  const groups = [], str = String(s || "");
+  str.replace(/(\d*)d(\d+)/gi, (m, n, sd) => { groups.push([Math.max(1, +n || 1), +sd]); return ""; });
+  const mod = (str.replace(/\d*d\d+/gi, "").match(/[+-]\s*\d+/g) || []).reduce((t, m) => t + +m.replace(/\s/g, ""), 0);
+  return { groups, mod, type: (str.match(/[a-z]{3,}/i) || [""])[0] };
+}
+// What a roll element means for this character, right now.
+function rollSpec(el, opt = {}) {
+  const r = charRow(A.charId); if (!r) return null;
+  const d = r.data, x = E.derive(d), kind = el.dataset.r, k = el.dataset.k, pen = x.d20Penalty ? [["Exhaustion", -x.d20Penalty]] : [];
+  const who = d.name || "Character";
+  if (kind === "abil") return { who, title: ABIL_NAME[k] + " check", d20: true, parts: [[ABIL_NAME[k], x.mods[k]], ...pen] };
+  if (kind === "save") return { who, title: ABIL_NAME[k] + " save", d20: true, parts: [[ABIL_NAME[k] + " save", x.saves[k].mod], ...pen] };
+  if (kind === "skill") { const s = x.skills[k]; return s && { who, title: k, sub: ABIL_NAME[s.abil] + " check", d20: true, parts: [[k, s.mod], ...pen] }; }
+  if (kind === "init") return { who, title: "Initiative", d20: true, parts: [["Initiative", x.init], ...pen] };
+  if (kind === "spatk") return x.spell && { who, title: "Spell attack", d20: true, attack: true, parts: [["Spell attack", x.spell.atk], ...pen] };
+  if (kind === "death") return { who, title: "Death save", d20: true, death: true, parts: pen };
+  const a = x.attacks[+k]; if (!a) return null;
+  if (kind === "atk") return { who, title: a.name, sub: "Attack roll", d20: true, attack: +k, parts: [["To hit", a.hit], ...pen] };
+  if (kind === "dmg") {
+    const two = opt.versatile && (String(a.props || "").match(/versatile\s*\((\d*d\d+)\)/i) || [])[1];
+    const p = parseDice(two ? a.dmg.replace(/\d*d\d+/i, two) : a.dmg);
+    if (!p.groups.length) return null;
+    const crit = !!opt.crit;
+    return { who, title: a.name, sub: (crit ? "Critical hit" : "Damage") + (two ? ", two-handed" : "") + (p.type ? " · " + p.type : ""), groups: p.groups.map(([n, sd]) => [crit ? n * 2 : n, sd]), parts: p.mod ? [["Damage", p.mod]] : [] };
+  }
+  return null;
+}
+async function doRoll(spec, mode = "") {
+  if (!spec) return;
+  closeRollMenu();
+  const card = $("#rollCard"); card.classList.remove("on");
+  const list = spec.d20 ? (mode ? [20, 20] : [20]) : spec.groups.flatMap(([n, sd]) => Array(n).fill(sd));
+  const charId = A.charId, token = {}; ROLL.last = token;
+  const vals = await Dice.roll(list, { bottom: Math.min(200, innerHeight * 0.3) });
+  if (ROLL.last !== token) return; // a newer roll took over
+  const mod = spec.parts.reduce((t, p) => t + p[1], 0);
+  let kept = null, total, chips;
+  if (spec.d20) {
+    kept = mode === "adv" ? Math.max(...vals) : mode === "dis" ? Math.min(...vals) : vals[0];
+    const drop = mode ? vals.indexOf(kept) === 0 ? 1 : 0 : -1;
+    total = kept + mod;
+    chips = vals.map((v, i) => `<span class="rdie${i === drop ? " drop" : ""}${v === 20 && i !== drop ? " nat20" : v === 1 && i !== drop ? " nat1" : ""}"><b>${v}</b><i>d20</i></span>`).join("");
+  } else {
+    total = Math.max(0, vals.reduce((t, v) => t + v, 0) + mod);
+    chips = vals.map((v, i) => `<span class="rdie"><b>${v}</b><i>d${list[i]}</i></span>`).join("");
+  }
+  const mods = spec.parts.filter(p => p[1]).map(p => `<span class="rmod" title="${esc(p[0])}">${p[1] < 0 ? "−" : "+"} ${Math.abs(p[1])}</span>`).join("");
+  let note = "", acts = "";
+  if (spec.d20 && kept === 20) note = `<div class="rnote good">Natural 20!</div>`;
+  if (spec.d20 && kept === 1) note = `<div class="rnote bad">Natural 1</div>`;
+  if (spec.death) {
+    let msg = "";
+    edit(charId, d => {
+      const ds = d.deathSaves = d.deathSaves || { s: 0, f: 0 };
+      if (kept === 20) { d.hp.cur = 1; d.deathSaves = { s: 0, f: 0 }; msg = "You regain 1 hit point and get back up."; }
+      else if (kept === 1) { ds.f = Math.min(3, ds.f + 2); msg = `Two failures (${ds.f} of 3).`; }
+      else if (total >= 10) { ds.s = Math.min(3, ds.s + 1); msg = ds.s >= 3 ? "Three successes: you're stable." : `Success (${ds.s} of 3).`; }
+      else { ds.f = Math.min(3, ds.f + 1); msg = `Failure (${ds.f} of 3).`; }
+      if (ds.f >= 3 && kept !== 20) msg = "Three failures.";
+    });
+    note = `<div class="rnote ${kept === 20 || total >= 10 ? "good" : "bad"}">${esc(msg)} Marked on your sheet.</div>`;
+  }
+  if (typeof spec.attack === "number") {
+    const dm = rollSpec({ dataset: { r: "dmg", k: String(spec.attack) } });
+    if (dm) acts = `<div class="row" style="margin-top:8px">${kept === 20 ? `<button class="btn sm primary" data-a="rolldmg" data-k="${spec.attack}" data-crit="1">Roll critical damage</button>` : ""}<button class="btn sm${kept === 20 ? "" : " primary"}" data-a="rolldmg" data-k="${spec.attack}">Roll damage</button></div>`;
+  }
+  card.innerHTML = `<div class="row nw"><div class="grow"><div class="rt">${esc(spec.title)}</div><div class="tiny muted">${esc([spec.sub, mode === "adv" ? "Advantage" : mode === "dis" ? "Disadvantage" : "", spec.who].filter(Boolean).join(" · "))}</div></div>
+    <div class="rtotal">${total}</div><button class="btn sm icon ghost" data-a="rollclose" aria-label="Close">×</button></div>
+    <div class="rline">${chips}${mods}<span class="req">= ${total}</span></div>${note}${acts}`;
+  card.classList.add("on");
+  clearTimeout(ROLL.hide); ROLL.hide = setTimeout(() => card.classList.remove("on"), 12000);
+}
+function closeRollMenu() { if (ROLL.menu) { ROLL.menu.remove(); ROLL.menu = null; } }
+function rollMenu(el) {
+  closeRollMenu();
+  const spec = rollSpec(el); if (!spec) return;
+  const m = document.createElement("div"); m.className = "rmenu"; m.setAttribute("role", "menu");
+  const r = charRow(A.charId), a = el.dataset.r === "dmg" && r ? E.derive(r.data).attacks[+el.dataset.k] : null;
+  const vers = a && /versatile\s*\(\d*d\d+\)/i.test(a.props || "");
+  const items = spec.d20 ? [["", "Roll"], ["adv", "Roll with advantage"], ["dis", "Roll with disadvantage"]] : [["", "Roll damage"], ["crit", "Critical hit (double dice)"], ...(vers ? [["vers", "Two-handed"], ["vers crit", "Two-handed critical"]] : [])];
+  m.innerHTML = `<div class="tiny muted" style="padding:2px 8px 4px">${esc(spec.title)}</div>${items.map(([v, l]) => `<button role="menuitem" data-v="${v}">${l}</button>`).join("")}
+    <div class="rsw"><span class="tiny muted">Dice</span>${Object.entries(Dice.PALETTES).map(([k, p]) => `<button class="sw${Dice.palette === k ? " on" : ""}" data-pal="${k}" title="${p.name}" aria-label="${p.name} dice" style="background:${p.body};color:${p.ink}">●</button>`).join("")}</div>`;
+  document.body.appendChild(m); ROLL.menu = m;
+  const b = el.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(innerWidth - mw - 8, b.left + b.width / 2 - mw / 2)) + "px";
+  m.style.top = (b.bottom + mh + 8 < innerHeight ? b.bottom + 6 : Math.max(8, b.top - mh - 6)) + "px";
+  m.addEventListener("click", e => {
+    e.stopPropagation();
+    const pal = e.target.closest("[data-pal]");
+    if (pal) { Dice.setPalette(pal.dataset.pal); m.querySelectorAll(".sw").forEach(s => s.classList.toggle("on", s === pal)); return; }
+    const it = e.target.closest("[data-v]"); if (!it) return;
+    const v = it.dataset.v;
+    if (spec.d20) doRoll(spec, v); else doRoll(rollSpec(el, { crit: v.includes("crit"), versatile: v.includes("vers") }));
+  });
+  (m.querySelector("button") || m).focus();
+}
+Object.assign(ACT, {
+  roll(el) { if (ROLL.press && ROLL.press.fired && ROLL.press.el === el) { ROLL.press = null; return; } doRoll(rollSpec(el)); },
+  rolldmg(el) { doRoll(rollSpec({ dataset: { r: "dmg", k: el.dataset.k } }, { crit: !!el.dataset.crit })); },
+  rollclose() { $("#rollCard").classList.remove("on"); Dice.clear(); ROLL.last = null; }
+});
+// hold to open the roll menu (right-click on a computer)
+document.addEventListener("pointerdown", e => {
+  if (ROLL.menu && !e.target.closest(".rmenu")) closeRollMenu();
+  const el = e.target.closest('[data-a="roll"]'); if (!el || e.button > 0) return;
+  const p = ROLL.press = { el, x: e.clientX, y: e.clientY, fired: false, t: setTimeout(() => { p.fired = true; rollMenu(el); }, 450) };
+});
+document.addEventListener("pointermove", e => { const p = ROLL.press; if (p && !p.fired && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) { clearTimeout(p.t); ROLL.press = null; } });
+["pointerup", "pointercancel"].forEach(t => document.addEventListener(t, () => { const p = ROLL.press; if (p && !p.fired) { clearTimeout(p.t); ROLL.press = null; } }));
+document.addEventListener("contextmenu", e => { const el = e.target.closest('[data-a="roll"]'); if (!el) return; e.preventDefault(); if (ROLL.press) clearTimeout(ROLL.press.t); ROLL.press = { el, fired: true }; rollMenu(el); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && ROLL.menu) return closeRollMenu();
+  const el = e.target.closest && e.target.closest('[data-a="roll"][role="button"]');
+  if (!el || (e.key !== "Enter" && e.key !== " ")) return;
+  e.preventDefault(); if (e.shiftKey) rollMenu(el); else doRoll(rollSpec(el));
+});
 
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-a]"); if (!el) return;
