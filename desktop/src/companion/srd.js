@@ -63,6 +63,17 @@ const FEATS = {
   "Savage Attacker": "Once per turn when you hit with a weapon, roll its damage dice twice and use either roll.",
   "Skilled": "Gain proficiency in any combination of three skills or tools.",
   "Grappler": "Punch and grab in one action; advantage on attacks against creatures you grapple. (General feat)",
+  "Archery (Fighting Style)": "+2 bonus to attack rolls you make with ranged weapons.",
+  "Defense (Fighting Style)": "+1 bonus to AC while you wear light, medium or heavy armor.",
+  "Great Weapon Fighting (Fighting Style)": "Treat a 1 or 2 on a damage die as a 3 for melee attacks with a weapon you hold in two hands (Two-Handed or Versatile).",
+  "Two-Weapon Fighting (Fighting Style)": "Add your ability modifier to the damage of the extra attack from a Light weapon.",
+  "Boon of Combat Prowess": "Epic Boon (level 19+). +1 to one ability (max 30). Once per turn, turn a missed attack into a hit.",
+  "Boon of Dimensional Travel": "Epic Boon (level 19+). +1 to one ability (max 30). After you take the Attack or Magic action, teleport up to 30 feet.",
+  "Boon of Fate": "Epic Boon (level 19+). +1 to one ability (max 30). Add or subtract 2d4 from a nearby creature's D20 Test; once per initiative or rest.",
+  "Boon of Irresistible Offense": "Epic Boon (level 19+). +1 Strength or Dexterity (max 30). Your bludgeoning, piercing and slashing damage ignores resistance; a natural 20 adds damage equal to that ability score.",
+  "Boon of Spell Recall": "Epic Boon (level 19+). +1 Intelligence, Wisdom or Charisma (max 30). Cast a level 1 to 4 spell without a slot, once per Long Rest.",
+  "Boon of the Night Spirit": "Epic Boon (level 19+). +1 to one ability (max 30). Become Invisible in dim light or darkness; resistance to all damage but psychic and radiant there.",
+  "Boon of Truesight": "Epic Boon (level 19+). +1 to one ability (max 30). Truesight 60 feet.",
   "Ability Score Improvement": "+2 to one ability score, or +1 to two (max 20)."
 };
 
@@ -406,6 +417,113 @@ const LINEAGES = {
 };
 const LINEAGE_LABEL = { Dragonborn: "Draconic ancestry", Goliath: "Giant ancestry" };
 const ORIGIN_FEATS = ["Alert", "Magic Initiate", "Savage Attacker", "Skilled"];
+// Proficiencies a class gives when you multiclass into it (2024 rules). skills: how many, from: which list ("any" or the class list).
+const MC_PROFS = {
+  Barbarian: { armor: "Shields", weapons: "Martial weapons" },
+  Bard: { armor: "Light armor", skills: 1, from: "any", tools: "instrument" },
+  Cleric: { armor: "Light and medium armor; shields" },
+  Druid: { armor: "Light armor; shields" },
+  Fighter: { armor: "Light and medium armor; shields", weapons: "Martial weapons" },
+  Monk: {},
+  Paladin: { armor: "Light and medium armor; shields", weapons: "Martial weapons" },
+  Ranger: { armor: "Light and medium armor; shields", weapons: "Martial weapons", skills: 1, from: "class" },
+  Rogue: { armor: "Light armor", skills: 1, from: "class", tool: "Thieves' Tools" },
+  Sorcerer: {},
+  Warlock: { armor: "Light armor" },
+  Wizard: {}
+};
+// Tools a class always gives at level 1 (not when multiclassing, except Rogue's, which MC_PROFS covers).
+const CLASS_TOOLS = { Druid: ["Herbalism Kit"], Rogue: ["Thieves' Tools"] };
+// Languages a class teaches you.
+const CLASS_LANGS = { Druid: ["Druidic"], Rogue: ["Thieves' Cant"] };
+const LANGUAGES = ["Common Sign Language", "Draconic", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc"];
+const RARE_LANGUAGES = ["Abyssal", "Celestial", "Deep Speech", "Druidic", "Infernal", "Primordial", "Sylvan", "Thieves' Cant", "Undercommon"];
+const ALIGNMENTS = ["Lawful Good", "Neutral Good", "Chaotic Good", "Lawful Neutral", "Neutral", "Chaotic Neutral", "Lawful Evil", "Neutral Evil", "Chaotic Evil", "Unaligned"];
+const ARTISAN_TOOLS = ["Alchemist's Supplies", "Brewer's Supplies", "Calligrapher's Supplies", "Carpenter's Tools", "Cartographer's Tools", "Cobbler's Tools", "Cook's Utensils", "Glassblower's Tools",
+  "Jeweler's Tools", "Leatherworker's Tools", "Mason's Tools", "Painter's Supplies", "Potter's Tools", "Smith's Tools", "Tinker's Tools", "Weaver's Tools", "Woodcarver's Tools"];
+const INSTRUMENTS = ["Bagpipes", "Drum", "Dulcimer", "Flute", "Horn", "Lute", "Lyre", "Pan Flute", "Shawm", "Viol"];
+const GAMING_SETS = ["Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set"];
+// [name, warlock level needed, summary]
+const INVOCATIONS = [
+  ["Armor of Shadows", 1, "Cast Mage Armor on yourself without a spell slot."], ["Eldritch Mind", 1, "Advantage on Constitution saves to keep Concentration."],
+  ["Pact of the Blade", 1, "Bonus action: conjure or bond a pact weapon; use Charisma for its attacks and deal necrotic, psychic or radiant damage."],
+  ["Pact of the Chain", 1, "Find Familiar with special forms (imp, pseudodragon, quasit, skeleton, slaad tadpole, sphinx of wonder, sprite, venomous snake)."],
+  ["Pact of the Tome", 1, "A Book of Shadows with three cantrips and two ritual level 1 spells from any class, always prepared."],
+  ["Agonizing Blast", 2, "Add your Charisma modifier to the damage of one Warlock damage cantrip."], ["Devil's Sight", 2, "See normally in magical and nonmagical darkness within 120 feet."],
+  ["Eldritch Spear", 2, "One Warlock damage cantrip with 10+ ft range reaches 30 × warlock level feet farther."], ["Fiendish Vigor", 2, "Cast False Life on yourself without a slot, taking the maximum temp HP."],
+  ["Lessons of the First Ones", 2, "Gain one Origin feat."], ["Mask of Many Faces", 2, "Cast Disguise Self without a spell slot."], ["Misty Visions", 2, "Cast Silent Image without a spell slot."],
+  ["Otherworldly Leap", 2, "Cast Jump on yourself without a spell slot."], ["Repelling Blast", 2, "When a Warlock cantrip hits a Large or smaller creature, push it up to 10 feet."],
+  ["Ascendant Step", 5, "Cast Levitate on yourself without a spell slot."], ["Eldritch Smite", 5, "Pact of the Blade: spend a Pact slot on a hit for +1d8 force per slot level plus 1d8, and knock the target Prone."],
+  ["Gaze of Two Minds", 5, "Bonus action: perceive through a willing creature's senses."], ["Gift of the Depths", 5, "Breathe underwater, swim speed equal to your speed, Water Breathing once per Long Rest."],
+  ["Investment of the Chain Master", 5, "Pact of the Chain: your familiar gets a fly or swim speed, a bonus-action attack, your save DC and resistance when you take damage."],
+  ["Master of Myriad Forms", 5, "Cast Alter Self without a spell slot."], ["One with Shadows", 5, "While in dim light or darkness, cast Invisibility on yourself without a slot."],
+  ["Thirsting Blade", 5, "Pact of the Blade: attack twice with your pact weapon when you take the Attack action."],
+  ["Whispers of the Grave", 7, "Cast Speak with Dead without a spell slot."], ["Gift of the Protectors", 9, "Pact of the Tome: names in your book drop to 1 HP instead of 0, once per Long Rest."],
+  ["Lifedrinker", 9, "Pact of the Blade: +1d6 necrotic, psychic or radiant on a hit, and spend a Hit Die to heal."], ["Visions of Distant Realms", 9, "Cast Arcane Eye without a spell slot."],
+  ["Devouring Blade", 12, "Thirsting Blade gives you two extra attacks."], ["Witch Sight", 15, "Truesight 30 feet."]];
+const METAMAGIC = [
+  ["Careful Spell", 1, "1 point: chosen creatures automatically succeed on the spell's save and take no damage on a success."], ["Distant Spell", 1, "1 point: double the range, or touch becomes 30 ft."],
+  ["Empowered Spell", 1, "1 point: reroll up to your Cha modifier in damage dice."], ["Extended Spell", 1, "1 point: double the duration (max 24 hours); advantage on its Concentration saves."],
+  ["Heightened Spell", 1, "2 points: one target has disadvantage on its first save against the spell."], ["Quickened Spell", 1, "2 points: cast an Action spell as a Bonus Action."],
+  ["Seeking Spell", 1, "1 point: reroll a missed spell attack."], ["Subtle Spell", 1, "1 point: no Verbal, Somatic or Material (without cost) components."],
+  ["Transmuted Spell", 1, "1 point: change the damage type to acid, cold, fire, lightning, poison or thunder."], ["Twinned Spell", 1, "1 point: a single-target spell that could be upcast targets one more creature."]];
+// Choices a class asks for as you level. key: what it's called; kind decides the picker:
+//   pick (one of from), feat (a Fighting Style feat), expertise (n of your skills), skill (n of from), lang (n languages),
+//   tool (n of a tool list), mastery (count[lv] weapon kinds), list (count[lv] of INVOCATIONS or METAMAGIC).
+// start: only for the class you start with; mc: only when you multiclass into it.
+const lvls = (...pairs) => Array.from({ length: 20 }, (_, i) => { let v = 0; for (const [l, n] of pairs) if (i + 1 >= l) v = n; return v; });
+const CLASS_CHOICES = {
+  Barbarian: [{ at: 1, key: "Weapon Mastery", kind: "mastery", count: lvls([1, 2], [4, 3], [10, 4]), weapons: "melee" },
+    { at: 3, key: "Primal Knowledge", kind: "skill", n: 1, from: "class" }],
+  Bard: [{ at: 1, key: "Musical instruments", kind: "tool", n: 3, from: "instrument", start: true }, { at: 1, key: "Multiclass skill", kind: "skill", n: 1, from: "any", mc: true },
+    { at: 1, key: "Multiclass instrument", kind: "tool", n: 1, from: "instrument", mc: true },
+    { at: 2, key: "Expertise", kind: "expertise", n: 2 }, { at: 9, key: "Expertise (level 9)", kind: "expertise", n: 2 }],
+  Cleric: [{ at: 1, key: "Divine Order", kind: "pick", from: [["Protector", "Training with Martial weapons and Heavy armor."], ["Thaumaturge", "One extra Cleric cantrip, and add your Wisdom modifier (min +1) to Arcana and Religion checks."]] },
+    { at: 7, key: "Blessed Strikes", kind: "pick", from: [["Divine Strike", "Once per turn, a weapon hit deals +1d8 necrotic or radiant (2d8 at level 14)."], ["Potent Spellcasting", "Add your Wisdom modifier to Cleric cantrip damage."]] }],
+  Druid: [{ at: 1, key: "Primal Order", kind: "pick", from: [["Magician", "One extra Druid cantrip, and add your Wisdom modifier (min +1) to Arcana and Nature checks."], ["Warden", "Training with Martial weapons and Medium armor."]] },
+    { at: 7, key: "Elemental Fury", kind: "pick", from: [["Potent Spellcasting", "Add your Wisdom modifier to Druid cantrip damage."], ["Primal Strike", "Once per turn, a weapon or Wild Shape hit deals +1d8 cold, fire, lightning or thunder (2d8 at level 15)."]] }],
+  Fighter: [{ at: 1, key: "Fighting Style", kind: "feat" }, { at: 1, key: "Weapon Mastery", kind: "mastery", count: lvls([1, 3], [4, 4], [10, 5], [16, 6]), weapons: "all" }],
+  Monk: [{ at: 1, key: "Tool or instrument", kind: "tool", n: 1, from: "artisanOrInstrument", start: true }],
+  Paladin: [{ at: 1, key: "Weapon Mastery", kind: "mastery", count: lvls([1, 2]), weapons: "all" }, { at: 2, key: "Fighting Style", kind: "feat" }],
+  Ranger: [{ at: 1, key: "Weapon Mastery", kind: "mastery", count: lvls([1, 2]), weapons: "all" }, { at: 1, key: "Multiclass skill", kind: "skill", n: 1, from: "class", mc: true },
+    { at: 2, key: "Deft Explorer", kind: "expertise", n: 1 }, { at: 2, key: "Deft Explorer languages", kind: "lang", n: 2 }, { at: 2, key: "Fighting Style", kind: "feat" },
+    { at: 9, key: "Expertise", kind: "expertise", n: 2 }],
+  Rogue: [{ at: 1, key: "Expertise", kind: "expertise", n: 2 }, { at: 1, key: "Thieves' Cant language", kind: "lang", n: 1 }, { at: 1, key: "Multiclass skill", kind: "skill", n: 1, from: "class", mc: true },
+    { at: 1, key: "Weapon Mastery", kind: "mastery", count: lvls([1, 2]), weapons: "rogue" }, { at: 6, key: "Expertise (level 6)", kind: "expertise", n: 2 }],
+  Sorcerer: [{ at: 2, key: "Metamagic", kind: "list", from: "metamagic", count: lvls([2, 2], [10, 4], [17, 6]) }],
+  Warlock: [{ at: 1, key: "Eldritch Invocations", kind: "list", from: "invocations", count: lvls([1, 1], [2, 3], [5, 5], [7, 6], [9, 7], [12, 8], [15, 9], [18, 10]) }],
+  Wizard: [{ at: 2, key: "Scholar", kind: "expertise", n: 1, from: ["Arcana", "History", "Investigation", "Medicine", "Nature", "Religion"] }]
+};
+// Starting equipment (option A, and B for Fighter). Option "gold only" is the class's gold. [name, how many]
+const START_GEAR = {
+  Barbarian: [{ items: [["Greataxe"], ["Handaxe", 4], ["Explorer's Pack"]], gp: 15 }],
+  Bard: [{ items: [["Leather Armor"], ["Dagger", 2], ["Musical instrument"], ["Entertainer's Pack"]], gp: 19 }],
+  Cleric: [{ items: [["Chain Shirt"], ["Shield"], ["Mace"], ["Holy Symbol: Amulet"], ["Priest's Pack"]], gp: 7 }],
+  Druid: [{ items: [["Leather Armor"], ["Shield"], ["Sickle"], ["Druidic Focus: Wooden Staff"], ["Explorer's Pack"], ["Herbalism Kit"]], gp: 9 }],
+  Fighter: [{ label: "Heavy armor and great weapon", items: [["Chain Mail"], ["Greatsword"], ["Flail"], ["Javelin", 8], ["Dungeoneer's Pack"]], gp: 4 },
+    { label: "Light armor and bow", items: [["Studded Leather Armor"], ["Scimitar"], ["Shortsword"], ["Longbow"], ["Arrows (20)"], ["Quiver"], ["Dungeoneer's Pack"]], gp: 11 }],
+  Monk: [{ items: [["Spear"], ["Dagger", 5], ["Artisan's tools or instrument"], ["Explorer's Pack"]], gp: 11 }],
+  Paladin: [{ items: [["Chain Mail"], ["Shield"], ["Longsword"], ["Javelin", 6], ["Holy Symbol: Amulet"], ["Priest's Pack"]], gp: 9 }],
+  Ranger: [{ items: [["Studded Leather Armor"], ["Scimitar"], ["Shortsword"], ["Longbow"], ["Arrows (20)"], ["Quiver"], ["Druidic Focus: Sprig of Mistletoe"], ["Explorer's Pack"]], gp: 7 }],
+  Rogue: [{ items: [["Leather Armor"], ["Dagger", 2], ["Shortsword"], ["Shortbow"], ["Arrows (20)"], ["Quiver"], ["Thieves' Tools"], ["Burglar's Pack"]], gp: 8 }],
+  Sorcerer: [{ items: [["Spear"], ["Dagger", 2], ["Arcane Focus: Crystal"], ["Dungeoneer's Pack"]], gp: 28 }],
+  Warlock: [{ items: [["Leather Armor"], ["Sickle"], ["Dagger", 2], ["Arcane Focus: Orb"], ["Book"], ["Scholar's Pack"]], gp: 15 }],
+  Wizard: [{ items: [["Dagger", 2], ["Arcane Focus: Staff"], ["Robe"], ["Spellbook"], ["Scholar's Pack"]], gp: 5 }]
+};
+const BG_GEAR = {
+  Acolyte: { items: [["Calligrapher's Supplies"], ["Book"], ["Holy Symbol: Amulet"], ["Parchment", 10], ["Robe"]], gp: 8 },
+  Criminal: { items: [["Dagger", 2], ["Thieves' Tools"], ["Crowbar"], ["Pouch", 2], ["Clothes, Traveler's"]], gp: 16 },
+  Sage: { items: [["Quarterstaff"], ["Calligrapher's Supplies"], ["Book"], ["Parchment", 8], ["Robe"]], gp: 8 },
+  Soldier: { items: [["Spear"], ["Shortbow"], ["Arrows (20)"], ["Gaming set"], ["Healer's Kit"], ["Quiver"], ["Clothes, Traveler's"]], gp: 14 }
+};
+// Spells a species or lineage gives: [spell, spell level, character level].
+const SPECIES_SPELLS = {
+  Drow: [["Dancing Lights", 0, 1], ["Faerie Fire", 1, 3], ["Darkness", 2, 5]], "High Elf": [["Prestidigitation", 0, 1], ["Detect Magic", 1, 3], ["Misty Step", 2, 5]],
+  "Wood Elf": [["Druidcraft", 0, 1], ["Longstrider", 1, 3], ["Pass without Trace", 2, 5]], "Forest Gnome": [["Minor Illusion", 0, 1], ["Speak with Animals", 1, 1]],
+  "Rock Gnome": [["Mending", 0, 1], ["Prestidigitation", 0, 1]], Tiefling: [["Thaumaturgy", 0, 1]],
+  Abyssal: [["Poison Spray", 0, 1], ["Ray of Sickness", 1, 3], ["Hold Person", 2, 5]], Chthonic: [["Chill Touch", 0, 1], ["False Life", 1, 3], ["Ray of Enfeeblement", 2, 5]],
+  Infernal: [["Fire Bolt", 0, 1], ["Hellish Rebuke", 1, 3], ["Darkness", 2, 5]]
+};
 // Filled from the campaign's content library (the DM's books) at run time; see Engine.useContent.
 const SUBCLASSES = {};
 const SPELLS = [];
@@ -415,5 +533,6 @@ const SOURCE = {};
 const POINT_COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
 g.SRD = { ABILS, ABIL_NAME, SKILLS, ALL_SKILLS, SPECIES, FEATS, BACKGROUNDS, CLASSES, FULL_SLOTS, PACT, SPELLCASTING, SUB_CASTERS, ARMOR, WEAPONS, GEAR, CONDITIONS, STANDARD_ARRAY, POINT_COST,
-  LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SUBCLASSES, SPELLS, ITEMS, FEATURES, SOURCE };
+  LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SUBCLASSES, SPELLS, ITEMS, FEATURES, SOURCE,
+  MC_PROFS, CLASS_TOOLS, CLASS_LANGS, LANGUAGES, RARE_LANGUAGES, ALIGNMENTS, ARTISAN_TOOLS, INSTRUMENTS, GAMING_SETS, INVOCATIONS, METAMAGIC, CLASS_CHOICES, START_GEAR, BG_GEAR, SPECIES_SPELLS };
 })(typeof window !== "undefined" ? window : globalThis);
