@@ -241,7 +241,7 @@ const RK = r => String(r || "").replace(/\s/g, "").toLowerCase();
 const { LINEAGES, LINEAGE_LABEL, ORIGIN_FEATS, SPELLS, ITEMS, FEATURES, SOURCE } = SRD;
 const srcTag = (kind, name) => SOURCE[kind + ":" + name] ? ` <span class="src">${esc(SOURCE[kind + ":" + name])}</span>` : "";
 
-const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], content: [], contentOk: true, view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false, sessions: [], notes: [], privateRecaps: [], notesOk: true, noteSess: null, noteDraft: "", notesBack: "camp", liveSeen: null };
+const A = { be: null, user: null, camps: [], camp: null, chars: [], grants: [], members: [], homebrew: [], content: [], contentOk: true, parties: [], partiesOk: true, view: "home", charId: null, tab: "main", draft: null, step: 0, unsub: null, seenGrants: new Set(), pendingRender: false, editSkills: false, sessions: [], notes: [], privateRecaps: [], notesOk: true, noteSess: null, noteDraft: "", notesBack: "camp", liveSeen: null };
 
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2600); }
 function fail(e) { console.error(e); toast(e.message || String(e)); }
@@ -288,9 +288,16 @@ async function openCamp(id) {
 async function refresh() {
   if (!A.camp) return;
   [A.chars, A.grants, A.members] = await Promise.all([A.be.listCharacters(A.camp.id), A.be.listGrants(A.camp.id), A.be.members(A.camp.id)]);
-  if (isDM()) A.homebrew = await A.be.listHomebrew(A.camp.id);
+  if (isDM()) { A.homebrew = await A.be.listHomebrew(A.camp.id); await refreshParties(); }
   else await refreshNotes();
 }
+// Named parties (supabase/fix-08-parties.sql). Without it the DM sees one party of everyone, as before.
+async function refreshParties() {
+  try { A.parties = await A.be.listParties(A.camp.id); A.partiesOk = true; }
+  catch (e) { console.warn(e); A.parties = []; A.partiesOk = false; }
+}
+// Which named party a character is in (each character is in at most one).
+const partyOf = id => A.parties.find(p => (p.character_ids || []).includes(id)) || null;
 // Session notes need supabase/fix-04-session-notes.sql; without it the rest of the app works as before.
 async function refreshNotes() {
   try { [A.sessions, A.notes] = await Promise.all([A.be.listSessions(A.camp.id), A.be.listNotes(A.camp.id)]); A.notesOk = true; }
@@ -389,7 +396,7 @@ function hpBar(h) { const tot = Math.max(h.max, h.cur + h.temp); const p = Math.
 function vCamp() {
   const pend = id => A.grants.filter(g => g.character_id === id && g.status === "pending").length;
   if (isDM()) {
-    const cards = A.chars.map(r => {
+    const card = r => {
       const d = r.data, h = hpOf(d);
       const tags = [...(d.conditions || []), d.exhaustion ? "Exhaustion " + d.exhaustion : "", d.stress ? "Stress " + d.stress : "", h.cur <= 0 ? "Down" : ""].filter(Boolean);
       return `<button class="pc" data-a="sheet" data-id="${r.id}" data-pc="${r.id}">
@@ -398,13 +405,12 @@ function vCamp() {
         <div class="meta"><div><b>${h.x.ac}</b><span>AC</span></div><div><b>${h.x.passive}</b><span>Passive Perc</span></div><div><b>${sg(h.x.init)}</b><span>Init</span></div></div>
         ${tags.length ? `<div class="chips" style="margin-top:8px">${tags.map(t => `<span class="pill bad">${esc(t)}</span>`).join("")}</div>` : ""}
       </button>`;
-    }).join("");
+    };
     const recent = A.grants.slice(0, 12).map(g => { const r = charRow(g.character_id); return `<div class="grant"><div class="grow"><b>${esc(E.grantLabel(g))}</b> <span class="muted small">to ${esc(r ? r.data.name : "?")}</span></div><span class="pill ${g.status === "accepted" ? "good" : g.status === "declined" ? "bad" : ""}">${g.status}</span></div>`; }).join("");
     return `
       <div class="card row"><div class="grow"><div class="small muted">Players join with this code</div><div class="code">${esc(A.camp.join_code)}</div></div><button class="btn sm" data-a="copylink">Copy invite link</button></div>
       ${SUITE ? `<div class="card row"><div class="grow"><b>Other DM devices</b><div class="small muted">Make a one-time code to be the DM on another computer's DM Suite, or in the Companion on a phone or browser.</div></div><button class="btn sm" data-a="suitecode">Make DM code</button></div>` : `<div class="card row"><div class="grow"><b>DM Suite and other devices</b><div class="small muted">Bring these characters into your DM Suite's party list and initiative tracker, with HP and conditions synced both ways. The same code makes another phone or browser a DM of this campaign.</div></div><button class="btn sm" data-a="suitecode">Make DM code</button></div>`}
-      <div class="sec-title"><h2>Party</h2><span class="small muted">${A.chars.length} character${A.chars.length === 1 ? "" : "s"} · live</span></div>
-      ${A.chars.length ? `<div class="party">${cards}</div>` : `<div class="card empty">No characters yet. When players join and build characters, they'll appear here.</div>`}
+      ${partySections(card)}
       <div class="card"><div class="row"><h2 class="grow">Who's in the campaign</h2><span class="small muted">${A.members.filter(m => m.role === "player").length} player${A.members.filter(m => m.role === "player").length === 1 ? "" : "s"}</span></div>
         <div class="list">${A.members.filter(m => m.role === "player").map(m => { const mine = A.chars.filter(c => c.owner === m.user_id); return `<div class="li"><div class="grow"><b>${esc(m.display_name || "Player")}</b>${m.joined_at ? `<span class="small muted"> · joined ${new Date(m.joined_at).toLocaleDateString()}</span>` : ""}</div><span class="small">${mine.length ? mine.map(c => `<button class="btn sm ghost" data-a="sheet" data-id="${c.id}">${esc(c.data.name || "Unnamed")}</button>`).join("") : `<span class="muted">no character yet</span>`}</span></div>`; }).join("") || `<p class="muted small">No players yet. Share the code above.</p>`}</div>
         <p class="tiny muted" style="margin:6px 0 0">Someone on a new phone shows up twice. Open their character, go to Notes, and use Move to another player.</p></div>
@@ -422,6 +428,48 @@ function vCamp() {
     ${mine.length ? "" : `<div class="card empty">You don't have a character in this campaign yet.</div>`}
     ${A.notesOk && liveSession() ? `<div class="banner row"><span class="grow"><b>${esc(liveSession().title || "A session")}</b> is being played now. Write down what you notice, suspect or plan.</span><button class="btn sm primary" data-a="notes">Add a note</button></div>` : ""}
     <button class="btn primary" style="margin-top:12px;width:100%" data-a="build">Create a character</button>`;
+}
+// The characters, grouped into the DM's named parties, then everyone not in one.
+function partySections(card) {
+  const n = k => `${k} character${k === 1 ? "" : "s"}`;
+  const newBtn = A.partiesOk ? `<button class="btn sm" data-a="newparty">New party</button>` : "";
+  if (!A.chars.length) return `<div class="sec-title"><h2>Party</h2>${newBtn}</div><div class="card empty">No characters yet. When players join and build characters, they'll appear here.</div>`;
+  if (!A.parties.length) return `<div class="sec-title"><h2>Party</h2><span class="small muted">${n(A.chars.length)} · live</span>${newBtn}</div>
+    ${A.partiesOk ? "" : `<p class="tiny muted" style="margin:0 0 6px">To split characters into named parties, run <b>supabase/fix-08-parties.sql</b> once in the Supabase SQL Editor.</p>`}
+    <div class="party">${A.chars.map(card).join("")}</div>`;
+  const placed = new Set();
+  const groups = A.parties.map(p => {
+    const rows = A.chars.filter(r => (p.character_ids || []).includes(r.id) && !placed.has(r.id));
+    rows.forEach(r => placed.add(r.id));
+    return `<div class="sec-title" style="flex-wrap:wrap"><h2 style="min-width:9em">${esc(p.name || "Party")}</h2><span class="row nw" style="gap:6px;margin-left:auto"><span class="small muted">${n(rows.length)}</span>
+      <button class="btn sm" data-a="pickparty" data-id="${p.id}" style="white-space:nowrap">Choose characters</button>
+      <button class="btn sm ghost" data-a="renameparty" data-id="${p.id}">Rename</button>
+      <button class="btn sm ghost danger" data-a="delparty" data-id="${p.id}" aria-label="Delete ${esc(p.name || "party")}">✕</button></span></div>
+      ${rows.length ? `<div class="party">${rows.map(card).join("")}</div>` : `<div class="card empty">Nobody in this party yet. Press Choose characters.</div>`}`;
+  }).join("");
+  const rest = A.chars.filter(r => !placed.has(r.id));
+  return `<div class="row" style="margin-top:16px"><span class="grow small muted">${n(A.chars.length)} in ${A.parties.length} part${A.parties.length === 1 ? "y" : "ies"} · live</span>${newBtn}</div>
+    ${groups}
+    ${rest.length ? `<div class="sec-title"><h2>Not in a party</h2><span class="small muted">${n(rest.length)}</span></div><div class="party">${rest.map(card).join("")}</div>` : ""}`;
+}
+function partyDialog(p) {
+  const rows = A.chars.map(r => {
+    const on = (p.character_ids || []).includes(r.id), other = !on && partyOf(r.id);
+    return `<label class="chip ${on ? "on" : ""}" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" class="partyPick" value="${r.id}" ${on ? "checked" : ""} hidden>${esc(r.data.name || "Unnamed")}${other ? ` <span class="tiny" style="opacity:.75">(in ${esc(other.name)})</span>` : ""}</label>`;
+  }).join("");
+  dialog(`Who's in ${p.name || "this party"}?`, `<div class="stack"><p class="small muted" style="margin:0">Tap characters to add or take them out. A character is in one party at a time, so picking one from another party moves them here.</p><div class="chips">${rows || `<span class="muted small">No characters yet.</span>`}</div></div>`,
+    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveparty" data-id="${p.id}">Save</button>`,
+    dl => dl.querySelectorAll(".partyPick").forEach(cb => cb.parentElement.onclick = e => { e.preventDefault(); cb.checked = !cb.checked; cb.parentElement.classList.toggle("on", cb.checked); }));
+}
+// Put exactly these characters in party p, taking them out of any other party first.
+async function setPartyMembers(p, ids) {
+  for (const o of A.parties) {
+    if (o.id === p.id) continue;
+    const keep = (o.character_ids || []).filter(id => !ids.includes(id));
+    if (keep.length !== (o.character_ids || []).length) await A.be.saveParty(A.camp.id, { character_ids: keep }, o.id);
+  }
+  await A.be.saveParty(A.camp.id, { character_ids: ids }, p.id);
+  await refreshParties();
 }
 function libList() {
   if (!A.homebrew.length) return `<p class="muted small">Things you save while sending show up here, ready to send again. You can also import the magic items from your DM Suite campaign file.</p>`;
@@ -1063,6 +1111,29 @@ const ACT = {
   sendlib(el) { const h = A.homebrew.find(x => x.id === el.dataset.id); if (h) sendDialog({ kind: h.kind, data: h.data, libId: h.id, to: [] }); },
   async dellib(el) { const h = A.homebrew.find(x => x.id === el.dataset.id); if (!h || !await ask({ title: `Delete ${h.data.name}?`, text: "It's removed from your library. Anything already sent stays on players' sheets.", ok: "Delete", danger: true })) return; await A.be.deleteHomebrew(h.id); A.homebrew = A.homebrew.filter(x => x !== h); render(); },
   async suiteconnect() { await A.be.openConnect(); },
+  async newparty() {
+    const name = await ask({ title: "New party", text: "Name it, then choose who's in it.", input: "text", value: "", ok: "Create" });
+    if (name == null) return; if (!name.trim()) return toast("Give the party a name");
+    const p = await A.be.saveParty(A.camp.id, { name: name.trim().slice(0, 80), character_ids: [] });
+    await refreshParties(); render(); partyDialog(A.parties.find(x => x.id === p.id) || p);
+  },
+  pickparty(el) { const p = A.parties.find(x => x.id === el.dataset.id); if (p) partyDialog(p); },
+  async saveparty(el) {
+    const p = A.parties.find(x => x.id === el.dataset.id); if (!p) return closeDlg();
+    const ids = [...document.querySelectorAll(".partyPick:checked")].map(c => c.value);
+    await setPartyMembers(p, ids); closeDlg(); render(); toast(`${p.name}: ${ids.length} character${ids.length === 1 ? "" : "s"}`);
+  },
+  async renameparty(el) {
+    const p = A.parties.find(x => x.id === el.dataset.id); if (!p) return;
+    const name = await ask({ title: "Rename party", input: "text", value: p.name || "", ok: "Rename" });
+    if (name == null || !name.trim() || name.trim() === p.name) return;
+    await A.be.saveParty(A.camp.id, { name: name.trim().slice(0, 80) }, p.id); await refreshParties(); render();
+  },
+  async delparty(el) {
+    const p = A.parties.find(x => x.id === el.dataset.id); if (!p) return;
+    if (!await ask({ title: `Delete ${p.name}?`, text: "Only the party goes. Its characters stay in the campaign, under Not in a party.", ok: "Delete", danger: true })) return;
+    await A.be.deleteParty(p.id); await refreshParties(); render();
+  },
   addbook() { const f = $("#bookFile"); f.onchange = () => f.files.length && addBooks([...f.files]).catch(fail).finally(() => { f.value = ""; }); f.click(); },
   async togglebook(el) {
     const b = A.content.find(x => x.id === el.dataset.id); if (!b) return;

@@ -99,6 +99,13 @@ A book file is JSON in this shape (every section is optional; something with the
 Items and features (blessings, charms and other gifts) don't go in the builder: in **Send**, start typing a name and pick one to fill in the form. Monsters only go to the DM Suite: they join the combat tracker's monster list (a book monster replaces an SRD one with the same name).
 A resource's count is a list of 20 numbers (one per level), a single number, or `"mod:cha"` for an ability modifier (at least 1).
 
+## Parties
+The DM can split the campaign's characters into named parties (for example "Main party" and "Away team"). In the DM view (or the DM Suite's Players tab), press **New party**, name it, and tap the characters who belong in it. Each party has **Choose characters**, **Rename** and **✕** (delete; its characters stay in the campaign, under **Not in a party**). A character is in one party at a time, so choosing someone from another party moves them.
+
+In the DM Suite's initiative tracker, a party picker appears next to **Add party**. Pick a party, then **Add Main party** brings in just those characters, and **Remove Main party** takes them all out again (with Undo). **Everyone** works like the old Add party button.
+
+Parties are visible only to the DM. Needs `supabase/fix-08-parties.sql` run once in the Supabase SQL Editor. Until then the Party section says so and shows everyone together.
+
 ## Moving a character to a new phone
 A player's phone remembers them, so a new phone or cleared browser data makes them a new person. To give them their character back:
 1. They open the Companion on the new device and join again with the campaign code.

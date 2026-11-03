@@ -34,7 +34,76 @@
   }
   function syncPartyList() {
     if (!S.partyBeforeCompanion) S.partyBeforeCompanion = S.party.filter(p => !p.companionId);
-    S.party = party.map(p => ({ name: p.name, ac: p.ac, maxHp: p.maxHp, mod: p.mod, stress: p.stress, companionId: p.id }));
+    S.party = party.map(p => ({ name: p.name, ac: p.ac, maxHp: p.maxHp, mod: p.mod, stress: p.stress, companionId: p.id, partyId: p.partyId || "", partyName: p.partyName || "" }));
+  }
+
+  // ---------- Named parties in the tracker ----------
+  // The DM names parties in the Players tab. Here a picker chooses one, Add party brings in just its characters,
+  // and Remove party takes them all out again (with Undo). "Everyone" works like before.
+  const addBtn = document.getElementById("addParty");
+  const origAdd = addBtn && addBtn.onclick;
+  const namedParties = () => { const seen = new Map(); for (const p of party) if (p.partyId && !seen.has(p.partyId)) seen.set(p.partyId, p.partyName || "Party"); return [...seen].map(([id, name]) => ({ id, name })); };
+  const pickedParty = () => { const id = S.partyPick || ""; return namedParties().find(x => x.id === id) || null; };
+  const linked = () => status.state !== "off" && party.length > 0;
+  function partyControls() {
+    if (!addBtn) return;
+    let rm = document.getElementById("removeParty");
+    if (!rm) {
+      rm = document.createElement("button"); rm.id = "removeParty"; rm.className = "btn sm"; rm.textContent = "Remove party";
+      rm.onclick = removeParty; addBtn.after(rm);
+    }
+    let pick = document.getElementById("partyPick");
+    const named = linked() ? namedParties() : [];
+    if (!named.length) { if (pick) pick.remove(); }
+    else {
+      if (!pick) {
+        pick = document.createElement("select"); pick.id = "partyPick"; pick.title = "Which party Add party and Remove party use. Name parties in the Players tab.";
+        pick.style.cssText = "font:inherit;font-size:.85rem;padding:3px 6px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);max-width:12em";
+        pick.onchange = () => { S.partyPick = pick.value; save(); partyControls(); };
+        addBtn.before(pick);
+      }
+      const html = `<option value="">Everyone</option>` + named.map(x => `<option value="${x.id}">${x.name.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c])}</option>`).join("");
+      if (pick.innerHTML !== html) pick.innerHTML = html;
+      pick.value = pickedParty() ? S.partyPick : "";
+    }
+    const pt = linked() && pickedParty();
+    addBtn.textContent = pt ? `Add ${pt.name}` : "Add party";
+    rm.textContent = pt ? `Remove ${pt.name}` : "Remove party";
+    rm.title = pt ? `Takes everyone in ${pt.name} out of the tracker.` : "Takes every player character out of the tracker.";
+  }
+  // Is this tracker row one of the chosen party's characters?
+  function inPicked(c, pt) {
+    if (c.kind !== "pc") return false;
+    if (!pt) return true;
+    const p = c.companionId ? byId(c.companionId) : party.find(p => p.name === c.name || p.name === String(c.name).replace(/\s+\d+$/, ""));
+    return !!p && p.partyId === pt.id;
+  }
+  if (addBtn) addBtn.onclick = () => {
+    if (!linked()) return origAdd && origAdd();
+    const pt = pickedParty(), list = pt ? party.filter(p => p.partyId === pt.id) : party;
+    let n = 0;
+    for (const p of list) {
+      if (S.combatants.some(c => c.companionId === p.id || (c.kind === "pc" && !c.companionId && c.name === p.name))) continue;
+      const c = mkCombatant({ name: p.name, kind: "pc", init: 0, mod: p.mod || 0, ac: p.ac, hp: p.maxHp });
+      pull(c, p); S.combatants.push(c); n++;
+    }
+    save(); renderInit();
+    const who = pt ? pt.name : "the party";
+    toast(n ? `Added ${n} from ${who}. Type in their initiative rolls.` : `Everyone in ${who} is already here.`);
+  };
+  function removeParty() {
+    const pt = linked() ? pickedParty() : null, who = pt ? pt.name : "the party";
+    const out = S.combatants.map((c, i) => [c, i]).filter(([c]) => inPicked(c, pt));
+    if (!out.length) { toast(`Nobody from ${who} is in the tracker.`); return; }
+    const prev = { activeId: S.activeId, round: S.round }, gone = new Set(out.map(([c]) => c));
+    const active = S.combatants.find(c => c.id === S.activeId);
+    S.combatants = S.combatants.filter(c => !gone.has(c));
+    if (active && gone.has(active)) { const list = sorted(); S.activeId = list.length ? (list.find(x => x.init <= active.init) || list[0]).id : null; }
+    save(); renderInit();
+    toast(`Removed ${out.length} from ${who}.`, "Undo", () => {
+      for (const [c, i] of out) S.combatants.splice(Math.min(i, S.combatants.length), 0, c);
+      Object.assign(S, prev); save(); renderInit();
+    }, 7000);
   }
 
   function applyRemote() {
@@ -42,6 +111,7 @@
     if (f && f.closest && f.closest("#initList") && /INPUT|TEXTAREA|SELECT/.test(f.tagName)) { deferred = true; return; }
     deferred = false;
     syncPartyList();
+    partyControls();
     linkRows();
     for (const c of S.combatants) { const p = c.companionId && byId(c.companionId); if (p && !pending[p.id]) pull(c, p); }
     save(); renderInit(); badge();
@@ -81,7 +151,7 @@
     const add = document.getElementById("addParty");
     if (!add) return;
     if (status.state === "off") { if (b) b.remove(); add.title = ""; return; }
-    if (!b) { b = document.createElement("span"); b.id = "compPill"; b.style.cssText = "font-size:.8rem;padding:2px 9px;border-radius:999px;background:var(--accent-soft);white-space:nowrap;align-self:center"; add.after(b); }
+    if (!b) { b = document.createElement("span"); b.id = "compPill"; b.style.cssText = "font-size:.8rem;padding:2px 9px;border-radius:999px;background:var(--accent-soft);white-space:nowrap;align-self:center"; (document.getElementById("removeParty") || add).after(b); }
     const live = status.state === "live";
     b.textContent = live ? `Companion · ${party.length} live` : status.state === "connecting" ? "Companion · connecting…" : status.state === "unlinked" ? "Companion · connect this computer" : "Companion · offline";
     b.title = status.message || (live ? `Party and HP sync with ${status.name || "the Companion"}.` : "");
@@ -97,7 +167,7 @@
       if (S.partyBeforeCompanion) { S.party = S.partyBeforeCompanion; delete S.partyBeforeCompanion; }
       S.combatants.forEach(c => delete c.companionId); party = []; save(); renderInit();
     }
-    badge();
+    partyControls(); badge();
   });
   // ---------- Players tab: the Companion's DM view, inside the DM Suite ----------
   // Runs the Companion in a frame. Its requests come here and go through this computer's DM sign-in (main process),
@@ -225,5 +295,5 @@
   D.onCompanionStatus(st => { if (st && st.state === "live") monSoon(); });
   if (D.onCompanionEvent) D.onCompanionEvent(ev => { if (ev && ev.table === "content_packs") monSoon(); });
 
-  D.companionGet().then(r => { if (r.status && r.status.state === "live") monSoon(); if (hasJournal) notesStatus(r.status); status = r.status || status; party = r.party || []; if (party.length) applyRemote(); else badge(); });
+  D.companionGet().then(r => { if (r.status && r.status.state === "live") monSoon(); if (hasJournal) notesStatus(r.status); status = r.status || status; party = r.party || []; if (party.length) applyRemote(); else { partyControls(); badge(); } });
 })();
