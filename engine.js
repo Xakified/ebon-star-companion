@@ -60,7 +60,7 @@ function scores(ch) {
   const barb = clsLevel(ch, "Barbarian"), monk = clsLevel(ch, "Monk");
   const out = {};
   for (const a of S.ABILS) {
-    let v = (ch.base[a] || 10) + (ch.bgBonus[a] || 0) + (ch.asi[a] || 0);
+    let v = (ch.base[a] || 10) + ((ch.bgBonus || {})[a] || 0) + ((ch.speciesBonus || {})[a] || 0) + ((ch.asi || {})[a] || 0);
     v = Math.min(v, 20);
     // items or DM grants can push past 20 (e.g. Primal Champion, Belt of Giant Strength)
     v += (ch.inventory || []).filter(i => active(i) && i.abil && i.abil[a]).reduce((s, i) => s + (+i.abil[a] || 0), 0);
@@ -539,6 +539,7 @@ function useContent(packs) {
         const name = str(n, 80);
         S.SPECIES[name] = { speed: +x.speed || 30, size: str(x.size || "Medium", 60), traits: feats3((x.traits || []).map(t => [1, t[0], t[1]])).map(t => [t[1], t[2]]), src };
         if (+x.hpPerLevel) S.SPECIES[name].hpPerLevel = +x.hpPerLevel;
+        if (x.abil && typeof x.abil === "object") { const ab = {}; for (const [k, n] of Object.entries(x.abil)) if (S.ABILS.includes(k) && +n) ab[k] = Math.max(-2, Math.min(3, +n)); if (Object.keys(ab).length) S.SPECIES[name].abil = ab; }
         if (Array.isArray(x.lineages) && x.lineages.length) { S.LINEAGES[name] = strs(x.lineages); if (x.lineageLabel) S.LINEAGE_LABEL[name] = str(x.lineageLabel, 60); }
         else delete S.LINEAGES[name];
         S.SOURCE["species:" + name] = src;

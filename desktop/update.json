@@ -1,8 +1,8 @@
 {
-  "version": "1.11.0",
+  "version": "1.11.1",
   "minShell": "1.2.0",
-  "notes": "Companion: character builder makes every choice (spells, class features, tools, languages, equipment), multiclassing on level up, and reminders for unmade choices",
-  "published": "2026-11-03T03:55:59.000Z",
+  "notes": "Companion: ability score step shows base, background and species bonuses and the total for every method",
+  "published": "2026-11-03T04:18:12.000Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
@@ -11,7 +11,7 @@
     "package.json": "3ec110b0e42e9b802495a04f16282d4efc94abd38c7b51ba5f5686d0d518bae5",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
-    "src/companion/engine.js": "a886bc7937b90d1736222c68d827cae675fd6b3291877d616c535bd380a2e1b0",
+    "src/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "src/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
     "src/companion-bridge.js": "f2187103314cb84adb50442d9ce3f4eadb0bca65a0d491a7b4dfd529cd641a89",
     "src/companion.js": "c5529b49090bbef1fe7da717bf8f293342881b331a9ff106c83866e632232116",
@@ -23,9 +23,9 @@
     "src/updater.js": "73c926a09ed7b70d0e1c34dde1915f2ac257cd0b40f4114e254af943481d8d71",
     "app/companion/backend.js": "a24b624ddbb19d41bf2bd784b9b06f56eca53463a8d834bca39211c7e8c5788b",
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
-    "app/companion/engine.js": "a886bc7937b90d1736222c68d827cae675fd6b3291877d616c535bd380a2e1b0",
+    "app/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "7911c0d1a58bc5c7f9a62f2c0bdc409adf636e20583eef954d67d6b72ee9cfae",
+    "app/companion/index.html": "4775df20aab030c3637113ab78ef4586b3cc6ffbd11c14d958b32be1ea104cf2",
     "app/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
     "app/index.html": "6fb54e2a5dcad23f32728d9a3cb536e801f25d468dce3aba8834f246b3378f78"
   }
