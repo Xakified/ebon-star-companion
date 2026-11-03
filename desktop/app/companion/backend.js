@@ -17,7 +17,7 @@ class DemoBackend {
   db() {
     let db; try { db = JSON.parse(localStorage.getItem(this.key)); } catch (e) {}
     db = db || {};
-    for (const k of ["campaigns", "members", "characters", "grants", "homebrew", "sessions", "notes", "privateRecaps", "content"]) db[k] = db[k] || [];
+    for (const k of ["campaigns", "members", "characters", "grants", "homebrew", "sessions", "notes", "privateRecaps", "content", "parties"]) db[k] = db[k] || [];
     return db;
   }
   put(db) { localStorage.setItem(this.key, JSON.stringify(db)); }
@@ -137,6 +137,17 @@ class DemoBackend {
     this.put(db); this.emit({ table: "content_packs", campaign_id: cid, id: r.id }); return r;
   }
   async deleteContent(id) { const db = this.db(), r = db.content.find(x => x.id === id); db.content = db.content.filter(x => x.id !== id); this.put(db); if (r) this.emit({ table: "content_packs", campaign_id: r.campaign_id, id }); }
+  // Named parties: the DM groups characters (DM only).
+  async listParties(cid) { const db = this.db(); if (!this.isDM(db, cid)) return []; return db.parties.filter(p => p.campaign_id === cid).sort((a, b) => a.created_at.localeCompare(b.created_at)); }
+  async saveParty(cid, row, id) {
+    const db = this.db(); if (!this.isDM(db, cid)) throw new Error("Only the DM can change parties.");
+    const t = new Date().toISOString();
+    let r = id && db.parties.find(x => x.id === id);
+    if (r) Object.assign(r, row, { updated_at: t });
+    else { r = Object.assign({ id: Engine.uid(), campaign_id: cid, name: "Party", character_ids: [], created_at: t }, row, { updated_at: t }); db.parties.push(r); }
+    this.put(db); this.emit({ table: "parties", campaign_id: cid, id: r.id }); return r;
+  }
+  async deleteParty(id) { const db = this.db(), r = db.parties.find(x => x.id === id); db.parties = db.parties.filter(x => x.id !== id); this.put(db); if (r) this.emit({ table: "parties", campaign_id: r.campaign_id, id }); }
   subscribe(cid, cb) {
     const f = ev => { if (!ev.campaign_id || ev.campaign_id === cid) cb(ev); };
     this.listeners.add(f); return () => this.listeners.delete(f);
@@ -195,6 +206,14 @@ class SupabaseBackend {
     return this.ok(await this.sb.from("content_packs").insert(Object.assign({ campaign_id: cid }, r)).select().single());
   }
   async deleteContent(id) { this.ok(await this.sb.from("content_packs").delete().eq("id", id)); }
+  // Named parties (needs fix-08-parties.sql).
+  async listParties(cid) { return this.ok(await this.sb.from("parties").select("*").eq("campaign_id", cid).order("created_at")); }
+  async saveParty(cid, row, id) {
+    const r = Object.assign({}, row, { updated_at: new Date().toISOString() });
+    if (id) return this.ok(await this.sb.from("parties").update(r).eq("id", id).select().single());
+    return this.ok(await this.sb.from("parties").insert(Object.assign({ campaign_id: cid }, r)).select().single());
+  }
+  async deleteParty(id) { this.ok(await this.sb.from("parties").delete().eq("id", id)); }
   async createDmInvite(cid) {
     const code = this.ok(await this.sb.rpc("create_dm_invite", { p_campaign: cid }));
     const cfg = window.APP_CONFIG;
@@ -223,7 +242,10 @@ class SupabaseBackend {
     const content = this.sb.channel("content-" + cid)
       .on("postgres_changes", { event: "*", schema: "public", table: "content_packs", filter: "campaign_id=eq." + cid }, () => cb({ table: "content_packs", campaign_id: cid }))
       .subscribe();
-    return () => { this.sb.removeChannel(ch); this.sb.removeChannel(notes); this.sb.removeChannel(recaps); this.sb.removeChannel(content); };
+    const parties = this.sb.channel("parties-" + cid)
+      .on("postgres_changes", { event: "*", schema: "public", table: "parties", filter: "campaign_id=eq." + cid }, () => cb({ table: "parties", campaign_id: cid }))
+      .subscribe();
+    return () => { this.sb.removeChannel(ch); this.sb.removeChannel(notes); this.sb.removeChannel(recaps); this.sb.removeChannel(content); this.sb.removeChannel(parties); };
   }
 }
 
@@ -262,6 +284,9 @@ class SuiteBackend {
   listContent() { return this.ask("listContent"); }
   saveContent(_cid, row, id) { return this.ask("saveContent", row, id); }
   deleteContent(id) { return this.ask("deleteContent", id); }
+  listParties() { return this.ask("listParties"); }
+  saveParty(_cid, row, id) { return this.ask("saveParty", row, id); }
+  deleteParty(id) { return this.ask("deleteParty", id); }
   // Player notes live in the DM Suite's Sessions tab, not in this view.
   async listSessions() { return []; }
   async listNotes() { return []; }

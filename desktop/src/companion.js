@@ -17,11 +17,13 @@ function parseCode(code) {
 }
 
 // What the DM Suite needs from a character sheet.
-function summarize(row, members) {
+function summarize(row, members, parties = []) {
   const d = row.data || {}, x = E.derive(d);
   const m = members.find(m => m.user_id === row.owner);
+  const pt = parties.find(p => (p.character_ids || []).includes(row.id));
   return {
     id: row.id, version: row.version, name: d.name || "Unnamed", player: m ? m.display_name : "",
+    partyId: pt ? pt.id : "", partyName: pt ? pt.name || "Party" : "",
     summary: `${d.species || ""} ${d.cls || ""} ${d.level || 1}`.trim(),
     ac: x.ac, maxHp: x.hpMax, hp: d.hp && d.hp.cur != null ? d.hp.cur : x.hpMax, temp: (d.hp && d.hp.temp) || 0,
     mod: x.init, passive: x.passive, speed: x.speed,
@@ -86,6 +88,10 @@ class Companion {
       this.notesChan = this.sb.channel("suite-notes-" + link.campaignId)
         .on("postgres_changes", { event: "*", schema: "public", table: "session_notes", filter: "campaign_id=eq." + link.campaignId }, p => this.onChange({ table: "session_notes", id: (p.new && p.new.id) || (p.old && p.old.id) }))
         .subscribe();
+      // Named parties (fix-08-parties.sql in the Companion repo) on their own channel too.
+      this.partyChan = this.sb.channel("suite-parties-" + link.campaignId)
+        .on("postgres_changes", { event: "*", schema: "public", table: "parties", filter: "campaign_id=eq." + link.campaignId }, () => { this.soon(); this.onChange({ table: "parties" }); })
+        .subscribe();
       this.contentChan = this.sb.channel("suite-content-" + link.campaignId)
         .on("postgres_changes", { event: "*", schema: "public", table: "content_packs", filter: "campaign_id=eq." + link.campaignId }, () => { this.loadContent().then(() => this.soon()).catch(() => {}); this.onChange({ table: "content_packs" }); })
         .subscribe();
@@ -98,7 +104,8 @@ class Companion {
     if (this.chan && this.sb) this.sb.removeChannel(this.chan);
     if (this.notesChan && this.sb) this.sb.removeChannel(this.notesChan);
     if (this.contentChan && this.sb) this.sb.removeChannel(this.contentChan);
-    this.chan = null; this.notesChan = null; this.contentChan = null; this.link = null; this.party = []; this.status("off");
+    if (this.partyChan && this.sb) this.sb.removeChannel(this.partyChan);
+    this.chan = null; this.notesChan = null; this.contentChan = null; this.partyChan = null; this.link = null; this.party = []; this.status("off");
   }
   // Book classes and species change hit points and AC, so the party list needs the same books the players use.
   async loadContent() {
@@ -110,16 +117,20 @@ class Companion {
   async refresh() {
     if (!this.link) return [];
     const cid = this.link.campaignId;
-    const [c, m] = await Promise.all([
+    const [c, m, pt] = await Promise.all([
       this.sb.from("characters").select("*").eq("campaign_id", cid).order("updated_at"),
-      this.sb.from("members").select("*").eq("campaign_id", cid)
+      this.sb.from("members").select("*").eq("campaign_id", cid),
+      this.sb.from("parties").select("*").eq("campaign_id", cid).order("created_at") // no table yet (fix-08 not run): no named parties
     ]);
     if (c.error) throw new Error(c.error.message);
     const members = m.data || [];
     // The rules hide a campaign's members from anyone not in it: this computer hasn't been added as a DM device yet.
     this.notMember = !members.length;
     if (this.notMember) { this.party = []; this.onParty(this.party); this.status("unlinked", "This computer isn't connected to the Companion yet. In the Companion, press Connect DM Suite, then here choose Companion > Connect with a New Code."); return this.party; }
-    this.party = (c.data || []).map(r => summarize(r, members));
+    const parties = pt.error ? [] : pt.data || [];
+    // Characters in party order (parties as the DM made them, then everyone not in one), so the tracker lists them that way.
+    const rank = r => { const i = parties.findIndex(p => (p.character_ids || []).includes(r.id)); return i < 0 ? parties.length : i; };
+    this.party = (c.data || []).map((r, i) => [rank(r), i, r]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, , r]) => summarize(r, members, parties));
     this.onParty(this.party);
     if (this.state !== "live") this.status(this.chan ? "live" : this.state);
     return this.party;
@@ -174,6 +185,14 @@ const CALLS = {
     await this.loadContent(); return out;
   },
   async deleteContent(id) { ok(await this.sb.from("content_packs").delete().eq("id", id)); await this.loadContent(); return true; },
+  // Named parties (fix-08-parties.sql in the Companion repo).
+  async listParties() { return ok(await this.sb.from("parties").select("*").eq("campaign_id", this.cid()).order("created_at")); },
+  async saveParty(row, id) {
+    const r = Object.assign({}, row, { updated_at: new Date().toISOString() });
+    if (id) return ok(await this.sb.from("parties").update(r).eq("id", id).select().single());
+    return ok(await this.sb.from("parties").insert(Object.assign({ campaign_id: this.cid() }, r)).select().single());
+  },
+  async deleteParty(id) { ok(await this.sb.from("parties").delete().eq("id", id)); return true; },
   async reassignCharacter(id, userId) { ok(await this.sb.rpc("reassign_character", { p_id: id, p_user: userId })); return true; },
   async createDmInvite() { return this.makeInvite(); },
   // Player session notes (supabase/fix-04-session-notes.sql in the Companion repo).
