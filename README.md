@@ -66,6 +66,15 @@ Open the app, create your campaign, and tap **Copy invite link**. The link fills
 - A Party tab inside the DM Suite desktop app. Right now the DM side lives in this app.
 - Linking an email so a player can move their character to a new phone. Anonymous sign-in is tied to the device.
 
+## Dice
+Everything with a bonus on the **Main** and **Combat** tabs rolls when you tap it: ability checks (the ability box), saving throws (the Save line), skills, initiative, death saves, weapon attacks and their damage, and spell attacks. The dice are 3D and tumble across the screen with real physics (bounces, spin, friction), then a card shows the total and how it was made up, with natural 20s and 1s called out.
+
+- Hold anything rollable (or right-click on a computer) to roll with advantage or disadvantage, roll critical damage (double dice), or two-handed damage for versatile weapons. The same menu picks the dice color.
+- After an attack, the card offers **Roll damage**, and **Roll critical damage** on a natural 20.
+- A death save marks the success or failure on the sheet for you (a 20 brings you back with 1 HP).
+- Exhaustion's −2 per level is taken off every d20 roll.
+- The numbers come from the browser's secure random generator. Phones set to reduce motion skip the animation and show the result straight away.
+
 ## Session notes
 Players press **Sessions** (top right) to read the recap of each past session (and the notes that don't line up, which Claude flags when it summarizes) and to write notes on the session being played, or on any earlier one if they remember something later. Each note is saved either to **Party notes** (everyone in the campaign sees it) or as **Private** (only the player and the DM). They can edit or delete their own notes, and switch a note between the two. When the DM summarizes, each player also gets a private recap of their private notes that only they and the DM see.
 
