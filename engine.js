@@ -231,6 +231,29 @@ function grantLabel(g) {
   return p.name || g.kind;
 }
 
+// ---------- Coins ----------
+const COIN = { cp: 1, sp: 10, ep: 50, gp: 100, pp: 1000 };
+const coinWorth = c => Object.keys(COIN).reduce((s, k) => s + (+(c || {})[k] || 0) * COIN[k], 0);
+// Pay n coins of kind k. Uses that coin first, then smaller ones, then larger ones, and breaks one
+// coin for change (given back as gp, sp and cp) when nothing fits exactly. Returns the new purse and
+// what was broken, or null if the purse can't cover it.
+function spendCoins(coins, n, k) {
+  const c = {}; for (const o in COIN) c[o] = Math.max(0, Math.floor(+(coins || {})[o] || 0));
+  let need = Math.max(0, Math.floor(+n || 0)) * COIN[k];
+  if (!need) return { coins: c, broke: null };
+  if (coinWorth(c) < need) return null;
+  const keys = Object.keys(COIN), i = keys.indexOf(k);
+  const order = [k, ...keys.slice(0, i).reverse(), ...keys.slice(i + 1)];
+  for (const o of order) { const t = Math.min(c[o], Math.floor(need / COIN[o])); c[o] -= t; need -= t * COIN[o]; }
+  let broke = null;
+  if (need > 0) {
+    const o = keys.find(o => c[o] > 0 && COIN[o] > need);
+    c[o]--; broke = o; let change = COIN[o] - need;
+    for (const g of ["gp", "sp", "cp"]) { const t = Math.floor(change / COIN[g]); c[g] += t; change -= t * COIN[g]; }
+  }
+  return { coins: c, broke };
+}
+
 // Convert an item from the DM suite's magic item library into an inventory item.
 function fromSuiteItem(x) {
   const props = (x.props || []).map(p => `${p.name}. ${p.text}`).join("\n\n");
@@ -377,6 +400,6 @@ function checkContent(d) {
   return parts.join(" · ");
 }
 
-g.Engine = { uid, mod, sign, profBonus, blank, derive, spellRules, levelUpPlan, applyLevelUp, applyGrant, grantLabel, fromSuiteItem, asiLevels, XP_TABLE,
+g.Engine = { uid, mod, sign, profBonus, blank, derive, spellRules, levelUpPlan, applyLevelUp, applyGrant, grantLabel, fromSuiteItem, asiLevels, XP_TABLE, COIN, coinWorth, spendCoins,
   useContent, subclassOptions, subclassDef, checkContent };
 })(typeof window !== "undefined" ? window : globalThis);

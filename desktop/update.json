@@ -1,18 +1,18 @@
 {
-  "version": "1.10.2",
+  "version": "1.10.3",
   "minShell": "1.2.0",
-  "notes": "Companion: spell picker with a level toggle, slots and spells left per level; real dropdowns for picking spells",
-  "published": "2026-11-03T02:46:41.382Z",
+  "notes": "Companion: gear picker by type with full item details, an item editor for every stat, and quick spend/gain for coins",
+  "published": "2026-11-03T03:01:24.044Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "feb32e4b7c7c17e9e8523f350f900116e93077d782a394fc326f2b2afabf1cd4",
+    "package.json": "fae8160a85a1bace23464eef16e6b2190dc0feb2cee1fa2209a5fb0e2009508b",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
-    "src/companion/engine.js": "51470c737e97e16a47b139b2d4d63b0391a6dea3b97058abc28ac491a6e85232",
-    "src/companion/srd.js": "5b4e145a42b801685d7f53950722ab37fad871e92311d5dad96b7eddf9302099",
+    "src/companion/engine.js": "3d4e9f41cdb8aa35144ebc01d43a537bfdee989cf8083e081448d3891292a5a7",
+    "src/companion/srd.js": "c081ef3a6fee32eb0cd05d3538f86366b3964c8a2f28d55d2362438c34b6e39c",
     "src/companion-bridge.js": "f2187103314cb84adb50442d9ce3f4eadb0bca65a0d491a7b4dfd529cd641a89",
     "src/companion.js": "d3e5ff0c15ef06f2d2bdb9168156b64e20f0de754b1387eee716a53e65b3b59f",
     "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
@@ -23,10 +23,10 @@
     "src/updater.js": "73c926a09ed7b70d0e1c34dde1915f2ac257cd0b40f4114e254af943481d8d71",
     "app/companion/backend.js": "a24b624ddbb19d41bf2bd784b9b06f56eca53463a8d834bca39211c7e8c5788b",
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
-    "app/companion/engine.js": "51470c737e97e16a47b139b2d4d63b0391a6dea3b97058abc28ac491a6e85232",
+    "app/companion/engine.js": "3d4e9f41cdb8aa35144ebc01d43a537bfdee989cf8083e081448d3891292a5a7",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "205d5fbb7f02c0c94bf54415c61e0407ed11313d7e89dd0094cedc39319c48e3",
-    "app/companion/srd.js": "5b4e145a42b801685d7f53950722ab37fad871e92311d5dad96b7eddf9302099",
+    "app/companion/index.html": "ce30d1b30b6960e92edf10ba4496c2f5e55be41f2ebc6131e34cc69549c74b46",
+    "app/companion/srd.js": "c081ef3a6fee32eb0cd05d3538f86366b3964c8a2f28d55d2362438c34b6e39c",
     "app/index.html": "6fb54e2a5dcad23f32728d9a3cb536e801f25d468dce3aba8834f246b3378f78"
   }
 }
