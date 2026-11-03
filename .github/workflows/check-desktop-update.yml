@@ -1,0 +1,31 @@
+# Fails a PR if desktop/update.json doesn't match the files in desktop/.
+# Installed DM Screens refuse an update whose checksums don't match, so a mismatch here means nobody can update.
+name: Check desktop update
+on:
+  pull_request:
+    paths: ["desktop/**"]
+  push:
+    branches: [main]
+    paths: ["desktop/**"]
+jobs:
+  checksums:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every file in update.json matches its SHA-256
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, sys
+          u = json.load(open("desktop/update.json"))
+          bad = []
+          for p, h in u["files"].items():
+              try: got = hashlib.sha256(open("desktop/" + p, "rb").read()).hexdigest()
+              except FileNotFoundError: got = "missing"
+              if got != h: bad.append(f"{p}: update.json says {h[:12]}, file is {got[:12]}")
+          v = json.load(open("desktop/package.json"))["version"]
+          if v != u["version"]: bad.append(f"package.json version {v} != update.json version {u['version']}")
+          if bad:
+              print("desktop/update.json is out of date. Re-run tools/publish-update.js instead of editing files by hand.")
+              print("\n".join(bad)); sys.exit(1)
+          print(f"{len(u['files'])} files match update.json {u['version']}")
+          PY
