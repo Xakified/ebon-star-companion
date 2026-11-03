@@ -1,14 +1,14 @@
 {
-  "version": "1.11.1",
+  "version": "1.12.0",
   "minShell": "1.2.0",
-  "notes": "Companion: ability score step shows base, background and species bonuses and the total for every method",
-  "published": "2026-11-03T04:18:12.000Z",
+  "notes": "Companion: edit a finished character in the builder, and level up (or multiclass) from the builder's Levels step",
+  "published": "2026-11-03T12:00:00.000Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "2d67da678a4943b2941293ca9c9aa5fa7e583d5b6fbadc63a096dc45a7846dd2",
+    "package.json": "7ba6c22fd24ee64f9b1080f6d1dbd7e2ace8fcb744c3d04f4852f4e2165bf4a0",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
@@ -25,7 +25,7 @@
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "4775df20aab030c3637113ab78ef4586b3cc6ffbd11c14d958b32be1ea104cf2",
+    "app/companion/index.html": "10a5530b932e318af6e0e9b68ea04683da36beb92a2d46c92c545b8e5001004e",
     "app/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
     "app/index.html": "6fb54e2a5dcad23f32728d9a3cb536e801f25d468dce3aba8834f246b3378f78"
   }

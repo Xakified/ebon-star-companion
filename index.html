@@ -98,6 +98,9 @@ label.f { display: block; } label.f > span { display: block; font-size: .82rem; 
 .stat { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 8px 6px; text-align: center; }
 .stat .v { font-family: var(--mono); font-size: 1.35rem; font-weight: 600; }
 .stat .k { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.lvpill { display: inline-grid; place-items: center; min-width: 26px; height: 26px; border-radius: 999px; background: var(--royal); color: #fff; font-weight: 700; font-size: .85rem; margin-right: 8px; }
+details.lvcard > summary { list-style: none; cursor: pointer; } details.lvcard > summary::-webkit-details-marker { display: none; }
+details.lvcard.need { border-color: var(--warn); box-shadow: 0 0 0 2px rgb(160 98 0 / .16); }
 .abtable { padding: 6px 10px; }
 .abrow { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 1.2fr) 58px; gap: 8px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
 .abrow.head { border-top: 0; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 2px 0; }
@@ -778,7 +781,7 @@ function header() {
   let back = "", title = "Ebon Star Companion", sub = A.be && A.be.mode === "demo" ? "Demo mode: data stays in this browser" : "", right = "";
   if (A.view === "camp" && A.camp) { back = SUITE ? "" : `<button class="btn icon ghost" data-a="home" aria-label="Campaigns">‹</button>`; title = A.camp.name; sub = isDM() ? "Dungeon Master" : "Player"; }
   if (A.view === "sheet") { const r = charRow(A.charId); back = `<button class="btn icon ghost" data-a="camp" aria-label="Back">‹</button>`; title = r ? r.data.name || "Unnamed" : ""; if (r) { const d = r.data; sub = `${d.species} ${E.classLabel(d)}${d.subclass ? " · " + d.subclass : ""}${isDM() ? " · " + (memberName(r.owner) || "player") : ""}`; } if (isDM()) right = `<button class="btn sm primary" data-a="send" data-id="${A.charId}">Send</button>`; }
-  if (A.view === "build") { back = `<button class="btn icon ghost" data-a="camp" aria-label="Cancel">‹</button>`; title = "New character"; sub = A.camp ? A.camp.name : ""; }
+  if (A.view === "build") { back = `<button class="btn icon ghost" data-a="bcancel" aria-label="Cancel">‹</button>`; title = A.draft && A.draft.editId ? `Edit ${A.draft.name || "character"}` : "New character"; sub = A.camp ? A.camp.name : ""; }
   if (A.view === "camp" && isDM()) right = `<button class="btn sm primary" data-a="send">Send</button>`;
   if ((A.view === "camp" || A.view === "sheet") && A.camp && !isDM() && A.notesOk) right = `<button class="btn sm ${liveSession() ? "primary" : ""}" data-a="notes" title="Recaps of past sessions, and notes for your DM">Sessions${liveSession() ? " ●" : ""}</button>`;
   if (A.view === "notes") { back = `<button class="btn icon ghost" data-a="notesback" aria-label="Back">‹</button>`; title = "Sessions"; sub = A.camp ? A.camp.name : ""; }
@@ -934,22 +937,150 @@ async function addBooks(files) {
 // ---------- builder ----------
 // Steps depend on the class: the Spells step only shows for characters with spells to choose at level 1.
 function buildSteps(d) {
-  const st = ["Class", "Background", "Species", "Abilities", "Skills", "Features"];
+  const st = ["Class", "Background", "Species", "Abilities", "Skills", "Features", "Levels"];
   if (d.cls && hasSpellStep(d)) st.push("Spells");
-  return [...st, "Equipment", "Finish"];
+  return [...st, ...(d.editId ? [] : ["Equipment"]), "Finish"];
 }
 function hasSpellStep(d) {
   const fin = finishDraft(JSON.parse(JSON.stringify(d))), sr = E.spellRules(fin);
-  return (sr.known && (sr.cantrips || sr.prepared)) || fin.feats.some(f => /^Magic Initiate/.test(f.name));
+  return (sr.known && (sr.cantrips || sr.prepared)) || fin.feats.some(f => /^Magic Initiate/.test(f.name)) || fin.spells.length > 0;
 }
 function newDraft() {
   const d = E.blank();
   d.player = localStorage.getItem("esc-name") || "";
   Object.assign(d, { abilAssign: {}, bgMode: "21", bg2: "", bg1: "", classSkills: [], extraSkills: [], originFeat2: "", choices: {}, langs: [], bgTool: "", miBg: "", miOrigin: "",
-    gearClass: null, gearBg: null, alignment: "", size: "" });
+    gearClass: null, gearBg: null, alignment: "", size: "", levels: [], keep: {}, hpBase: 0 });
   return d;
 }
-const DRAFT_KEYS = ["spMode", "sp2", "sp1", "sp1a", "sp1b", "sp1c", "abilAssign", "bgMode", "bg2", "bg1", "classSkills", "extraSkills", "originFeat2", "langs", "bgTool", "miBg", "miOrigin", "gearClass", "gearBg"];
+const DRAFT_KEYS = ["spMode", "sp2", "sp1", "sp1a", "sp1b", "sp1c", "abilAssign", "bgMode", "bg2", "bg1", "classSkills", "extraSkills", "originFeat2", "langs", "bgTool", "miBg", "miOrigin", "gearClass", "gearBg", "levels", "keep", "hpBase", "editId", "editBase"];
+// Saved with the character (as build) so the builder can reopen it with every choice as it was made.
+const BUILD_KEYS = ["abilMethod", "spMode", "sp2", "sp1", "sp1a", "sp1b", "sp1c", "abilAssign", "bgMode", "bg2", "bg1", "classSkills", "extraSkills", "originFeat2", "langs", "bgTool", "miBg", "miOrigin", "levels", "keep", "hpBase"];
+// What a save from the builder writes onto the sheet. Everything else (HP taken, gear, coins, DM gifts, notes, conditions...) stays.
+const SHEET_KEYS = ["name", "player", "appearance", "alignment", "size", "species", "lineage", "background", "cls", "subclass", "level", "multi", "base", "abilMethod", "bgBonus", "speciesBonus", "asi",
+  "hpRolls", "hpBonus", "skills", "expertise", "tools", "languages", "feats", "choices"];
+
+// Reopen a saved character in the builder. Characters saved by this builder carry their choices (build);
+// older ones are worked out from the sheet. Anything the builder can't explain is kept as it is (keep).
+function draftFromChar(row) {
+  const ch = JSON.parse(JSON.stringify(row.data)), d = Object.assign(newDraft(), ch);
+  d.editId = row.id; d.editBase = ch.level; d.choices = ch.choices || {}; d.hpBase = +ch.hpBonus || 0;
+  d.levels = []; d.keep = {};
+  if (ch.build && ch.build.levels && ch.build.levels.length === (ch.level || 1) - 1) Object.assign(d, JSON.parse(JSON.stringify(ch.build)));
+  else reconstruct(d, ch);
+  // A subclass set on the sheet (by the DM, say) goes onto the level that chose it.
+  for (const e of E.classList(ch)) if (e.subclass) { const at = ((CLASSES[e.cls] || {}).subAt || [3])[0], m = levelMap(d).find(x => x.cls === e.cls && x.classLevel === at); if (m && m.i >= 0 && !d.levels[m.i].subclass) d.levels[m.i].subclass = e.subclass; }
+  // Compare with the sheet and keep what the builder wouldn't produce.
+  const fin = finishDraft(JSON.parse(JSON.stringify(d))), k = d.keep = d.keep || {};
+  const extra = (have, made) => (have || []).filter(x => !(made || []).includes(x));
+  k.skills = [...new Set([...(k.skills || []), ...extra(ch.skills, fin.skills)])];
+  k.expertise = [...new Set([...(k.expertise || []), ...extra(ch.expertise, fin.expertise)])];
+  k.tools = [...new Set([...(k.tools || []), ...extra(ch.tools, fin.tools)])];
+  const langs = s => String(s || "").split(",").map(x => x.trim()).filter(Boolean);
+  k.langs = [...new Set([...(k.langs || []), ...extra(langs(ch.languages), langs(fin.languages))])];
+  const madeFeats = fin.feats.map(f => f.name);
+  k.feats = [...(k.feats || []), ...(ch.feats || []).filter(f => !madeFeats.includes(f.name) && !(k.feats || []).some(o => o.id === f.id))];
+  const oldMax = E.derive(ch).hpMax, newMax = E.derive(finishDraft(JSON.parse(JSON.stringify(d)))).hpMax;
+  if (oldMax !== newMax) k.hp = (+k.hp || 0) + oldMax - newMax;
+  return d;
+}
+function reconstruct(d, ch) {
+  d.abilMethod = "manual";
+  const b = BACKGROUNDS[ch.background], bb = ch.bgBonus || {}, two = ABILS.filter(a => bb[a] === 2), one = ABILS.filter(a => bb[a] === 1);
+  if (one.length === 3 && !two.length) d.bgMode = "111"; else { d.bgMode = "21"; d.bg2 = two[0] || ""; d.bg1 = one[0] || ""; }
+  const sb = ch.speciesBonus || {}, s2 = ABILS.filter(a => sb[a] === 2), s1 = ABILS.filter(a => sb[a] === 1);
+  if (s2.length) Object.assign(d, { spMode: "21", sp2: s2[0], sp1: s1[0] || "" }); else if (s1.length === 3) Object.assign(d, { spMode: "111", sp1a: s1[0], sp1b: s1[1], sp1c: s1[2] });
+  // Skills: background, then class picks, then the species and feat extras.
+  const c = CLASSES[ch.cls] || { skills: [], skillN: 0 }, bgSk = b ? b.skills : [];
+  let rest = (ch.skills || []).filter(x => !bgSk.includes(x));
+  d.classSkills = rest.filter(x => (c.skills || []).includes(x)).slice(0, c.skillN || 0);
+  rest = rest.filter(x => !d.classSkills.includes(x));
+  // Feats: background, Human Versatile, Magic Initiate lists.
+  for (const f of ch.feats || []) {
+    const m = /^(Magic Initiate) \((\w+)\)$/.exec(f.name);
+    if (f.source === "Human (Versatile)") { d.originFeat2 = m ? m[1] : f.name; if (m) d.miOrigin = m[2]; }
+    else if (f.source === ch.background && m && b && !b.featNote) d.miBg = m[2];
+  }
+  d.extraSkills = [];
+  skillOpts(d).extras.forEach((e, i) => { const x = rest.find(s => e.from.includes(s)); if (x) { d.extraSkills[i] = x; rest = rest.filter(s => s !== x); } });
+  // Tools and languages.
+  const opts = b ? toolOptions(b.tool) : null; if (opts) d.bgTool = (ch.tools || []).find(t => opts.includes(t)) || "";
+  const known = String(ch.languages || "").split(",").map(x => x.trim()).filter(x => x && x !== "Common" && !(SRD.CLASS_LANGS[ch.cls] || []).includes(x));
+  const choiceLangs = Object.entries(ch.choices || {}).filter(([k]) => /language/i.test(k)).flatMap(([, v]) => v || []);
+  d.langs = known.filter(x => !choiceLangs.includes(x)).slice(0, 2);
+  // Levels: the starting class's levels first, then each multiclass in the order taken.
+  const seq = [], list = E.classList(ch);
+  for (const e of list) for (let n = e.primary ? 2 : 1; n <= e.level; n++) seq.push({ cls: e.cls, classLevel: n, subclass: e.subclass });
+  d.levels = seq.map((x, i) => {
+    const cc = CLASSES[x.cls] || {}, L = i + 2, lv = { cls: x.cls, hp: (ch.hpRolls || [])[i] ?? ((cc.hd || 8) / 2 + 1) };
+    const subAt = (cc.subAt || [3])[0];
+    if (x.classLevel === subAt || (x.subclass && x.classLevel === list.find(e => e.cls === x.cls).level && subAt > x.classLevel)) lv.subclass = x.subclass || "";
+    if (E.asiLevels(x.cls).includes(x.classLevel)) {
+      const f = (ch.feats || []).find(f => f.source === "Level " + L);
+      Object.assign(lv, f ? { legacy: true, featName: f.name, featText: f.text } : { legacy: true });
+    }
+    return lv;
+  });
+  if (Object.values(ch.asi || {}).some(Boolean)) d.keep.asi = Object.assign({}, ch.asi);
+}
+
+// The Levels step: one card per level after the first, each with that level's hit points, subclass, ability
+// increase or feat, and class choices. Add a level in a class you have or a new one (multiclassing).
+function levelsStep(d) {
+  const fin = finishDraft(JSON.parse(JSON.stringify(d))), map = levelMap(d), defs = allDefs(fin), kept = (d.keep || {}).asi;
+  const cards = (d.levels || []).map((e, i) => levelCard(d, fin, e, map[i + 1], defs, i === d.levels.length - 1)).join("");
+  const total = 1 + (d.levels || []).length, mine = E.classList(fin), others = Object.keys(CLASSES).filter(k => !mine.some(e => e.cls === k)).sort();
+  const next = A.addCls && CLASSES[A.addCls] ? A.addCls : (d.levels.length ? d.levels[d.levels.length - 1].cls : d.cls);
+  const classOpt = k => { const pr = E.mcProblems(fin, k); return `<option value="${esc(k)}" ${k === next ? "selected" : ""}>${esc(k)}${pr.length ? " (needs " + esc(pr.map(x => x.replace(` (${k})`, "")).join(", ")) + ")" : ""}</option>`; };
+  return `<h2>Levels</h2>
+    <p class="small muted">Level 1 is the class you chose first (${esc(d.cls)}). Add a level in the same class or a new one to multiclass, and make that level's choices.</p>
+    ${kept && Object.values(kept).some(Boolean) ? `<div class="card small"><b>Earlier ability increases (kept):</b> ${esc(ABILS.filter(a => kept[a]).map(a => `${sg(kept[a])} ${ABIL_NAME[a]}`).join(", "))}. <span class="muted">These were made before the builder kept track level by level.</span> <button class="linkbtn" data-a="lvclearasi">Clear them and choose again for each level</button></div>` : ""}
+    <div class="card"><div class="row nw"><span class="lvpill">1</span><b class="grow">${esc(d.cls)} 1</b><span class="small muted">Hit points ${CLASSES[d.cls] ? CLASSES[d.cls].hd : "?"} + Con</span></div><div class="small muted" style="margin-top:4px">Level 1 choices are on the Features step.</div></div>
+    ${cards}
+    ${total < 20 ? `<div class="card"><h3>Add a level</h3><div class="row" style="margin-top:6px"><select id="addCls" class="grow"><optgroup label="${mine.length > 1 ? "Your classes" : "Your class"}">${mine.map(e => `<option value="${esc(e.cls)}" ${e.cls === next ? "selected" : ""}>${esc(e.cls)} (level ${e.level} → ${e.level + 1})</option>`).join("")}</optgroup>${others.length ? `<optgroup label="Multiclass into a new class">${others.map(classOpt).join("")}</optgroup>` : ""}</select><button class="btn primary" data-a="lvadd">Add level ${total + 1}</button></div></div>` : `<p class="small muted">Level 20 is the highest.</p>`}`;
+}
+function levelCard(d, fin, e, m, defs, last) {
+  const c = CLASSES[e.cls]; if (!c) return `<div class="card small">Level ${m.L}: ${esc(e.cls)} isn't available (is its book turned off?).${last ? ` <button class="btn sm ghost danger" data-a="lvdel">Remove</button>` : ""}</div>`;
+  const cl = m.classLevel, i = m.i, subAt = (c.subAt || [3])[0], asi = E.asiLevels(e.cls).includes(cl);
+  const feats = (c.f || []).filter(f => f[0] === cl);
+  const sd = E.subclassDef(e.cls, (E.classList(fin).find(x => x.cls === e.cls) || {}).subclass), subF = sd && sd.f ? sd.f.filter(f => f[0] === cl) : [];
+  const my = defs.filter(def => def.cls === e.cls && def.at === cl && !(def.at === 1 && e.cls === d.cls));
+  const bumps = defs.filter(def => def.cls === e.cls && def.count && def.at !== cl && def.count[cl - 1] > (def.count[cl - 2] || 0));
+  const isNew = cl === 1, mp = SRD.MC_PROFS[e.cls], probs = isNew ? E.mcProblems(fin, e.cls) : [];
+  const needs = [subAt === cl && !e.subclass, asi && asiUnmade(e), ...my.map(def => !E.choiceDone(fin, def))].filter(Boolean).length;
+  const lk = (k, extra = "") => `data-lv="${i}" data-lk="${k}" ${extra}`;
+  const sc = fin.scores || E.derive(fin).scores;
+  const abSel = (k, v) => `<select ${lk(k)}><option value="">Choose…</option>${ABILS.map(a => `<option value="${a}" ${a === v ? "selected" : ""}>${ABIL_NAME[a]}</option>`).join("")}</select>`;
+  const spells = E.speciesSpells(Object.assign({}, fin, { level: m.L })).filter(s => s.at === m.L);
+  return `<details class="card lvcard ${needs ? "need" : ""}" ${needs || last ? "open" : ""}><summary class="row nw"><span class="lvpill">${m.L}</span><b class="grow">${esc(e.cls)} ${cl}${isNew ? ` <span class="pill">multiclass</span>` : ""}</b>${needs ? needTag(`${needs} to choose`) : `<span class="donetag">✓</span>`}</summary>
+    <div class="stack" style="margin-top:8px">
+    ${isNew ? `<div class="small ${probs.length ? "bad" : "muted"}">${probs.length ? `Multiclassing needs ${esc(probs.join(" and "))}. Your DM can still allow it.` : "✓ You meet the multiclass requirements (13 in each class's main ability)."} ${mp ? `You gain: ${esc([mp.armor, mp.weapons, mp.tool].filter(Boolean).join("; ") || "no new armor or weapon training")}.` : "Ask your DM which proficiencies you gain."} You don't get its saving throws.</div>` : ""}
+    <label class="f"><span>Class for this level</span><select ${lk("cls")}>${Object.keys(CLASSES).sort().map(k => `<option value="${esc(k)}" ${k === e.cls ? "selected" : ""}>${esc(k)}</option>`).join("")}</select></label>
+    <div><b class="small">Hit points</b><div class="row nw" style="margin-top:4px"><button class="btn sm" data-a="lvroll" data-lv="${i}" data-hd="${c.hd}">Roll d${c.hd}</button><input type="number" class="num" style="width:72px" min="1" max="${c.hd}" ${lk("hp")} value="${e.hp || c.hd / 2 + 1}"><span class="small muted">of d${c.hd} (average ${c.hd / 2 + 1}) + Con ${sg(E.derive(fin).mods.con)}</span></div></div>
+    ${feats.length ? `<div><b class="small">New ${esc(e.cls)} features</b>${feats.map(f => ftRow(0, f[1], f[2])).join("")}</div>` : ""}
+    ${subAt === cl ? `<label class="f ${e.subclass ? "" : "need"}"><span>${esc(e.cls)} subclass</span><select ${lk("subclass")}><option value="">Choose…</option>${E.subclassOptions(e.cls).map(o => `<option value="${esc(o.name)}" ${o.name === e.subclass ? "selected" : ""}>${esc(o.name)}${o.src ? ` (${esc(o.src)})` : ""}</option>`).join("")}${e.subclass && !E.subclassOptions(e.cls).some(o => o.name === e.subclass) ? `<option value="${esc(e.subclass)}" selected>${esc(e.subclass)}</option>` : ""}</select></label>${e.subclass && E.subclassDef(e.cls, e.subclass) ? `<div class="small muted">${esc(subText(E.subclassDef(e.cls, e.subclass)))}</div>` : ""}` : ""}
+    ${subF.length && subAt !== cl ? `<div><b class="small">${esc(sd.name)} features</b>${subF.map(f => ftRow(0, f[1], f[2])).join("")}</div>` : ""}
+    ${asi ? (e.legacy ? `<div class="small"><b>${cl === 19 ? "Epic Boon or feat" : "Ability Score Improvement or feat"}:</b> ${e.featName ? esc(e.featName) : "included in your earlier ability increases"} <span class="muted">(chosen before)</span> <button class="linkbtn" data-a="lvredo" data-lv="${i}">Choose again</button></div>`
+      : `<div class="choice ${asiUnmade(e) ? "need" : ""}"><div class="row nw"><b class="grow">${cl === 19 ? "Epic Boon or feat" : "Ability Score Improvement or feat"}</b>${needTag(asiUnmade(e) ? "Choose" : "")}</div>
+        <div class="chips" style="margin:6px 0">${[["2", "+2 to one"], ["11", "+1 to two"], ["feat", "Take a feat"]].map(([v, l]) => `<button class="chip ${e.asiMode === v ? "on" : ""}" data-a="lvset" ${lk("asiMode")} data-v="${v}">${l}</button>`).join("")}</div>
+        ${e.asiMode === "2" ? abSel("asiA", e.asiA) : e.asiMode === "11" ? `<div class="grid2">${abSel("asiA", e.asiA)}${abSel("asiB", e.asiB)}</div>` : e.asiMode === "feat" ? `<select ${lk("featName")}><option value="">Choose a feat…</option>${featGroups(fin, m.L, e.featName)}</select>${e.featName ? `<div class="small muted">${esc(FEATS[e.featName] || "")}</div>` : ""}<label class="f"><span>Most feats also give +1 to an ability. Which one?</span><select ${lk("featAbil")}><option value="">None (this feat doesn't)</option>${ABILS.map(a => `<option value="${a}" ${a === e.featAbil ? "selected" : ""}>${ABIL_NAME[a]} (${sc[a]})</option>`).join("")}</select></label>` : ""}</div>`) : ""}
+    ${my.map(def => choiceField(fin, def, (d.choices || {})[def.id], "b")).join("")}
+    ${bumps.map(def => `<div class="small">${needTag("")} One more <b>${esc(def.key)}</b>: choose it under level ${defLevel(d, def) === 1 && def.cls === d.cls ? "1 (Features step)" : defLevel(d, def)}.</div>`).join("")}
+    ${spells.length ? `<div class="small"><b>Heritage spells:</b> ${esc(spells.map(s => s.name).join(", "))} (added for you).</div>` : ""}
+    ${last ? `<button class="btn sm ghost danger" data-a="lvdel" style="align-self:flex-start">Remove level ${m.L}</button>` : ""}</div></details>`;
+}
+// Feats you can take at an ASI level. Fighting Style feats need a Fighting Style feature; Epic Boons need level 19.
+function featGroups(d, level, cur) {
+  const styled = E.classList(d).some(e => (CLASSES[e.cls] || { f: [] }).f.some(f => f[1] === "Fighting Style"));
+  const taken = new Set((d.feats || []).map(f => f.name).filter(n => n !== cur));
+  const g = { General: [], Origin: [], "Fighting Style": [], "Epic Boons": [] };
+  for (const n of Object.keys(FEATS).filter(f => f !== "Ability Score Improvement").sort()) {
+    if (/\(Fighting Style\)$/.test(n)) { if (styled) g["Fighting Style"].push(n); }
+    else if (/^Boon of/.test(n)) { if (level >= 19) g["Epic Boons"].push(n); }
+    else if (ORIGIN_FEATS.includes(n)) g.Origin.push(n); else g.General.push(n);
+  }
+  return Object.entries(g).filter(([, l]) => l.length).map(([k, l]) => `<optgroup label="${k}">${l.map(n => `<option value="${esc(n)}" ${n === cur ? "selected" : ""} ${taken.has(n) && !/^Magic Initiate/.test(n) ? "disabled" : ""}>${esc(n)}${taken.has(n) ? " (taken)" : ""}</option>`).join("")}</optgroup>`).join("") + (cur && !FEATS[cur] ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : "");
+}
+function subText(o) { return [o.text, ...(o.f || []).filter(f => o.f[0] && f[0] === o.f[0][0]).map(f => `${f[1]}: ${f[2]}`)].filter(Boolean).join(" "); }
 // The class / background / species pickers: one dropdown grouped by book, then a preview of the choice.
 function bookNames() { const m = {}; for (const p of A.content) { const d = p.data || {}; const ab = String(p.abbr || d.abbr || p.name || d.name || "Book").slice(0, 40); m[ab] = p.name || d.name || ab; } return m; }
 function chooser(kind, key, list, cur, noun) {
@@ -1007,12 +1138,18 @@ const miName = (feat, note) => feat === "Magic Initiate" && note ? `Magic Initia
 function draftIssues(d) {
   const out = [], fin = finishDraft(JSON.parse(JSON.stringify(d))), b = BACKGROUNDS[d.background];
   if (!d.cls) return out;
-  for (const def of E.choiceDefs(fin, d.cls, 1, true)) if (!E.choiceDone(fin, def)) out.push({ step: "Features", text: `${def.key}: ${def.kind === "pick" || def.kind === "feat" ? "choose one" : `choose ${def.need - ((fin.choices[def.id] || []).length)} more`}` });
+  for (const def of allDefs(fin)) if (!E.choiceDone(fin, def)) {
+    const L = defLevel(d, def), txt = `${def.key}: ${def.kind === "pick" || def.kind === "feat" ? "choose one" : `choose ${def.need - ((fin.choices[def.id] || []).length)} more`}`;
+    out.push(L === 1 && def.cls === d.cls ? { step: "Features", text: txt } : { step: "Levels", text: `Level ${L} (${def.cls}): ${txt}` });
+  }
   if (b && toolOptions(b.tool) && !d.bgTool) out.push({ step: "Features", text: "Choose your background tool" });
   if ((d.langs || []).filter(Boolean).length < 2) out.push({ step: "Features", text: `Choose ${2 - (d.langs || []).filter(Boolean).length} more language${(d.langs || []).filter(Boolean).length === 1 ? "" : "s"}` });
+  levelMap(d).slice(1).forEach(m => { const e = d.levels[m.i], c = CLASSES[e.cls]; if (!c) return;
+    if ((c.subAt || [3])[0] === m.classLevel && !e.subclass) out.push({ step: "Levels", text: `Level ${m.L}: choose your ${e.cls} subclass` });
+    if (E.asiLevels(e.cls).includes(m.classLevel) && asiUnmade(e)) out.push({ step: "Levels", text: `Level ${m.L}: Ability Score Improvement or feat` }); });
   if (buildSteps(d).includes("Spells")) for (const p of E.pendingChoices(fin)) if (["cantrips", "prepared", "spellbook", "initiate"].includes(p.kind)) out.push({ step: "Spells", text: p.label });
-  if (d.gearClass == null && (SRD.START_GEAR[d.cls] || []).length) out.push({ step: "Equipment", text: "Choose your class's starting equipment" });
-  if (d.gearBg == null && SRD.BG_GEAR[d.background]) out.push({ step: "Equipment", text: "Choose your background's starting equipment" });
+  if (!d.editId && d.gearClass == null && (SRD.START_GEAR[d.cls] || []).length) out.push({ step: "Equipment", text: "Choose your class's starting equipment" });
+  if (!d.editId && d.gearBg == null && SRD.BG_GEAR[d.background]) out.push({ step: "Equipment", text: "Choose your background's starting equipment" });
   return out;
 }
 const needTag = n => n ? `<span class="needtag">${esc(n)}</span>` : `<span class="donetag">✓ Done</span>`;
@@ -1045,11 +1182,12 @@ function vBuild() {
   if (step === "Abilities") body = abilStep(d);
   if (step === "Skills") body = skillStep(d);
   if (step === "Features") body = featureStep(d);
+  if (step === "Levels") body = levelsStep(d);
   if (step === "Spells") body = spellStep(d);
   if (step === "Equipment") body = gearStep(d);
   if (step === "Finish") {
     body = `<h2>Name and details</h2>
-      ${issues.length ? `<div class="card todo"><b>⚠ Still to choose (${issues.length})</b><ul class="todol">${issues.map(i => `<li><button class="linkbtn" data-a="bgo" data-v="${steps.indexOf(i.step)}">${esc(i.step)}</button>: ${esc(i.text)}</li>`).join("")}</ul><div class="small muted">You can create the character now and finish later; class choices and spells you skip stay as reminders on your sheet.</div></div>` : `<div class="card done small">✓ Every choice is made.</div>`}
+      ${issues.length ? `<div class="card todo"><b>⚠ Still to choose (${issues.length})</b><ul class="todol">${issues.map(i => `<li><button class="linkbtn" data-a="bgo" data-v="${steps.indexOf(i.step)}">${esc(i.step)}</button>: ${esc(i.text)}</li>`).join("")}</ul><div class="small muted">You can ${d.editId ? "save" : "create the character"} now and finish later; class choices and spells you skip stay as reminders on your sheet.</div></div>` : `<div class="card done small">✓ Every choice is made.</div>`}
       <div class="card stack">
       <label class="f ${d.name.trim() ? "" : "need"}"><span>Character name</span><input data-b="name" value="${esc(d.name)}" placeholder="e.g. Orifina"></label>
       <label class="f"><span>Player</span><input data-b="player" value="${esc(d.player)}"></label>
@@ -1060,7 +1198,7 @@ function vBuild() {
   const can = stepOk(d, s), left = issues.filter(i => i.step === step).length;
   return `<div class="steps">${steps.map((x, i) => `<i class="${i <= s ? "on" : ""} ${i < s && issues.some(j => j.step === x) ? "warn" : ""}" title="${esc(x)}"></i>`).join("")}</div><div class="small muted">Step ${s + 1} of ${steps.length}: ${step}${issues.some(i => steps.indexOf(i.step) < s) ? ` · <span class="needtxt">earlier steps have choices left</span>` : ""}</div>
     <div style="margin-top:10px">${body}</div>
-    <div class="row" style="margin-top:16px"><button class="btn" data-a="bprev" ${s ? "" : "disabled"}>Back</button><span class="grow small ${can === true ? "needtxt" : "muted"}" style="text-align:center">${can === true ? (left ? `${left} choice${left > 1 ? "s" : ""} left here` : "") : esc(can)}</span>${s < steps.length - 1 ? `<button class="btn primary" data-a="bnext" ${can === true ? "" : "disabled"}>Next</button>` : `<button class="btn primary" data-a="bdone" ${can === true ? "" : "disabled"}>Create character</button>`}</div>`;
+    <div class="row" style="margin-top:16px"><button class="btn" data-a="bprev" ${s ? "" : "disabled"}>Back</button><span class="grow small ${can === true ? "needtxt" : "muted"}" style="text-align:center">${can === true ? (left ? `${left} choice${left > 1 ? "s" : ""} left here` : "") : esc(can)}</span>${s < steps.length - 1 ? `<button class="btn primary" data-a="bnext" ${can === true ? "" : "disabled"}>Next</button>` : `<button class="btn primary" data-a="bdone" ${can === true ? "" : "disabled"}>${d.editId ? "Save changes" : "Create character"}</button>`}</div>`;
 }
 function opt(list, cur, lab = x => x) { return list.map(v => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(lab(v))}</option>`).join(""); }
 function pointsUsed(d) { return ABILS.reduce((s, a) => s + (POINT_COST[d.base[a]] ?? 99), 0); }
@@ -1115,7 +1253,7 @@ function skillStep(d) {
 }
 // Class choices at level 1, the background's tool, and languages.
 function featureStep(d) {
-  const fin = finishDraft(JSON.parse(JSON.stringify(d))), b = BACKGROUNDS[d.background], defs = E.choiceDefs(fin, d.cls, 1, true);
+  const fin = finishDraft(JSON.parse(JSON.stringify(d))), b = BACKGROUNDS[d.background], defs = allDefs(fin).filter(def => def.cls === d.cls && def.at === 1);
   const tools = b ? toolOptions(b.tool) : null, langs = (d.langs || []).filter(Boolean);
   const auto = [...(SRD.CLASS_LANGS[d.cls] || [])];
   return `<h2>Class features and proficiencies</h2>
@@ -1178,7 +1316,7 @@ function stepOk(d, s) {
 }
 function finishDraft(d) {
   if (d.abilMethod === "standard") ABILS.forEach(a => { d.base[a] = d.abilAssign[a] ? STANDARD_ARRAY[+d.abilAssign[a]] : 8; });
-  const b = BACKGROUNDS[d.background];
+  const b = BACKGROUNDS[d.background], keep = d.keep || {};
   d.bgBonus = {};
   if (b) { if (d.bgMode === "111") b.abil.forEach(a => d.bgBonus[a] = 1); else { if (d.bg2) d.bgBonus[d.bg2] = 2; if (d.bg1) d.bgBonus[d.bg1] = (d.bgBonus[d.bg1] || 0) + 1; } }
   const sp = SPECIES[d.species];
@@ -1195,18 +1333,75 @@ function finishDraft(d) {
   if (b && b.feat) d.feats.push({ id: E.uid(), name: miName(b.feat, b.featNote || d.miBg), text: FEATS[b.feat] || "", source: d.background });
   if (d.originFeat2) d.feats.push({ id: E.uid(), name: miName(d.originFeat2, d.miOrigin), text: FEATS[d.originFeat2] || "", source: "Human (Versatile)" });
   if (d.feats.some(f => f.name.startsWith("Alert"))) d.feats.forEach(f => { if (f.name.startsWith("Alert")) f.name = "Alert"; });
-  // Class choices: keep the ones that still apply, then put their effects on the sheet.
-  const defs = d.cls ? E.choiceDefs(d, d.cls, 1, true) : [], ch = {};
+  // Levels 2 and up, replayed in order: hit points, subclass, ability increases or feats, multiclassing.
+  const log = d.log, cur = d.hp.cur;
+  Object.assign(d, { level: 1, multi: [], subclass: "", hpRolls: [], asi: Object.assign({}, keep.asi || {}) });
+  d.hp.cur = null;
+  for (const e of d.levels || []) {
+    if (d.level >= 20 || !CLASSES[e.cls]) continue;
+    const p = E.levelUpPlan(d, e.cls); if (!p) continue;
+    const pick = { cls: e.cls, hp: e.hp || p.avg, subclass: p.subclass ? e.subclass || "" : "" };
+    if (p.asi && !e.legacy) {
+      if (e.asiMode === "2" && e.asiA) pick.asi = { [e.asiA]: 2 };
+      else if (e.asiMode === "11" && e.asiA && e.asiB && e.asiA !== e.asiB) pick.asi = { [e.asiA]: 1, [e.asiB]: 1 };
+      else if (e.asiMode === "feat" && e.featName) pick.feat = { name: e.featName, text: FEATS[e.featName] || e.featText || "", abil: e.featAbil };
+    }
+    if (p.asi && e.legacy && e.featName) pick.feat = { name: e.featName, text: e.featText || FEATS[e.featName] || "" };
+    E.applyLevelUp(d, pick);
+  }
+  d.log = log; d.hp.cur = cur;
+  // Class choices for every class at its level: keep the ones that still apply, then put their effects on the sheet.
+  const defs = allDefs(d), ch = {};
   for (const def of defs) if (d.choices && d.choices[def.id] != null) ch[def.id] = d.choices[def.id];
   d.choices = ch;
   for (const def of defs) E.choiceEffect(d, def, ch[def.id], 1);
-  d.expertise = d.expertise.filter(x => d.skills.includes(x));
+  // What the sheet had that the builder doesn't explain (edits on the sheet, DM changes): kept as it was.
+  for (const x of keep.skills || []) if (!d.skills.includes(x)) d.skills.push(x);
+  d.expertise = [...new Set([...d.expertise, ...(keep.expertise || [])])].filter(x => d.skills.includes(x));
+  for (const x of keep.tools || []) if (!d.tools.includes(x)) d.tools.push(x);
+  if ((keep.langs || []).length) d.languages = [...new Set([...d.languages.split(", "), ...keep.langs])].join(", ");
+  for (const f of keep.feats || []) if (!d.feats.some(o => o.id === f.id)) d.feats.push(f);
+  d.hpBonus = (+d.hpBase || 0) + (+keep.hp || 0);
   // Spells: drop Magic Initiate and species spells that no longer apply, then add the species ones.
   const mis = d.feats.map(f => f.name).filter(n => /^Magic Initiate/.test(n)), heritage = [d.species, d.lineage].filter(Boolean);
-  d.spells = (d.spells || []).filter(s => !s.from || mis.includes(s.from) || (heritage.includes(s.from) && E.speciesSpells(d).some(x => x.name === s.name && x.from === s.from)));
+  const keepSpell = s => !s.from ? true : /^Magic Initiate/.test(s.from) ? mis.includes(s.from) : SRD.SPECIES_SPELLS[s.from] ? heritage.includes(s.from) && E.speciesSpells(d).some(x => x.name === s.name && x.from === s.from) : true;
+  d.spells = (d.spells || []).filter(keepSpell);
   E.addSpeciesSpells(d);
   if (d.size === "") delete d.size;
   return d;
+}
+// Every class choice the draft has at its current levels.
+const allDefs = d => d.cls ? E.classList(d).flatMap(e => E.choiceDefs(d, e.cls, e.level, e.primary)) : [];
+// Which class each character level went to: [{ L, cls, classLevel, i }] (i: index in d.levels; level 1 has i = -1).
+function levelMap(d) {
+  const out = [{ L: 1, cls: d.cls, classLevel: 1, i: -1 }], n = { [d.cls]: 1 };
+  (d.levels || []).forEach((e, i) => { n[e.cls] = (n[e.cls] || 0) + 1; out.push({ L: i + 2, cls: e.cls, classLevel: n[e.cls], i }); });
+  return out;
+}
+// The character level where a class choice is made.
+function defLevel(d, def) { const m = levelMap(d).find(x => x.cls === def.cls && x.classLevel === def.at); return m ? m.L : 1; }
+function asiUnmade(e) {
+  if (e.legacy) return false;
+  return !(e.asiMode === "2" && e.asiA || e.asiMode === "11" && e.asiA && e.asiB && e.asiA !== e.asiB || e.asiMode === "feat" && e.featName);
+}
+const buildOf = raw => { const b = { v: 1 }; for (const k of BUILD_KEYS) if (raw[k] !== undefined) b[k] = JSON.parse(JSON.stringify(raw[k])); return b; };
+// Save the builder's changes onto an existing sheet. HP taken, gear, coins, DM gifts and notes stay as they are.
+async function saveEdit() {
+  const raw = A.draft, id = raw.editId, fin = finishDraft(JSON.parse(JSON.stringify(raw))), r0 = charRow(id); if (!r0) return;
+  const ids0 = new Set((r0.data.spells || []).map(s => s.id)), oldLevel = r0.data.level || 1;
+  await edit(id, d => {
+    const before = E.derive(d).hpMax, taken = before - (d.hp.cur ?? before);
+    for (const k of SHEET_KEYS) { if (fin[k] === undefined) delete d[k]; else d[k] = JSON.parse(JSON.stringify(fin[k])); }
+    // Spells from the builder, plus any the DM sent while it was open.
+    d.spells = [...fin.spells, ...(d.spells || []).filter(s => !ids0.has(s.id) && !fin.spells.some(o => o.id === s.id))];
+    d.build = buildOf(raw);
+    const after = E.derive(d).hpMax;
+    if (d.hp.cur != null) d.hp.cur = Math.max(0, Math.min(after, after - taken));
+    const gained = d.level - oldLevel;
+    if (gained > 0) { d.pendingLevels = Math.max(0, (d.pendingLevels || 0) - gained); d.log.unshift({ t: Date.now(), text: `Reached level ${d.level} (${E.classLabel(d)})` }); }
+    else d.log.unshift({ t: Date.now(), text: gained < 0 ? `Went back to level ${d.level} in the builder` : "Changed choices in the builder" });
+  });
+  A.view = "sheet"; A.draft = null; render(); scrollTo(0, 0); toast(fin.level > oldLevel ? `Level ${fin.level}!` : "Saved");
 }
 // Turn a starting-equipment line into an item from the gear catalog (or a plain item if it isn't there).
 function startItem(name, qty, d) {
@@ -1224,26 +1419,28 @@ function preview(d) {
   const pk = SRD.START_GEAR[d.cls] || [], bg = SRD.BG_GEAR[d.background];
   if (typeof A.draft.gearClass === "number" && pk[A.draft.gearClass]) inv.push(gearList(pk[A.draft.gearClass].items));
   if (A.draft.gearBg === "pack" && bg) inv.push(gearList(bg.items));
-  return `<div class="row"><div class="grow"><b>${esc(d.name || "Your character")}</b><div class="small muted">${esc(d.species)}${d.lineage ? " (" + esc(d.lineage) + ")" : ""} ${esc(d.cls)} 1 · ${esc(d.background)}${d.alignment ? " · " + esc(d.alignment) : ""}</div></div></div>
+  return `<div class="row"><div class="grow"><b>${esc(d.name || "Your character")}</b><div class="small muted">${esc(d.species)}${d.lineage ? " (" + esc(d.lineage) + ")" : ""} ${esc(E.classLabel(d))} · ${esc(d.background)}${d.alignment ? " · " + esc(d.alignment) : ""}</div></div></div>
     <div class="stats"><div class="stat"><div class="v">${x.hpMax}</div><div class="k">HP</div></div><div class="stat"><div class="v">${x.ac}</div><div class="k">AC</div></div><div class="stat"><div class="v">${sg(x.init)}</div><div class="k">Init</div></div><div class="stat"><div class="v">${x.speed}</div><div class="k">Speed</div></div></div>
     <div class="small muted" style="margin-top:8px">Skills: ${esc(d.skills.join(", "))}${d.expertise.length ? `<br>Expertise: ${esc(d.expertise.join(", "))}` : ""}<br>Feats: ${esc(d.feats.map(f => f.name).join(", ") || "none")}${d.tools.length ? `<br>Tools: ${esc(d.tools.join(", "))}` : ""}<br>Languages: ${esc(d.languages)}
-      ${d.spells.length ? `<br>Spells: ${esc(d.spells.map(s => s.name).join(", "))}` : ""}${inv.length ? `<br>Gear: ${esc(inv.join(", "))}` : ""}<br>Gold: ${startGold(A.draft)} gp</div>`;
+      ${d.spells.length ? `<br>Spells: ${esc(d.spells.map(s => s.name).join(", "))}` : ""}${inv.length ? `<br>Gear: ${esc(inv.join(", "))}` : ""}${A.draft.editId ? "" : `<br>Gold: ${startGold(A.draft)} gp`}</div>`;
 }
 function startGold(d) {
   const pk = SRD.START_GEAR[d.cls] || [], bg = SRD.BG_GEAR[d.background], c = CLASSES[d.cls] || {};
   return (typeof d.gearClass === "number" && pk[d.gearClass] ? pk[d.gearClass].gp : c.gold || 0) + (d.gearBg === "pack" && bg ? bg.gp : 50);
 }
 async function createChar() {
-  const issues = draftIssues(A.draft);
-  if (issues.length && !await ask({ title: `${issues.length} choice${issues.length > 1 ? "s" : ""} still to make`, text: `${issues.map(i => i.text).join("; ")}. Create the character anyway? Class choices and spells you skip stay as reminders on your sheet.`, ok: "Create anyway" })) return;
+  const issues = draftIssues(A.draft), ed = !!A.draft.editId;
+  if (issues.length && !await ask({ title: `${issues.length} choice${issues.length > 1 ? "s" : ""} still to make`, text: `${issues.map(i => i.text).join("; ")}. ${ed ? "Save" : "Create the character"} anyway? Class choices and spells you skip stay as reminders on your sheet.`, ok: ed ? "Save anyway" : "Create anyway" })) return;
+  if (ed) return saveEdit();
   const raw = A.draft, d = finishDraft(JSON.parse(JSON.stringify(raw)));
+  d.build = buildOf(raw);
   const pk = SRD.START_GEAR[d.cls] || [], bg = SRD.BG_GEAR[d.background];
   const items = [...(typeof raw.gearClass === "number" && pk[raw.gearClass] ? pk[raw.gearClass].items : []), ...(raw.gearBg === "pack" && bg ? bg.items : [])];
   for (const [n, q] of items) addToPack(d, startItem(n, q, d));
   d.coins.gp = startGold(raw);
   DRAFT_KEYS.forEach(k => delete d[k]);
   d.hp.cur = E.derive(d).hpMax;
-  d.log.unshift({ t: Date.now(), text: "Created at level 1" });
+  d.log.unshift({ t: Date.now(), text: `Created at level ${d.level}` });
   localStorage.setItem("esc-name", d.player || "");
   const row = await A.be.createCharacter(A.camp.id, d);
   A.chars.push(row); A.charId = row.id; A.view = "sheet"; A.tab = "main"; A.draft = null; render(); toast("Character created");
@@ -1329,7 +1526,7 @@ function tMain(r, d, x) {
     <div class="card"><div class="row"><h3 class="grow">Skills</h3><span class="small muted">Passive Perception <b class="num">${x.passive}</b></span><button class="btn sm ghost" data-a="editskills">${A.editSkills ? "Done" : "Edit"}</button></div>
       ${A.editSkills ? `<p class="small muted">Tap a dot to cycle: not proficient, proficient, expertise.</p>` : ""}<div class="list">${skills}</div></div>
     <div class="card small"><b>Proficiencies.</b> <span class="muted">${esc(profText(d))}</span></div>
-    <div class="row" style="margin-top:12px"><span class="small muted grow">Level ${d.level} · ${d.xp || 0} XP${x.xpNext ? " / " + x.xpNext : ""}</span>${d.level < 20 ? `<button class="btn sm" data-a="levelup">Level up</button>` : ""}<button class="btn sm" data-a="xp">Add XP</button></div>`;
+    <div class="row" style="margin-top:12px"><span class="small muted grow">Level ${d.level} · ${d.xp || 0} XP${x.xpNext ? " / " + x.xpNext : ""}</span><button class="btn sm" data-a="editchar">Edit in builder</button>${d.level < 20 ? `<button class="btn sm" data-a="levelup">Level up</button>` : ""}<button class="btn sm" data-a="xp">Add XP</button></div>`;
 }
 function tCombat(r, d, x) {
   const sl = x.slots;
@@ -1893,88 +2090,6 @@ function todoCard(d) {
     <ul class="todol">${todo.map(t => `<li>${esc(t.label)}</li>`).join("")}</ul>
     <div class="row">${has(["choice", "subclass"]) ? `<button class="btn sm primary" data-a="choices">Make choices</button>` : ""}${has(["cantrips", "prepared", "spellbook"]) ? `<button class="btn sm ${has(["choice", "subclass"]) ? "" : "primary"}" data-a="addspell">Choose spells</button>` : ""}${mis.map(t => `<button class="btn sm" data-a="mipick" data-v="${esc(t.feat)}">${esc(t.feat)} spells</button>`).join("")}</div></div>`;
 }
-// Make the class choices (and subclasses) still waiting on a sheet.
-function choicesDialog() {
-  const r = charRow(A.charId); if (!r) return;
-  const d = r.data, todo = E.pendingChoices(d);
-  const all = E.classList(d).flatMap(e => E.choiceDefs(d, e.cls, e.level, e.primary));
-  CH.d = d; CH.defs = {}; CH.vals = {};
-  for (const t of todo.filter(t => t.kind === "choice")) { CH.defs[t.id] = t.def; CH.vals[t.id] = (d.choices || {})[t.id]; }
-  const subs = todo.filter(t => t.kind === "subclass");
-  CH.extra = () => subs.filter((t, i) => !val("chSub-" + i)).length;
-  dialog("Choices to make", `<div class="stack">
-    ${subs.map((t, i) => { const o = E.subclassOptions(t.cls); return `<label class="f"><span>${esc(t.cls)} subclass</span><select id="chSub-${i}" data-cls="${esc(t.cls)}"><option value="">Choose…</option>${o.map(x => `<option value="${esc(x.name)}">${esc(x.name)}${x.src ? ` (${esc(x.src)})` : ""}</option>`).join("")}</select></label>`; }).join("")}
-    ${Object.values(CH.defs).map(def => `<div class="small muted" style="margin-top:4px">${esc(def.cls)}</div>${choiceField(d, def, CH.vals[def.id], "d")}`).join("")}
-    ${all.length > Object.keys(CH.defs).length ? `<p class="tiny muted">Choices you've already made are on the Features tab.</p>` : ""}</div>`,
-    `<span id="chWarn" class="grow small">${choiceWarn()}</span><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveChoices">Save</button>`,
-    dl => dl.querySelectorAll("[id^=chSub-]").forEach(s => s.onchange = () => { $("#chWarn").innerHTML = choiceWarn(); }));
-}
-
-// Level up: pick which class gets the level (your classes, or multiclass into a new one), then everything that level asks for.
-const LU = { cls: "" };
-function levelUpDialog(cls) {
-  const r = charRow(A.charId); if (!r) return;
-  const d = r.data, mine = E.classList(d);
-  LU.cls = cls || (mine.some(e => e.cls === LU.cls) && A.luChar === r.id ? LU.cls : d.cls); A.luChar = r.id;
-  const p = E.levelUpPlan(d, LU.cls); if (!p) return;
-  CH.d = d; CH.defs = {}; CH.vals = {};
-  for (const def of p.choices) { CH.defs[def.id] = def; CH.vals[def.id] = (d.choices || {})[def.id]; }
-  CH.extra = () => (p.subclass && !val("luSub") ? 1 : 0);
-  // How the spell numbers change: run the level on a copy.
-  const sim = JSON.parse(JSON.stringify(d)); E.applyLevelUp(sim, { cls: p.cls, hp: p.avg });
-  const a = E.spellRules(d), b = E.spellRules(sim), dc = (b.cantrips || 0) - (a.cantrips || 0), dp = (b.prepared || 0) - (a.prepared || 0), db = (b.spellbook || 0) - (a.spellbook || 0);
-  const sa = E.derive(d).slots, sb = E.derive(sim).slots;
-  const spellNews = [dc > 0 ? `${dc} more cantrip${dc > 1 ? "s" : ""}` : "", db > 0 ? `${db} more spellbook spell${db > 1 ? "s" : ""}` : "", dp > 0 ? `${dp} more prepared spell${dp > 1 ? "s" : ""}` : ""].filter(Boolean);
-  const slotNew = sb.slots.length > sa.slots.length ? `You can now cast level ${sb.slots.length} spells.` : sb.pact && (!sa.pact || sb.pact.lvl > sa.pact.lvl) ? `Your Pact slots are now level ${sb.pact.lvl}.` : "";
-  const others = Object.keys(CLASSES).filter(k => !mine.some(e => e.cls === k)).sort();
-  const sc = E.scores(d);
-  const classOpt = k => { const pr = E.mcProblems(d, k); return `<option value="${esc(k)}" ${k === p.cls ? "selected" : ""}>${esc(k)}${pr.length ? " (needs " + esc(pr.map(x => x.replace(` (${k})`, "")).join(", ")) + ")" : ""}</option>`; };
-  const mp = p.mc;
-  dialog(`Level ${p.level}: ${p.cls} ${p.classLevel}`, `<div class="stack">
-    <label class="f"><span>Take this level in</span><select id="luCls">
-      <optgroup label="${mine.length > 1 ? "Your classes" : "Your class"}">${mine.map(e => `<option value="${esc(e.cls)}" ${e.cls === p.cls ? "selected" : ""}>${esc(e.cls)} (level ${e.level} → ${e.level + 1})</option>`).join("")}</optgroup>
-      ${others.length ? `<optgroup label="Multiclass into a new class">${others.map(classOpt).join("")}</optgroup>` : ""}</select></label>
-    ${p.isNew ? `<div class="card ${p.problems.length ? "todo" : ""}" style="margin:0"><b>Multiclassing into ${esc(p.cls)}</b>
-      <div class="small" style="margin-top:4px">${p.problems.length ? `<span class="bad">You need ${esc(p.problems.join(" and "))} to multiclass. Your DM can still allow it.</span>` : `<span class="good">✓ You meet the ability score requirements (13 in each class's main ability).</span>`}</div>
-      <div class="small muted" style="margin-top:4px">${mp && mp.known ? `You gain: ${esc([mp.armor, mp.weapons, mp.tool].filter(Boolean).join("; ") || "no new armor or weapon training")}${(SRD.MC_PROFS[p.cls] || {}).skills ? `, and a skill` : ""}${(SRD.MC_PROFS[p.cls] || {}).tools ? `, and a musical instrument` : ""}.` : "This class is from a book. Ask your DM which proficiencies you gain."} You don't get its saving throws or its level 1 hit points. ${CLASSES[p.cls].caster || SRD.SPELLCASTING[p.cls] ? "Your spell slots add up across your spellcasting classes." : ""}</div></div>` : ""}
-    <div><b>Hit points</b><div class="row" style="margin-top:6px"><button class="btn sm" data-a="rollhp" data-hd="${p.hd}">Roll d${p.hd}</button><span class="muted small">or take the average</span><input id="luHp" type="number" class="num" style="width:80px" min="1" max="${p.hd}" value="${p.avg}"><span class="small muted">+ Con ${sg(E.derive(d).mods.con)}</span></div></div>
-    ${p.pbUp ? `<div class="small">Proficiency bonus goes up to <b>${sg(E.profBonus(p.level))}</b>.</div>` : ""}
-    ${p.features.length ? `<div><b>New ${esc(p.cls)} features</b>${p.features.map(f => `<div class="small"><b>${esc(f.name)}.</b> <span class="muted">${esc(f.text)}</span></div>`).join("")}</div>` : ""}
-    ${p.subclass ? `<label class="f need" id="luSubBox"><span>Choose your ${esc(p.cls)} subclass</span><select id="luSub"><option value="">Choose…</option>${p.subclass.map(o => `<option value="${esc(o.name)}">${esc(o.name)} (${esc(o.src)})</option>`).join("")}<option value="__custom">Other (type it in)</option></select></label><div class="small muted" id="luSubText"></div><input id="luSubCustom" placeholder="Subclass name from your DM or book" hidden>` : ""}
-    ${p.subFeatures.length ? `<div><b>${esc(p.subName)} features</b>${p.subFeatures.map(f => `<div class="small"><b>${esc(f.name)}.</b> <span class="muted">${esc(f.text)}</span></div>`).join("")}</div>` : p.subFeature ? `<div class="small">You gain a <b>${esc(p.subName || "subclass")}</b> feature. Add it on the Features tab if it isn't from the SRD or your DM's books.</div>` : ""}
-    ${p.asi ? `<div><b>${p.epic ? "Epic Boon or feat" : "Ability Score Improvement or feat"}</b>
-      <div class="chips" style="margin:6px 0"><button class="chip on" data-a="asimode" data-v="2">+2 to one</button><button class="chip" data-a="asimode" data-v="11">+1 to two</button><button class="chip" data-a="asimode" data-v="feat">Take a feat</button></div>
-      <div id="asiBox" data-mode="2">${asiBox("2", d, p)}</div></div>` : ""}
-    ${p.choices.map(def => choiceField(d, def, CH.vals[def.id], "d")).join("")}
-    ${p.speciesSpells.length ? `<div class="small"><b>New spells from your heritage:</b> ${esc(p.speciesSpells.map(x => x.name).join(", "))} (added for you).</div>` : ""}
-    ${spellNews.length || slotNew ? `<div class="banner" style="margin:0">${slotNew} ${spellNews.length ? `You can choose ${esc(spellNews.join(", "))}. The spell picker opens after you level up.` : ""}</div>` : ""}
-    </div>`, `<span id="chWarn" class="grow small">${choiceWarn()}</span><button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="doLevel">Level up</button>`, dl => {
-    dl.querySelector("#luCls").onchange = e => levelUpDialog(e.target.value);
-    const s = dl.querySelector("#luSub"); if (s) s.onchange = () => { dl.querySelector("#luSubCustom").hidden = s.value !== "__custom"; const o = p.subclass.find(o => o.name === s.value); dl.querySelector("#luSubText").textContent = o ? subText(o) : ""; dl.querySelector("#luSubBox").classList.toggle("need", !s.value); $("#chWarn").innerHTML = choiceWarn(); };
-  });
-}
-function subText(o) { return [o.text, ...(o.f || []).filter(f => f[0] === o.f[0][0]).map(f => `${f[1]}: ${f[2]}`)].filter(Boolean).join(" "); }
-// Feats you can take at an ASI level, grouped. Fighting Style feats need a Fighting Style feature; Epic Boons need level 19.
-function featGroups(d, p) {
-  const styled = E.classList(d).some(e => (CLASSES[e.cls] || { f: [] }).f.some(f => f[1] === "Fighting Style" && f[0] <= e.level)) || (p && p.choices.some(c => c.kind === "feat"));
-  const epic = (p ? p.level : d.level) >= 19, taken = new Set((d.feats || []).map(f => f.name));
-  const names = Object.keys(FEATS).filter(f => f !== "Ability Score Improvement").sort();
-  const g = { General: [], Origin: [], "Fighting Style": [], "Epic Boons": [] };
-  for (const n of names) {
-    if (/\(Fighting Style\)$/.test(n)) { if (styled) g["Fighting Style"].push(n); }
-    else if (/^Boon of/.test(n)) { if (epic) g["Epic Boons"].push(n); }
-    else if (ORIGIN_FEATS.includes(n)) g.Origin.push(n); else g.General.push(n);
-  }
-  return Object.entries(g).filter(([, l]) => l.length).map(([k, l]) => `<optgroup label="${k}">${l.map(n => `<option value="${esc(n)}" ${taken.has(n) && n !== "Magic Initiate" ? "disabled" : ""}>${esc(n)}${taken.has(n) ? " (taken)" : ""}</option>`).join("")}</optgroup>`).join("");
-}
-function asiBox(mode, d, p) {
-  const sc = E.derive(d).scores;
-  const sel = id => `<select id="${id}">${ABILS.map(a => `<option value="${a}" ${sc[a] >= 20 ? "disabled" : ""}>${ABIL_NAME[a]} (${sc[a]})</option>`).join("")}</select>`;
-  if (mode === "2") return sel("asiA");
-  if (mode === "11") return `<div class="grid2">${sel("asiA")}${sel("asiB")}</div>`;
-  return `<div class="stack"><select id="featPick"><option value="">Choose…</option>${featGroups(d, p)}<option value="__custom">Other feat (type it in)</option></select><div id="featInfo" class="small muted"></div><input id="featName" placeholder="Feat name" hidden><textarea id="featText" placeholder="What it does" hidden></textarea>
-    <label class="f"><span>Most feats also give +1 to an ability. Which one?</span><select id="featAbil"><option value="">None (this feat doesn't)</option>${ABILS.map(a => `<option value="${a}" ${sc[a] >= 20 ? "disabled" : ""}>${ABIL_NAME[a]} (${sc[a]})</option>`).join("")}</select></label></div>`;
-}
 
 function sendDialog(preset = {}) {
   const kind = preset.kind || "item";
@@ -2071,7 +2186,7 @@ const ACT = {
   bgearb(el) { A.draft.gearBg = el.dataset.v; render(); },
   chtog(el) {
     const id = el.dataset.k, v = el.dataset.v, w = el.dataset.w;
-    const def = w === "b" ? E.choiceDefs(finishDraft(JSON.parse(JSON.stringify(A.draft))), A.draft.cls, 1, true).find(x => x.id === id) : CH.defs[id];
+    const def = w === "b" ? allDefs(finishDraft(JSON.parse(JSON.stringify(A.draft)))).find(x => x.id === id) : CH.defs[id];
     if (!def) return;
     const cur = (w === "b" ? A.draft.choices[id] : CH.vals[id]) || [];
     const on = el.type === "checkbox" ? el.checked : !cur.includes(v);
@@ -2240,46 +2355,23 @@ const ACT = {
     const r = charRow(A.charId); if (!r) return; const typed = await ask({ title: "Delete character", text: `This can't be undone. Type ${r.data.name} to confirm.`, input: "text", ok: "Delete", danger: true }); if (typed == null || typed.trim() !== r.data.name) { if (typed != null) toast("The name didn't match"); return; }
     await A.be.deleteCharacter(r.id); A.chars = A.chars.filter(c => c.id !== r.id); A.view = "camp"; render(); toast("Character deleted");
   },
-  levelup() { levelUpDialog(); },
-  choices() { choicesDialog(); },
-  saveChoices() {
-    const subs = [...document.querySelectorAll("#dlg [id^=chSub-]")].map(el => [el.dataset.cls, el.value]).filter(([, v]) => v);
-    const vals = Object.assign({}, CH.vals), defs = Object.assign({}, CH.defs);
-    edit(A.charId, d => {
-      for (const [id, v] of Object.entries(vals)) if (defs[id]) E.setChoice(d, defs[id], v);
-      for (const [cls, v] of subs) { if (cls === d.cls) d.subclass = v; else { const e = (d.multi || []).find(x => x.cls === cls); if (e) e.subclass = v; } }
-    });
-    closeDlg(); toast("Saved");
+  // Edit in the builder, or level up there (a new level is added in the class you took last).
+  editchar() { const r = charRow(A.charId); if (!r) return; A.draft = draftFromChar(r); A.step = 0; A.view = "build"; render(); scrollTo(0, 0); },
+  levelup() {
+    const r = charRow(A.charId); if (!r || (r.data.level || 1) >= 20) return;
+    const d = A.draft = draftFromChar(r), last = d.levels.length ? d.levels[d.levels.length - 1].cls : d.cls, c = CLASSES[last] || CLASSES[d.cls];
+    d.levels.push({ cls: CLASSES[last] ? last : d.cls, hp: c.hd / 2 + 1 });
+    A.view = "build"; A.step = buildSteps(d).indexOf("Levels"); render(); scrollTo(0, document.body.scrollHeight);
   },
-  rollhp(el) { $("#luHp").value = 1 + Math.floor(Math.random() * +el.dataset.hd); toast("Rolled " + $("#luHp").value); },
-  asimode(el) {
-    el.parentElement.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c === el));
-    const d = charRow(A.charId).data; $("#asiBox").innerHTML = asiBox(el.dataset.v, d, E.levelUpPlan(d, LU.cls)); $("#asiBox").dataset.mode = el.dataset.v;
-    const fp = $("#featPick"); if (fp) fp.onchange = () => { const c = fp.value === "__custom"; $("#featName").hidden = !c; $("#featText").hidden = !c; $("#featInfo").textContent = c ? "" : FEATS[fp.value] || ""; };
-  },
-  async doLevel() {
-    const r = charRow(A.charId), d0 = r.data, p = E.levelUpPlan(d0, LU.cls); if (!p) return;
-    const choice = { cls: p.cls, hp: +val("luHp") || p.avg, choices: Object.assign({}, CH.vals) };
-    if (p.subclass) { const s = val("luSub"); choice.subclass = s === "__custom" ? val("luSubCustom") || "" : s; }
-    if (p.asi) {
-      const mode = $("#asiBox").dataset.mode || "2";
-      if (mode === "2") choice.asi = { [val("asiA")]: 2 };
-      else if (mode === "11") { const a = val("asiA"), b = val("asiB"); if (a === b) return toast("Pick two different abilities"); choice.asi = { [a]: 1, [b]: 1 }; }
-      else { const pick = val("featPick"); const name = pick && pick !== "__custom" ? pick : val("featName"); if (!name) return toast("Choose or name a feat"); choice.feat = { name, text: val("featText") || FEATS[name] || "", abil: val("featAbil") }; }
-    }
-    const left = p.choices.filter(def => !E.choiceDone({ choices: choice.choices }, def)).map(def => def.key);
-    if (p.subclass && !choice.subclass) left.unshift("subclass");
-    if (p.problems.length && !await ask({ title: `Multiclass into ${p.cls}?`, text: `You need ${p.problems.join(" and ")} to multiclass. Only go ahead if your DM allows it.`, ok: "Multiclass anyway" })) return;
-    if (left.length && !await ask({ title: `${left.length} choice${left.length > 1 ? "s" : ""} not made`, text: `You haven't chosen: ${left.join(", ")}. Level up anyway? They'll wait for you as reminders at the top of your sheet.`, ok: "Level up anyway" })) return;
-    const usedGrant = (d0.pendingLevels || 0) > 0;
-    const before = E.spellRules(d0);
-    edit(A.charId, d => { E.applyLevelUp(d, choice); if (usedGrant) d.pendingLevels = Math.max(0, (d.pendingLevels || 0) - 1); });
-    closeDlg(); toast(`Level ${p.level}!`);
-    // New cantrips or spells to pick: open the spell picker straight away.
-    const after = E.spellRules(r.data);
-    if (after.known && ((after.cantrips || 0) > after.have.cantrips || (after.spellbook != null ? after.spellbook > after.have.spellbook : (after.prepared || 0) > after.have.prepared)) && ((after.cantrips || 0) > (before.cantrips || 0) || (after.prepared || 0) > (before.prepared || 0) || (after.spellbook || 0) > (before.spellbook || 0)))
-      setTimeout(() => { SP.ctx = null; SP.lvl = null; spellPicker(); }, 300);
-  },
+  async bcancel() { if (A.draft && A.draft.editId) { if (!await ask({ title: "Leave without saving?", text: "Changes you made here won't be kept.", ok: "Leave" })) return; A.view = "sheet"; A.draft = null; render(); return; } A.view = "camp"; A.draft = null; render(); },
+  // "Make choices" on the sheet: open the builder at the first step with something left to choose.
+  choices() { const r = charRow(A.charId); if (!r) return; const d = A.draft = draftFromChar(r), iss = draftIssues(d), st = buildSteps(d); A.step = Math.max(0, st.indexOf((iss[0] || {}).step || "Levels")); A.view = "build"; render(); scrollTo(0, 0); },
+  lvadd() { const d = A.draft, cls = val("addCls"), c = CLASSES[cls]; if (!c || 1 + d.levels.length >= 20) return; A.addCls = cls; d.levels.push({ cls, hp: c.hd / 2 + 1 }); render(); },
+  lvdel() { A.draft.levels.pop(); render(); },
+  lvset(el) { const e = A.draft.levels[+el.dataset.lv]; if (!e) return; e[el.dataset.lk] = el.dataset.v; render(); },
+  lvroll(el) { const e = A.draft.levels[+el.dataset.lv]; if (!e) return; e.hp = 1 + Math.floor(Math.random() * +el.dataset.hd); toast("Rolled " + e.hp); render(); },
+  lvredo(el) { const e = A.draft.levels[+el.dataset.lv]; if (!e) return; delete e.legacy; delete e.featName; delete e.featText; e.asiMode = ""; render(); },
+  async lvclearasi() { if (!await ask({ title: "Choose ability increases again?", text: "Your earlier ability increases are removed, and each level that gives one asks you to choose it again.", ok: "Clear them" })) return; const d = A.draft; d.keep.asi = {}; d.levels.forEach(e => { if (e.legacy && !e.featName) { delete e.legacy; e.asiMode = ""; } }); render(); },
   async accept(el) {
     const g = A.grants.find(x => x.id === el.dataset.id); if (!g) return;
     await edit(g.character_id, d => E.applyGrant(d, g));
@@ -2623,6 +2715,7 @@ document.addEventListener("change", e => {
     else if (el.dataset.raw) { d.base[el.dataset.raw] = Math.max(1, Math.min(30, +el.value || 10)); render(); }
     else if (el.dataset.xs != null) { d.extraSkills[+el.dataset.xs] = el.value; render(); }
     else if (el.dataset.lang != null) { d.langs[+el.dataset.lang] = el.value; render(); }
+    else if (el.dataset.lv != null && el.dataset.lk) { const e = d.levels[+el.dataset.lv]; if (e) { const k = el.dataset.lk; e[k] = k === "hp" ? Math.max(1, +el.value || 1) : el.value; if (k === "cls") { e.subclass = ""; e.hp = Math.min(e.hp || 99, CLASSES[e.cls].hd); } render(); } }
     else if (el.dataset.chs && el.dataset.w === "b") choiceSet(el.dataset.chs, el.value, "b");
     return;
   }
