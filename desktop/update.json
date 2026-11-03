@@ -8,7 +8,7 @@
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "3b62b5b0e56a429e3c5245141ef72d15777ca47dd683feca84fa0895c8d68f62",
+    "package.json": "3ec110b0e42e9b802495a04f16282d4efc94abd38c7b51ba5f5686d0d518bae5",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "a886bc7937b90d1736222c68d827cae675fd6b3291877d616c535bd380a2e1b0",
