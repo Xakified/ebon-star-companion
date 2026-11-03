@@ -173,13 +173,19 @@ label.f { display: block; } label.f > span { display: block; font-size: .82rem; 
 .quota .st { font-size: .76rem; color: var(--muted); }
 .quota .full { border-color: var(--good); } .quota .full .st { color: var(--good); }
 .quota .over { border-color: var(--bad); } .quota .over .st, .quota .over .v { color: var(--bad); }
-.splvl { border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; background: var(--raised); }
-.splvl > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; cursor: pointer; list-style: none; }
-.splvl > summary::-webkit-details-marker { display: none; }
-.splvl > summary::before { content: "▸"; color: var(--gold); transition: transform .15s; }
-.splvl[open] > summary::before { transform: rotate(90deg); }
-.splvl > summary b { font-family: var(--display); color: var(--royal); }
-.splvl .rows { padding: 0 12px 6px; }
+.qline { display: flex; flex-wrap: wrap; gap: 6px; }
+.qc { font-size: .85rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.qc.full { border-color: var(--good); color: var(--good); } .qc.over { border-color: var(--bad); color: var(--bad); }
+.lvbar { display: flex; gap: 6px; overflow-x: auto; margin-top: 10px; padding-bottom: 2px; scrollbar-width: thin; }
+.lvbar button { flex: 0 0 auto; min-width: 74px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 6px 10px; cursor: pointer; text-align: center; }
+.lvbar button b { display: block; font-family: var(--display); color: var(--royal); font-size: .95rem; }
+.lvbar button span { display: block; font-size: .72rem; color: var(--muted); white-space: nowrap; }
+.lvbar button.on { background: linear-gradient(var(--royal-2), var(--royal)); border-color: var(--gold); }
+.lvbar button.on b, .lvbar button.on span { color: #fff; }
+.lvhead { margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: var(--active); border: 1px solid var(--gilt); font-size: .88rem; }
+.lvhead .good { color: var(--good); } .lvhead .bad { color: var(--bad); }
+.sprows { margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: var(--raised); }
+.sprows > .sp:first-child, .sprows > .sp[hidden] + .sp { border-top: 0; }
 .sp { border-top: 1px solid var(--line); }
 .sp > summary { display: flex; align-items: center; gap: 8px; padding: 8px 0; cursor: pointer; list-style: none; }
 .sp > summary::-webkit-details-marker { display: none; }
@@ -784,10 +790,22 @@ function quotaTile(label, have, max, unit) {
   const left = max - have, cls = left < 0 ? "over" : left === 0 ? "full" : "";
   return `<div class="${cls}"><div class="k">${label}</div><div class="v">${have}<small> / ${max}</small></div><div class="st">${left < 0 ? `${-left} too many` : left === 0 ? "All chosen" : `${left} more to choose`}</div></div>`;
 }
+function slotTile(d) {
+  const x = E.derive(d).slots;
+  if (x.pact) return `<div><div class="k">Pact slots</div><div class="v">${Math.max(0, x.pact.n - (d.pactUsed || 0))}<small> / ${x.pact.n}</small></div><div class="st">${ordinal(x.pact.lvl)} level, back on a Short Rest</div></div>`;
+  if (!x.slots.length) return "";
+  return `<div style="grid-column:span 2"><div class="k">Spell slots left</div><div class="row nw" style="gap:10px;margin-top:2px">${x.slots.map((n, i) => `<div style="text-align:center"><div class="v" style="font-size:1.05rem">${Math.max(0, n - ((d.slotsUsed || {})[i + 1] || 0))}<small>/${n}</small></div><div class="st">${ordinal(i + 1)}</div></div>`).join("")}</div></div>`;
+}
+// One line of counters for the top of the picker.
+function quotaLine(d, sr) {
+  const c = (label, have, max) => { const left = max == null ? null : max - have; return `<span class="qc ${left == null ? "" : left < 0 ? "over" : left === 0 ? "full" : ""}">${label} <b class="num">${have}${max == null ? "" : "/" + max}</b></span>`; };
+  return `<div class="qline">${c("Cantrips", sr.have.cantrips, sr.cantrips)}${sr.spellbook != null ? c("Spellbook", sr.have.spellbook, sr.spellbook) : ""}${c("Prepared", sr.have.prepared, sr.prepared)}</div>`;
+}
 function spellQuota(d, sr) {
   const tiles = [quotaTile("Cantrips", sr.have.cantrips, sr.cantrips, "known"),
     sr.spellbook != null ? quotaTile("Spellbook", sr.have.spellbook, sr.spellbook, "spells") : "",
     quotaTile("Prepared spells", sr.have.prepared, sr.prepared, "prepared"),
+    slotTile(d),
     sr.maxLevel ? `<div><div class="k">Highest spell level</div><div class="v">${sr.maxLevel}</div><div class="st">${sr.arcanum.length ? "6th+ from Mystic Arcanum" : "from your spell slots"}</div></div>` : ""];
   return `<div class="quota">${tiles.join("")}</div>`;
 }
@@ -821,69 +839,100 @@ function tSpells(r, d, x) {
     <button class="btn primary" style="margin-top:12px;width:100%" data-a="addspell">Choose spells</button>`;
 }
 
-// The spell picker: every spell from the DM's books, one section per spell level, with the full text.
-const SP = { all: false, higher: false, bonus: false };
+// The spell picker: every spell from the DM's books. A toggle picks the spell level; each level shows
+// its spell slots and how many spells are still to choose; tap a spell to read all of it.
+const SP = { all: false, higher: false, bonus: false, lvl: null };
 const hasSpell = (d, name) => d.spells.some(s => s.name.toLowerCase() === name.toLowerCase());
 function pickerPool(sr) {
   if (SP.all || !sr.lists.length) return SPELLS;
   return SPELLS.filter(x => (x.classes || []).some(c => sr.lists.includes(c)));
 }
-function pickerSections(d, sr) {
-  const pool = pickerPool(sr), cap = SP.higher || !sr.maxLevel ? 9 : sr.maxLevel;
-  const slotN = L => { const x = E.derive(d).slots; return x.pact ? (x.pact.lvl >= L ? `${x.pact.n} pact slots` : "") : x.slots[L - 1] ? `${x.slots[L - 1]} slot${x.slots[L - 1] > 1 ? "s" : ""}` : ""; };
-  const firstOpen = sr.known && sr.cantrips > sr.have.cantrips ? 0 : 1;
-  let out = "";
-  for (let L = 0; L <= cap; L++) {
-    const list = pool.filter(x => x.level === L); if (!list.length) continue;
-    const note = L === 0 ? "" : sr.arcanum.includes(L) && !slotN(L) ? "Mystic Arcanum: pick one" : sr.maxLevel && L > sr.maxLevel ? "You can't cast these yet" : slotN(L);
-    out += `<details class="splvl" data-lvl="${L}" ${L === firstOpen ? "open" : ""}><summary><b>${L ? ordinal(L) + " level" : "Cantrips"}</b><span class="small muted grow" data-cnt>${list.length} spells</span>${note ? `<span class="tiny muted">${note}</span>` : ""}<span class="pill" data-have></span></summary>
-      <div class="rows">${list.map(x => { const i = SPELLS.indexOf(x); return `<details class="sp" data-i="${i}" data-s="${esc((x.name + " " + x.school + " " + x.text).toLowerCase())}"><summary><span class="grow"><span class="nm">${esc(x.name)}</span>${spellTags(x)}<span class="tiny muted"> · ${esc([x.school, shortTime(x.time), x.range].filter(Boolean).join(" · "))}</span></span><span data-btn="${i}"></span></summary>
-        <div class="body">${spellFacts(x)}${x.text ? `<p>${esc(x.text)}</p>` : ""}</div></details>`; }).join("")}</div></details>`;
+// Slots at one spell level: { n, left, pact } or null.
+function slotsAt(d, L) {
+  const x = E.derive(d).slots;
+  if (x.pact) return x.pact.lvl === L ? { n: x.pact.n, left: Math.max(0, x.pact.n - (d.pactUsed || 0)), pact: true } : null;
+  const n = x.slots[L - 1]; return n ? { n, left: Math.max(0, n - ((d.slotsUsed || {})[L] || 0)) } : null;
+}
+function pickerLevels(d, sr) {
+  const cap = SP.higher || !sr.maxLevel ? 9 : sr.maxLevel, pool = pickerPool(sr), out = [];
+  for (let L = 0; L <= cap; L++) if (pool.some(x => x.level === L)) out.push(L);
+  return out;
+}
+const leftText = (have, max) => max == null ? "" : max - have > 0 ? `${max - have} left` : max - have < 0 ? `${have - max} too many` : "done";
+function levelBar(d, sr, levels) {
+  return `<div class="lvbar" role="tablist">${levels.map(L => {
+    const sl = L ? slotsAt(d, L) : null;
+    const sub = !L ? (sr.known ? leftText(sr.have.cantrips, sr.cantrips) : "") : sl ? `${sl.n} slot${sl.n > 1 ? "s" : ""}` : sr.arcanum.includes(L) ? "Arcanum" : sr.maxLevel && L > sr.maxLevel ? "not yet" : "";
+    return `<button role="tab" class="${L === SP.lvl ? "on" : ""}" data-a="splvl" data-v="${L}" aria-selected="${L === SP.lvl}"><b>${L ? ordinal(L) : "Cantrips"}</b><span>${sub || "&nbsp;"}</span></button>`;
+  }).join("")}</div>`;
+}
+// The line under the level toggle: slots at this level and what's still to choose.
+function levelHead(d, sr) {
+  const L = SP.lvl, bits = [];
+  if (L === 0) {
+    bits.push(`<b>Cantrips</b>`);
+    if (sr.known) bits.push(sr.cantrips - sr.have.cantrips > 0 ? `<b class="good">${sr.cantrips - sr.have.cantrips} more to choose</b> (${sr.have.cantrips} of ${sr.cantrips})` : sr.have.cantrips > sr.cantrips ? `<b class="bad">${sr.have.cantrips - sr.cantrips} more than you can know</b>` : `All ${sr.cantrips} chosen`);
+    bits.push("no slots needed, cast at will");
+  } else {
+    const sl = slotsAt(d, L);
+    bits.push(`<b>${ordinal(L)}-level spells</b>`);
+    bits.push(sl ? `${sl.left} of ${sl.n} ${sl.pact ? "pact " : ""}slot${sl.n > 1 ? "s" : ""} left today` : sr.arcanum.includes(L) ? "Mystic Arcanum: choose one, cast once per Long Rest" : sr.maxLevel && L > sr.maxLevel ? "you can't cast these yet" : "no slots at this level");
+    if (sr.known) { const left = sr.prepared - sr.have.prepared; bits.push(left > 0 ? `<b class="good">${left} more spell${left > 1 ? "s" : ""} to prepare</b> (any level${sr.maxLevel > 1 ? " 1–" + Math.min(sr.maxLevel, sr.arcanum.length ? 5 : 9) : " 1"})` : left < 0 ? `<b class="bad">${-left} more prepared than allowed</b>` : `All ${sr.prepared} prepared`); }
+    if (sr.spellbook != null) { const left = sr.spellbook - sr.have.spellbook; if (left > 0) bits.push(`${left} more for your spellbook`); }
   }
-  return out || `<p class="small muted">No spells match. Try “All spells”.</p>`;
+  const mine = d.spells.filter(s => s.level === L).length;
+  if (mine) bits.push(`${mine} on your sheet`);
+  return bits.join(" · ");
+}
+function pickerRows(sr) {
+  return pickerPool(sr).filter(x => x.level <= (SP.higher || !sr.maxLevel ? 9 : sr.maxLevel)).map(x => { const i = SPELLS.indexOf(x); return `<details class="sp" data-i="${i}" data-l="${x.level}" data-s="${esc((x.name + " " + x.school + " " + x.text).toLowerCase())}"><summary><span class="grow"><span class="nm">${esc(x.name)}</span>${spellTags(x)}<span class="tiny muted"> · <span data-lv>${x.level ? ordinal(x.level) + " · " : ""}</span>${esc([x.school, shortTime(x.time), x.range].filter(Boolean).join(" · "))}</span></span><span data-btn="${i}"></span></summary>
+    <div class="body">${spellFacts(x)}${x.text ? `<p>${esc(x.text)}</p>` : ""}</div></details>`; }).join("");
 }
 function spellPicker() {
   const r = charRow(A.charId); if (!r) return;
   const d = r.data, sr = E.spellRules(d);
   if (!SPELLS.length) return spellCustom(`<div class="banner" style="margin:0 0 10px">Your DM hasn't turned on any books with spells yet, so write the spell in. Once they add one (like the Player's Handbook), you can browse every spell here.</div>`);
+  const levels = pickerLevels(d, sr);
+  if (SP.lvl == null || !levels.includes(SP.lvl)) SP.lvl = levels.includes(0) && sr.known && sr.cantrips > sr.have.cantrips ? 0 : levels.find(L => L > 0) ?? levels[0] ?? 0;
   const listName = sr.lists.length ? sr.lists.join(", ").replace(/, ([^,]*)$/, " and $1") + " spells" : "";
-  dialog("Choose spells", `<div id="spQuota">${spellQuota(d, sr)}</div>
-    <p class="small muted" style="margin:8px 0">${spellSummary(d, sr)}</p>
-    <input id="spQ" placeholder="Search by name, school or effect" autocomplete="off" style="margin-top:4px">
-    <div class="row" style="margin-top:8px">${listName ? `<div class="chips"><button class="chip ${SP.all ? "" : "on"}" data-a="splist" data-v="0">${esc(listName)}</button><button class="chip ${SP.all ? "on" : ""}" data-a="splist" data-v="1">All spells</button></div>` : ""}
+  dialog("Choose spells", `<div id="spQuota">${quotaLine(d, sr)}</div>
+    <details class="small muted" style="margin-top:6px"><summary>How many spells you get, and options</summary><p style="margin:4px 0">${spellSummary(d, sr)}</p>
+      <label class="row nw small" style="gap:6px;margin-top:6px;align-items:flex-start;color:var(--ink)"><input type="checkbox" data-a="spbonusmode" ${SP.bonus ? "checked" : ""} style="margin-top:3px"><span>Spells I add now don't count toward my limits (from a feat, species, subclass or item)</span></label></details>
+    <div class="row" style="margin-top:10px">${listName ? `<div class="chips"><button class="chip ${SP.all ? "" : "on"}" data-a="splist" data-v="0">${esc(listName)}</button><button class="chip ${SP.all ? "on" : ""}" data-a="splist" data-v="1">All spells</button></div>` : ""}
       ${sr.maxLevel && sr.maxLevel < 9 ? `<label class="row nw small" style="gap:6px"><input type="checkbox" data-a="sphigher" ${SP.higher ? "checked" : ""}><span>Show higher levels</span></label>` : ""}</div>
-    <label class="row nw small" style="gap:6px;margin-top:8px;align-items:flex-start"><input type="checkbox" data-a="spbonusmode" ${SP.bonus ? "checked" : ""} style="margin-top:3px"><span>Spells I add now don't count toward my limits (from a feat, species, subclass or item)</span></label>
-    <p class="tiny muted" style="margin:6px 0 0">Tap a spell to read it. C = concentration, R = ritual.</p>
-    <div id="spBody">${pickerSections(d, sr)}</div>`,
+    <div id="spBar">${levelBar(d, sr, levels)}</div>
+    <div class="lvhead" id="spHead">${levelHead(d, sr)}</div>
+    <input id="spQ" placeholder="Search every level by name, school or effect" autocomplete="off" style="margin-top:8px">
+    ${SP.bonus ? `<p class="tiny" style="margin:6px 0 0;color:var(--good)">Adding as bonus spells (they don't count toward your limits).</p>` : ""}<p class="tiny muted" style="margin:6px 0 0">Tap a spell to open its full description. C = concentration, R = ritual.</p>
+    <div id="spBody" class="sprows">${pickerRows(sr)}</div><p id="spNone" class="small muted" hidden>No spells here. Try “All spells” or another level.</p>`,
     `<button class="btn" data-a="spcustom">Write my own</button><span class="grow"></span><button class="btn primary" data-a="close">Done</button>`,
-    dlg => { dlg.classList.add("wide"); refreshPicker(); });
+    dlg => { dlg.classList.add("wide"); refreshPicker(); filterPicker(""); });
 }
-// Bring the counters, section badges and Add buttons up to date without redrawing the list.
+// Bring the counters, level toggle and Add buttons up to date without redrawing the list.
 function refreshPicker() {
   const r = charRow(A.charId), dlg = $("#dlg"); if (!r || !$("#spBody", dlg)) return;
   const d = r.data, sr = E.spellRules(d);
-  $("#spQuota", dlg).innerHTML = spellQuota(d, sr);
+  $("#spQuota", dlg).innerHTML = quotaLine(d, sr);
+  $("#spBar", dlg).innerHTML = levelBar(d, sr, pickerLevels(d, sr));
+  $("#spHead", dlg).innerHTML = levelHead(d, sr);
   dlg.querySelectorAll("[data-btn]").forEach(el => {
     const x = SPELLS[+el.dataset.btn], on = hasSpell(d, x.name);
     el.innerHTML = on ? `<button class="btn sm added" data-a="spdel" data-i="${el.dataset.btn}" title="Remove from your spells">✓ Added</button>` : `<button class="btn sm" data-a="spadd" data-i="${el.dataset.btn}">Add</button>`;
   });
-  dlg.querySelectorAll(".splvl").forEach(sec => {
-    const L = +sec.dataset.lvl, n = d.spells.filter(s => s.level === L).length, pill = $("[data-have]", sec);
-    pill.textContent = L === 0 && sr.known ? `${sr.have.cantrips} of ${sr.cantrips} known` : n ? `${n} on your sheet` : "";
-    pill.style.display = pill.textContent ? "" : "none";
-  });
 }
+// Show the chosen level; a search looks across every level shown.
 function filterPicker(q) {
-  q = q.trim().toLowerCase();
-  $("#dlg").querySelectorAll(".splvl").forEach(sec => {
-    let n = 0;
-    sec.querySelectorAll(".sp").forEach(el => { const ok = !q || el.dataset.s.includes(q); el.hidden = !ok; if (ok) n++; });
-    sec.hidden = !n; $("[data-cnt]", sec).textContent = `${n} spell${n === 1 ? "" : "s"}${q ? " match" : ""}`;
-    if (q) sec.open = n > 0 && n <= 40;
+  q = (q ?? (($("#spQ") || {}).value || "")).trim().toLowerCase();
+  let n = 0;
+  $("#dlg").querySelectorAll(".sp").forEach(el => {
+    const ok = (q ? true : +el.dataset.l === SP.lvl) && (!q || el.dataset.s.includes(q));
+    el.hidden = !ok; if (ok) n++;
+    $("[data-lv]", el).style.display = q ? "" : "none";
   });
+  const none = $("#spNone"); if (none) none.hidden = n > 0;
 }
 function spellCustom(intro = "") {
-  dialog("Write a spell", intro + spellForm(), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveSpell">Add</button>`);
+  dialog("Write a spell", intro + spellForm({}, false), `<button class="btn" data-a="close">Cancel</button><button class="btn primary" data-a="saveSpell">Add</button>`);
 }
 function tGear(r, d, x) {
   const items = d.inventory.map(i => `<div class="feat"><div class="h"><b>${esc(i.name)}${i.qty > 1 ? ` <span class="num muted">×${i.qty}</span>` : ""}</b>${i.fromDM ? `<span class="pill">from DM</span>` : ""}
@@ -997,12 +1046,17 @@ function featForm(f = {}) {
     <div class="grid2"><label class="f"><span>Uses (blank = unlimited)</span><input id="fUses" type="number" class="num" min="0" value="${f.uses ? f.uses.max : ""}"></label><label class="f"><span>Recharges on</span><select id="fReset">${opt(["short", "long", "dawn"], f.uses ? f.uses.reset : "long", v => v === "dawn" ? "Dawn" : v[0].toUpperCase() + v.slice(1) + " rest")}</select></label></div></div>`;
 }
 function readFeat() { const n = +val("fUses"); return { name: val("fName") || "Custom feature", text: val("fText"), uses: n ? { max: n, reset: val("fReset"), used: 0 } : null }; }
-function spellForm(s = {}) {
-  return `<div class="stack"><label class="f"><span>Spell name${SPELLS.length ? " (start typing to pick one from the books)" : ""}</span><input id="sName" value="${esc(s.name || "")}" ${SPELLS.length ? `list="spellList" autocomplete="off"` : ""}></label>
-    ${SPELLS.length ? `<datalist id="spellList">${SPELLS.map(x => `<option value="${esc(x.name)}">${x.level ? "Level " + x.level : "Cantrip"} ${esc(x.school)} · ${esc(x.src)}</option>`).join("")}</datalist>` : ""}
+// fromBooks: offer the DM's spells as a level dropdown plus a spell dropdown that fills in the form.
+function spellForm(s = {}, fromBooks = true) {
+  const books = fromBooks && SPELLS.length;
+  const lvls = [...new Set(SPELLS.map(x => x.level))].sort((a, b) => a - b);
+  return `<div class="stack">${books ? `<div class="grid2"><label class="f"><span>Spell level</span><select id="sPickL">${lvls.map(L => `<option value="${L}">${L ? ordinal(L) + " level" : "Cantrip"}</option>`).join("")}</select></label>
+      <label class="f"><span>Spell from the books</span><select id="sPick">${spellPickOpts(lvls[0] || 0)}</select></label></div><div id="sPrev"></div>` : ""}
+    <label class="f"><span>Spell name</span><input id="sName" value="${esc(s.name || "")}" autocomplete="off"></label>
     <div class="grid2"><label class="f"><span>Level</span><select id="sLevel">${opt(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"], String(s.level || 0), v => v === "0" ? "Cantrip" : "Level " + v)}</select></label><label class="f"><span>School (optional)</span><input id="sSchool" value="${esc(s.school || "")}"></label></div>
     <label class="f"><span>Description</span><textarea id="sText">${esc(s.text || "")}</textarea></label></div>`;
 }
+const spellPickOpts = L => `<option value="">Choose a spell…</option>` + SPELLS.map((x, i) => x.level === L ? `<option value="${i}">${esc(x.name)} (${esc(x.school)}${x.src ? " · " + esc(x.src) : ""})</option>` : "").join("");
 // Picking a spell from the books fills in the rest of the form.
 document.addEventListener("input", e => {
   const pickedName = list => list.find(o => o.name.toLowerCase() === e.target.value.trim().toLowerCase());
@@ -1019,10 +1073,6 @@ document.addEventListener("input", e => {
     $("#fText").value = x.text; $("#fUses").value = x.uses || ""; $("#fReset").value = x.reset;
     return;
   }
-  if (e.target.id !== "sName") return;
-  const x = SPELLS.find(o => o.name.toLowerCase() === e.target.value.trim().toLowerCase()); if (!x) return;
-  $("#sLevel").value = String(x.level); $("#sSchool").value = x.school;
-  $("#sText").value = [[x.time && "Casting time: " + x.time, x.range && "Range: " + x.range, x.components && "Components: " + x.components, x.duration && "Duration: " + x.duration].filter(Boolean).join(" · "), x.text].filter(Boolean).join("\n\n");
 });
 function readSpell() { return { name: val("sName") || "Unnamed spell", level: +val("sLevel") || 0, school: val("sSchool"), text: val("sText") }; }
 
@@ -1178,7 +1228,7 @@ const ACT = {
   fuse(el) { const id = el.dataset.id, j = +el.dataset.j; edit(A.charId, d => { const f = [...d.features, ...d.feats].find(f => f.id === id); if (!f) return; const max = f.uses.max, avail = max - (f.uses.used || 0); f.uses.used = j < avail ? max - j : max - j - 1; }); },
   prep(el) { const id = el.dataset.id; edit(A.charId, d => { const s = d.spells.find(s => s.id === id); if (s) s.prepared = el.checked; }); },
   async delspell(el) { if (!await ask({ title: "Remove this spell?", ok: "Remove", danger: true })) return; const id = el.dataset.id; edit(A.charId, d => { d.spells = d.spells.filter(s => s.id !== id); }); },
-  addspell() { spellPicker(); },
+  addspell() { SP.lvl = null; spellPicker(); },
   spcustom() { spellCustom(); },
   spadd(el) {
     const x = SPELLS[+el.dataset.i]; if (!x) return;
@@ -1195,7 +1245,8 @@ const ACT = {
   spdel(el) { const x = SPELLS[+el.dataset.i]; if (!x) return; edit(A.charId, d => { d.spells = d.spells.filter(s => s.name.toLowerCase() !== x.name.toLowerCase() || s.source === "DM"); }); refreshPicker(); },
   splist(el) { SP.all = el.dataset.v === "1"; spellPicker(); },
   sphigher(el) { SP.higher = el.checked; spellPicker(); },
-  spbonusmode(el) { SP.bonus = el.checked; },
+  splvl(el) { SP.lvl = +el.dataset.v; const q = $("#spQ"); if (q) q.value = ""; refreshPicker(); filterPicker(""); $("#spBody").scrollTop = 0; },
+  spbonusmode(el) { SP.bonus = el.checked; spellPicker(); },
   spbonus(el) { const id = el.dataset.id; edit(A.charId, d => { const s = d.spells.find(s => s.id === id); if (s) s.bonus = el.checked || undefined; }); },
   spelladj() {
     const d = charRow(A.charId).data, a = d.spellAdjust || {}, sr = E.spellRules(d);
@@ -1423,6 +1474,14 @@ document.addEventListener("input", e => {
 });
 $("#dlg").addEventListener("click", e => { if (e.target === $("#dlg")) closeDlg(); });
 $("#dlg").addEventListener("change", e => {
+  if (e.target.id === "sPickL") { $("#sPick").innerHTML = spellPickOpts(+e.target.value); $("#sPrev").innerHTML = ""; return; }
+  if (e.target.id === "sPick") {
+    const x = SPELLS[+e.target.value]; if (!x || e.target.value === "") { $("#sPrev").innerHTML = ""; return; }
+    $("#sName").value = x.name; $("#sLevel").value = String(x.level); $("#sSchool").value = x.school;
+    $("#sText").value = [[x.time && "Casting time: " + x.time, x.range && "Range: " + x.range, x.components && "Components: " + x.components, x.duration && "Duration: " + x.duration].filter(Boolean).join(" · "), x.text].filter(Boolean).join("\n\n");
+    $("#sPrev").innerHTML = `<div class="card pv" style="margin:0"><b>${esc(x.name)}</b>${spellTags(x)}<div style="margin-top:6px">${spellFacts(x)}</div>${x.text ? `<p class="small" style="margin:8px 0 0;white-space:pre-wrap">${esc(x.text)}</p>` : ""}</div>`;
+    return;
+  }
   if (e.target.id === "featPick") { const v = e.target.value; const n = $("#featName"), t = $("#featText"); if (v && v !== "__custom") { n.value = v; t.value = FEATS[v] || ""; } else { n.value = ""; t.value = ""; } }
 });
 try { const t = localStorage.getItem("esc-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
