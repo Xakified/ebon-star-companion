@@ -1,14 +1,14 @@
 {
-  "version": "1.12.0",
+  "version": "1.13.0",
   "minShell": "1.2.0",
-  "notes": "Companion: edit a finished character in the builder, and level up (or multiclass) from the builder's Levels step",
-  "published": "2026-11-03T12:00:00.000Z",
+  "notes": "Dark theme (ebon and gold) for the DM Screen and the Companion: the moon button in the top bar switches it",
+  "published": "2026-11-04T02:17:12.698Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "7ba6c22fd24ee64f9b1080f6d1dbd7e2ace8fcb744c3d04f4852f4e2165bf4a0",
+    "package.json": "985878ad9bb4cf3037864dc1616f38938efac9e2233eaa45f0bd3fbd9e99d269",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
@@ -25,8 +25,8 @@
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "10a5530b932e318af6e0e9b68ea04683da36beb92a2d46c92c545b8e5001004e",
+    "app/companion/index.html": "09d6201805b04e24bdbbfea3b5817854044dcd59eeb0f2165761f5504c92affc",
     "app/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
-    "app/index.html": "6fb54e2a5dcad23f32728d9a3cb536e801f25d468dce3aba8834f246b3378f78"
+    "app/index.html": "90de4cacf4db52fddbff401c00d71a64d4a8c61878a78585153b68a95ce6669f"
   }
 }

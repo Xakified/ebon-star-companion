@@ -7,10 +7,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<script>
+// Theme: "dm-theme" in localStorage (light or dark), else the system setting. The Players tab's Companion frame follows it.
+(function () {
+  var r = document.documentElement, m = matchMedia("(prefers-color-scheme: dark)");
+  function apply() {
+    var t = null; try { t = localStorage.getItem("dm-theme"); } catch (e) {}
+    r.dataset.theme = t === "dark" || t === "light" ? t : m.matches ? "dark" : "light";
+    document.querySelectorAll("iframe").forEach(function (f) { try { f.contentWindow.postMessage({ esTheme: r.dataset.theme }, "*"); } catch (e) {} });
+  }
+  window.dmTheme = { apply: apply, toggle: function () { var t = r.dataset.theme === "dark" ? "light" : "dark"; try { localStorage.setItem("dm-theme", t); } catch (e) {} apply(); } };
+  apply();
+  m.addEventListener("change", apply);
+  addEventListener("storage", function (e) { if (e.key === "dm-theme") apply(); });
+  addEventListener("message", function (e) { if (e.data && e.data.esThemeAsk && e.source) try { e.source.postMessage({ esTheme: r.dataset.theme }, "*"); } catch (x) {} });
+})();
+</script>
 <style>
 /* Layout: one long DM screen. Sticky bar with tabs, the last roll, and a dice tray (die buttons, count, modifier, adv/disadv, custom expression), then three stacked panels: Initiative, Loot, Magic Items. */
 :root {
-  /* Sky and gold: pale sky pages, deep navy ink, royal blue and burnished gold accents. Light only, whatever the system setting. */
+  /* Sky and gold (the light theme): pale sky pages, deep navy ink, royal blue and burnished gold accents. The dark theme, ebon and gold, is at the end of this style block. */
   --bg: #dbe9f4;
   --surface: #f4f9fd;
   --raised: #ffffff;
@@ -432,6 +448,80 @@ body::before { background: #2a68b6; }
 .pv-head .pv-now b { color: var(--gold); }
 .pv-row { background: rgb(255 255 255 / .9); border-color: #bcd2e6; box-shadow: 0 2px 8px rgb(29 79 145 / .08); }
 .pv-row.on { background: linear-gradient(90deg, #ffe9a8, var(--active)); border-color: var(--gold); box-shadow: 0 0 0 1px var(--gilt), 0 4px 16px rgb(184 134 42 / .3); }
+/* ---- ebon and gold: the dark theme. Night-black pages, pale gold ink for headings, gilt trim on ornate frames, amethyst buttons. Picked with the moon/sun button, else follows the system setting. ---- */
+html[data-theme="dark"] {
+  --bg: #0c0b11;
+  --surface: #16141e;
+  --raised: #1e1b28;
+  --ink: #ece4d3;
+  --muted: #a99f8c;
+  --line: #3a3343;
+  --gold: #c99a3c;
+  --gilt: #e2b85a;
+  --royal: #ecc97a;
+  --royal-2: #6b44a8;
+  --accent: #e2b85a;
+  --accent-ink: #1a1408;
+  --accent-soft: #33291a;
+  --active: #2b2416;
+  --good: #7cc68b;
+  --warn: #e8a84a;
+  --bad: #f0705f;
+  --pc: #82b4ff;
+  --npc: #c49df2;
+  --mon: #f2896d;
+  --r-common: #aab2bf;
+  --r-uncommon: #7cc68b;
+  --r-rare: #72a9ff;
+  --r-veryrare: #c08cf2;
+  --r-legendary: #f2a24c;
+  --r-artifact: #f0705f;
+  --frame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='%2316141e' stroke='%236e5020' stroke-width='3'/%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='none' stroke='%23e2b85a' stroke-width='.9'/%3E%3Cpath d='M11.5 6H52.5L58 11.5V52.5L52.5 58H11.5L6 52.5V11.5Z' fill='none' stroke='%23e2b85a' stroke-opacity='.45'/%3E%3Cg fill='%23e2b85a'%3E%3Cpath d='M5.75 3 8.5 5.75 5.75 8.5 3 5.75Z'/%3E%3Cpath d='M58.25 3 61 5.75 58.25 8.5 55.5 5.75Z'/%3E%3Cpath d='M58.25 55.5 61 58.25 58.25 61 55.5 58.25Z'/%3E%3Cpath d='M5.75 55.5 8.5 58.25 5.75 61 3 58.25Z'/%3E%3C/g%3E%3C/svg%3E");
+  --frame-raised: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='%231e1b28' stroke='%236e5020' stroke-width='3'/%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='none' stroke='%23e2b85a' stroke-width='.9'/%3E%3Cpath d='M11.5 6H52.5L58 11.5V52.5L52.5 58H11.5L6 52.5V11.5Z' fill='none' stroke='%23e2b85a' stroke-opacity='.45'/%3E%3Cg fill='%23e2b85a'%3E%3Cpath d='M5.75 3 8.5 5.75 5.75 8.5 3 5.75Z'/%3E%3Cpath d='M58.25 3 61 5.75 58.25 8.5 55.5 5.75Z'/%3E%3Cpath d='M58.25 55.5 61 58.25 58.25 61 55.5 58.25Z'/%3E%3Cpath d='M5.75 55.5 8.5 58.25 5.75 61 3 58.25Z'/%3E%3C/g%3E%3C/svg%3E");
+  --amethyst: linear-gradient(#6b44a8, #47297a);
+  color-scheme: dark;
+}
+html[data-theme="dark"] body { background-color: var(--bg); background-image: radial-gradient(1px 1px at 37px 61px, rgb(255 244 214 / .55), transparent), radial-gradient(1px 1px at 151px 23px, rgb(255 255 255 / .35), transparent), radial-gradient(1.5px 1.5px at 97px 173px, rgb(226 184 90 / .45), transparent), radial-gradient(ellipse 70% 50% at 12% 0%, rgb(107 68 168 / .24), transparent 70%), radial-gradient(ellipse 55% 40% at 92% 12%, rgb(201 154 60 / .09), transparent 70%), radial-gradient(ellipse 120% 60% at 50% 115%, rgb(71 41 122 / .3), transparent 70%), linear-gradient(#0e0c16, #0b0a10 60%); background-size: 211px 197px, 263px 241px, 331px 307px, auto, auto, auto, auto; background-attachment: fixed; }
+html[data-theme="dark"] ::selection { background: #6b4f1c; color: #fff8e6; }
+html[data-theme="dark"] h1, html[data-theme="dark"] h2, html[data-theme="dark"] h3 { text-shadow: 0 1px 0 rgb(0 0 0 / .6); }
+html[data-theme="dark"] .btn.primary { background: var(--amethyst); border-color: var(--gilt); color: #fff8e6; box-shadow: inset 0 1px 0 rgb(255 255 255 / .18), 0 0 0 1px rgb(0 0 0 / .5), 0 2px 8px rgb(107 68 168 / .35); text-shadow: 0 1px 0 rgb(0 0 0 / .4); }
+html[data-theme="dark"] .btn.primary:hover { filter: brightness(1.18); }
+html[data-theme="dark"] .btn:hover { border-color: var(--gold); }
+html[data-theme="dark"] .toast, html[data-theme="dark"] #toast { background: #221e2d; color: var(--ink); border: 1px solid var(--gilt); box-shadow: 0 8px 28px rgb(0 0 0 / .6); }
+html[data-theme="dark"] .toast .btn { color: var(--ink); border-color: var(--gilt); }
+html[data-theme="dark"] dialog::backdrop { background: rgb(4 3 8 / .7); }
+html[data-theme="dark"] input[type=text], html[data-theme="dark"] input[type=number], html[data-theme="dark"] input:not([type]), html[data-theme="dark"] select, html[data-theme="dark"] textarea { background-color: #0f0e15; border-color: #443c50; box-shadow: inset 0 1px 3px rgb(0 0 0 / .5); }
+html[data-theme="dark"] input:focus, html[data-theme="dark"] select:focus, html[data-theme="dark"] textarea:focus { border-color: var(--gilt); box-shadow: 0 0 0 3px rgb(226 184 90 / .25); }
+html[data-theme="dark"] ::placeholder { color: #776e80; }
+html[data-theme="dark"] .banner { background: #1d1a28; border: 1px solid var(--line); }
+html[data-theme="dark"] .themebtn .moon, html:not([data-theme="dark"]) .themebtn .sun { display: none; }
+html[data-theme="dark"] .panel, html[data-theme="dark"] .jmain, html[data-theme="dark"] .jside { background: none; border: 1px solid transparent; border-radius: 0; border-image: var(--frame) 16 fill / 16px stretch; box-shadow: none; outline: 0; }
+html[data-theme="dark"] .jside { border-image-width: 12px; }
+html[data-theme="dark"] .panel-head { border-bottom-color: rgb(226 184 90 / .3); }
+html[data-theme="dark"] .bar { --ink: #f3ead8; --muted: #b9afc6; --line: rgb(226 184 90 / .28); --raised: rgb(255 255 255 / .06); --surface: rgb(255 255 255 / .04); --bg: rgb(0 0 0 / .3); --accent-ink: #1a1408; background: linear-gradient(#1f1a31, #13101f); border-bottom: 3px solid var(--gold); box-shadow: 0 1px 0 #5e4418, 0 6px 18px rgb(0 0 0 / .55); }
+html[data-theme="dark"] body::before { background: #1f1a31; }
+html[data-theme="dark"] .bar .tabs { background: rgb(0 0 0 / .35); box-shadow: inset 0 0 0 1px rgb(226 184 90 / .18); }
+html[data-theme="dark"] .bar .tabs button { color: #c9bfd6; }
+html[data-theme="dark"] .bar .tabs button.on { background: linear-gradient(#f3d58c, #c99a3c); color: #1a1408; }
+html[data-theme="dark"] .die { background: linear-gradient(rgb(255 255 255 / .08), rgb(255 255 255 / .02)); border-color: rgb(226 184 90 / .35); color: #f3ead8; }
+html[data-theme="dark"] .bar input::placeholder { color: #8f86a0; }
+html[data-theme="dark"] .bar input { background-color: rgb(0 0 0 / .35); }
+html[data-theme="dark"] .seg.adv button.on[data-adv="adv"], html[data-theme="dark"] .seg.adv button.on[data-adv="dis"] { color: #120c06; }
+html[data-theme="dark"] .cbt, html[data-theme="dark"] .litem, html[data-theme="dark"] .lib, html[data-theme="dark"] .prop, html[data-theme="dark"] .side, html[data-theme="dark"] .export, html[data-theme="dark"] .prepcard, html[data-theme="dark"] .combat-bar, html[data-theme="dark"] .coin { border-color: var(--line); }
+html[data-theme="dark"] .lib { border-left-color: var(--rc); }
+html[data-theme="dark"] .cbt.active { background: linear-gradient(90deg, #3d3017, var(--active) 45%); border-color: var(--gold); box-shadow: inset 4px 0 0 var(--gilt), 0 0 14px rgb(226 184 90 / .15); }
+html[data-theme="dark"] .card { box-shadow: 0 2px 14px rgb(0 0 0 / .45); }
+html[data-theme="dark"] .banner, html[data-theme="dark"] .jnotice { background: #1d1a28; border: 1px solid var(--line); }
+html[data-theme="dark"] .cond { background: var(--accent-soft); border-color: #5c4a22; }
+html[data-theme="dark"] .cond.conc { background: transparent; border-color: var(--npc); }
+html[data-theme="dark"] .updbox { background: rgb(226 184 90 / .06); }
+html[data-theme="dark"] .empty { border-color: var(--line); }
+html[data-theme="dark"] .tabs button.on { box-shadow: 0 1px 3px rgb(0 0 0 / .5); }
+html[data-theme="dark"] .menu, html[data-theme="dark"] .cpick { border-color: var(--gold); box-shadow: 0 10px 30px rgb(0 0 0 / .6); }
+html[data-theme="dark"] .pv-row { background: rgb(22 20 30 / .92); border-color: var(--line); box-shadow: 0 2px 10px rgb(0 0 0 / .4); }
+html[data-theme="dark"] .pv-row.on { background: linear-gradient(90deg, #3d3017, var(--active)); border-color: var(--gold); box-shadow: 0 0 0 1px var(--gilt), 0 0 22px rgb(226 184 90 / .22); }
+.themebtn { display: inline-grid; place-items: center; width: 34px; height: 32px; padding: 0; }
+.themebtn svg { display: block; }
 </style>
 
 <header class="bar">
@@ -446,6 +536,7 @@ body::before { background: #2a68b6; }
       <button data-tab="sessions">Sessions</button>
       <button data-tab="lore">Lore</button>
     </nav>
+    <button class="btn ghost themebtn" id="themeBtn" type="button" onclick="dmTheme.toggle()" title="Switch between the light and dark theme" aria-label="Switch between the light and dark theme"><svg class="moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>
     <div class="dice-out" id="diceOut" aria-live="polite"><b>—</b><small>Pick a die</small></div>
     <div class="dhist" id="dHist" aria-label="Recent rolls"></div>
     <div class="dtray" id="diceTray">
