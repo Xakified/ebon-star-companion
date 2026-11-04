@@ -457,6 +457,22 @@ html[data-theme="dark"][data-trim="silver"] input:focus, html[data-theme="dark"]
 html[data-theme="dark"][data-trim="silver"] .panel-head { border-bottom-color: rgb(212 218 227 / .25); }
 html[data-theme="dark"][data-trim="silver"] .dice-out b, html[data-theme="dark"][data-trim="silver"] .die.d20, html[data-theme="dark"][data-trim="silver"] .die:hover { color: #eef1f5; }
 html[data-theme="dark"]:not([data-trim="silver"]) .themebtn .moon { color: #d4dae3; }
+/* Character portraits: a round picture in a gilt (or silver) ring, or the character's initials when there isn't one. */
+.ava { --s: 40px; flex: none; position: relative; width: var(--s); height: var(--s); border-radius: 50%; display: inline-grid; place-items: center; overflow: hidden; padding: 0; background: radial-gradient(circle at 50% 30%, var(--raised), var(--accent-soft)); border: 2px solid var(--gilt); box-shadow: 0 0 0 1px var(--gold), 0 2px 6px rgb(0 0 0 / .22); color: var(--royal); font-family: var(--display); font-weight: 700; font-size: calc(var(--s) * .38); line-height: 1; }
+.ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ava svg { width: 58%; height: 58%; }
+button.ava { cursor: pointer; min-height: 0; }
+button.ava:hover { box-shadow: 0 0 0 2px var(--gilt), 0 2px 10px rgb(0 0 0 / .3); }
+button.ava:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+button.ava.none { border-style: dashed; }
+header.top .ava { --s: 48px; color: var(--ink); background: rgb(255 255 255 / .12); }
+.pc .ava { --s: 46px; }
+.pcrop { position: relative; width: min(260px, 70vw); aspect-ratio: 1; margin: 0 auto; border-radius: 50%; overflow: hidden; border: 3px solid var(--gilt); box-shadow: 0 0 0 1px var(--gold), 0 4px 16px rgb(0 0 0 / .3); background: var(--surface); touch-action: none; cursor: grab; }
+.pcrop.drag { cursor: grabbing; }
+.pcrop canvas { width: 100%; height: 100%; display: block; }
+.pcrop [hidden], #pcZoomL[hidden] { display: none !important; }
+#pcZoom { width: 100%; padding: 0; border: 0; background: none; box-shadow: none; min-height: 28px; }
+.pcrop .ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 28px; color: var(--muted); font-size: .9rem; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -893,13 +909,14 @@ function header() {
   const h = $("#hdr");
   let back = "", title = "Ebon Star Companion", sub = A.be && A.be.mode === "demo" ? "Demo mode: data stays in this browser" : "", right = "";
   if (A.view === "camp" && A.camp) { back = SUITE ? "" : `<button class="btn icon ghost" data-a="home" aria-label="Campaigns">‹</button>`; title = A.camp.name; sub = isDM() ? "Dungeon Master" : "Player"; }
-  if (A.view === "sheet") { const r = charRow(A.charId); back = `<button class="btn icon ghost" data-a="camp" aria-label="Back">‹</button>`; title = r ? r.data.name || "Unnamed" : ""; if (r) { const d = r.data; sub = `${d.species} ${E.classLabel(d)}${d.subclass ? " · " + d.subclass : ""}${isDM() ? " · " + (memberName(r.owner) || "player") : ""}`; } if (isDM()) right = `<button class="btn sm primary" data-a="send" data-id="${A.charId}">Send</button>`; }
+  let pic = "";
+  if (A.view === "sheet") { const r = charRow(A.charId); back = `<button class="btn icon ghost" data-a="camp" aria-label="Back">‹</button>`; if (r) pic = canEditChar(r) ? ava(r.data, { act: "portrait", id: r.id, empty: true }) : ava(r.data); title = r ? r.data.name || "Unnamed" : ""; if (r) { const d = r.data; sub = `${d.species} ${E.classLabel(d)}${d.subclass ? " · " + d.subclass : ""}${isDM() ? " · " + (memberName(r.owner) || "player") : ""}`; } if (isDM()) right = `<button class="btn sm primary" data-a="send" data-id="${A.charId}">Send</button>`; }
   if (A.view === "build") { back = `<button class="btn icon ghost" data-a="bcancel" aria-label="Cancel">‹</button>`; title = A.draft && A.draft.editId ? `Edit ${A.draft.name || "character"}` : "New character"; sub = A.camp ? A.camp.name : ""; }
   if (A.view === "camp" && isDM()) right = `<button class="btn sm primary" data-a="send">Send</button>`;
   if ((A.view === "camp" || A.view === "sheet") && A.camp && !isDM() && A.notesOk) right = `<button class="btn sm ${liveSession() ? "primary" : ""}" data-a="notes" title="Recaps of past sessions, and notes for your DM">Sessions${liveSession() ? " ●" : ""}</button>`;
   if (A.view === "notes") { back = `<button class="btn icon ghost" data-a="notesback" aria-label="Back">‹</button>`; title = "Sessions"; sub = A.camp ? A.camp.name : ""; }
   const theme = SUITE ? "" : `<button class="btn icon ghost themebtn" data-a="theme" title="Theme: light, dark with gold trim, or dark with silver trim" aria-label="Change theme: light, dark with gold trim, or dark with silver trim"><svg class="moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>`;
-  h.innerHTML = `${back}<div class="title"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>${theme}${right}`;
+  h.innerHTML = `${back}${pic}<div class="title"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>${theme}${right}`;
 }
 
 function render() {
@@ -938,6 +955,96 @@ function vHome() {
 function hpOf(d) { const x = E.derive(d); const cur = d.hp.cur ?? x.hpMax; return { cur, max: x.hpMax, temp: d.hp.temp || 0, x }; }
 function hpBar(h) { const tot = Math.max(h.max, h.cur + h.temp); const p = Math.max(0, h.cur) / tot * 100, t = h.temp / tot * 100; const cls = h.cur <= 0 || h.cur / h.max < .25 ? "crit" : h.cur / h.max < .5 ? "low" : ""; return `<div class="hpbar ${cls}"><i style="width:${p}%"></i><i class="t" style="width:${t}%"></i></div>`; }
 
+// ---------- portraits ----------
+// A character's picture is a small square JPEG (or WebP/PNG when it has see-through parts) stored in its sheet as a data URL,
+// so it syncs to the DM and the DM Suite like everything else and works offline. Shown round, in a gilt ring.
+const PORTRAIT_PX = 192;
+const portraitOf = d => { const p = d && d.portrait; return typeof p === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p) ? p : ""; };
+const initials = n => (String(n || "").trim().match(/[^\s'"()-]+/g) || ["?"]).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+const SILHOUETTE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.2" r="4.2" fill="currentColor" opacity=".8"/><path d="M3.8 21.5c.6-4.6 4-7.4 8.2-7.4s7.6 2.8 8.2 7.4z" fill="currentColor" opacity=".8"/></svg>`;
+function ava(d, o = {}) {
+  const p = portraitOf(d), inner = p ? `<img src="${p}" alt="" draggable="false">` : o.empty ? SILHOUETTE : esc(initials(d && d.name));
+  return o.act ? `<button class="ava ${p ? "" : "none"}" data-a="${o.act}" data-id="${o.id || ""}" title="${p ? "Change portrait" : "Add a portrait"}" aria-label="${p ? "Change portrait" : "Add a portrait"}">${inner}</button>`
+    : `<span class="ava" aria-hidden="true">${inner}</span>`;
+}
+const canEditChar = r => !!r && (isDM() || r.owner === A.user);
+// The crop dialog: drag to move the picture, the slider (or wheel, or pinch) to zoom. What's in the circle is what's saved.
+const PC = { img: null, z: 1, x: 0, y: 0 };
+function portraitDialog(id) {
+  const r = charRow(id); if (!r) return;
+  const has = !!portraitOf(r.data);
+  Object.assign(PC, { img: null, z: 1, x: 0, y: 0, id });
+  dialog(`Portrait for ${r.data.name || "your character"}`, `<div class="stack" style="align-items:stretch">
+      <div class="pcrop" id="pcCrop"><canvas id="pcCan" width="512" height="512"></canvas><div class="ph" id="pcPh" data-a="pcpick">${has ? "" : "Choose a picture of your character. You can move and zoom it to fit the circle."}</div></div>
+      <label class="f" id="pcZoomL" hidden><span>Zoom</span><input type="range" id="pcZoom" min="1" max="4" step="0.01" value="1"></label>
+      <p class="small muted" id="pcHint" style="margin:0;text-align:center">${has ? "This is the current portrait. Choose a new picture to replace it." : "It shows on your sheet and next to your character in the DM's initiative tracker."}</p>
+      <input type="file" id="pcFile" accept="image/*" hidden>
+    </div>`,
+    `${has ? `<button class="btn ghost danger" data-a="pcremove">Remove</button>` : ""}<span class="grow"></span><button class="btn" data-a="pcpick">${has ? "Choose new picture" : "Choose picture"}</button><button class="btn primary" data-a="pcsave" disabled>Save</button>`,
+    dlg => {
+      const crop = $("#pcCrop", dlg), can = $("#pcCan", dlg), zoom = $("#pcZoom", dlg);
+      if (has) { const im = new Image(); im.onload = () => { const c = can.getContext("2d"); c.drawImage(im, 0, 0, can.width, can.height); }; im.src = portraitOf(r.data); }
+      $("#pcFile", dlg).onchange = e => { const f = e.target.files && e.target.files[0]; if (f) loadPortraitFile(f).catch(fail); e.target.value = ""; };
+      zoom.oninput = () => { zoomPortrait(+zoom.value); };
+      const pts = new Map(); let last = null, pinch = 0;
+      const pos = e => { const b = crop.getBoundingClientRect(), k = can.width / b.width; return { x: e.clientX * k, y: e.clientY * k }; };
+      crop.addEventListener("pointerdown", e => { if (!PC.img) return; crop.setPointerCapture(e.pointerId); pts.set(e.pointerId, pos(e)); crop.classList.add("drag"); last = null; pinch = 0; });
+      crop.addEventListener("pointermove", e => {
+        if (!PC.img || !pts.has(e.pointerId)) return;
+        pts.set(e.pointerId, pos(e));
+        const ps = [...pts.values()];
+        if (ps.length >= 2) { const dist = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y); if (pinch) zoomPortrait(PC.z * dist / pinch); pinch = dist; last = null; return; }
+        const p = ps[0]; if (last) { PC.x += p.x - last.x; PC.y += p.y - last.y; drawPortrait(); } last = p;
+      });
+      const up = e => { pts.delete(e.pointerId); last = null; pinch = 0; if (!pts.size) crop.classList.remove("drag"); };
+      crop.addEventListener("pointerup", up); crop.addEventListener("pointercancel", up);
+      crop.addEventListener("wheel", e => { if (!PC.img) return; e.preventDefault(); zoomPortrait(PC.z * Math.exp(-e.deltaY / 400)); }, { passive: false });
+    });
+}
+async function loadPortraitFile(f) {
+  if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(f.name)) throw new Error("That file isn't a picture.");
+  const url = URL.createObjectURL(f);
+  try {
+    const img = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => no(new Error("Couldn't open that picture. Try a JPEG or PNG.")); im.src = url; });
+    Object.assign(PC, { img, z: 1, x: 0, y: 0 });
+    // Tall pictures are usually people: start near the top, where the face is.
+    const base = 512 / Math.min(img.naturalWidth, img.naturalHeight), h = img.naturalHeight * base;
+    if (h > 512) PC.y = (h - 512) / 2 - Math.min((h - 512) / 2, h * 0.08);
+    drawPortrait();
+    const dlg = $("#dlg"), z = $("#pcZoom", dlg);
+    z.value = 1; $("#pcZoomL", dlg).hidden = false; $("#pcPh", dlg).hidden = true;
+    $("#pcHint", dlg).textContent = "Drag to move it, and zoom to fit the circle.";
+    $('[data-a="pcsave"]', dlg).disabled = false;
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+}
+function zoomPortrait(z) {
+  PC.z = Math.max(1, Math.min(4, z));
+  const el = $("#pcZoom"); if (el) el.value = PC.z;
+  drawPortrait();
+}
+// Draws the picture into a square canvas of size n, keeping it covering the whole square.
+function paintPortrait(ctx, n) {
+  const im = PC.img, w = im.naturalWidth, h = im.naturalHeight;
+  const s = 512 / Math.min(w, h) * PC.z, dw = w * s, dh = h * s;
+  PC.x = Math.max(-(dw - 512) / 2, Math.min((dw - 512) / 2, PC.x));
+  PC.y = Math.max(-(dh - 512) / 2, Math.min((dh - 512) / 2, PC.y));
+  const k = n / 512;
+  ctx.clearRect(0, 0, n, n);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(im, ((512 - dw) / 2 + PC.x) * k, ((512 - dh) / 2 + PC.y) * k, dw * k, dh * k);
+}
+function drawPortrait() { const can = $("#pcCan"); if (can && PC.img) paintPortrait(can.getContext("2d"), can.width); }
+function portraitData() {
+  // Shrink in halves from the big preview for a sharper small picture.
+  let src = $("#pcCan"), n = src.width;
+  while (n / 2 >= PORTRAIT_PX) { const c = document.createElement("canvas"); c.width = c.height = n / 2; const x = c.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(src, 0, 0, n / 2, n / 2); src = c; n /= 2; }
+  const out = document.createElement("canvas"); out.width = out.height = PORTRAIT_PX;
+  const ctx = out.getContext("2d"); ctx.imageSmoothingQuality = "high"; ctx.drawImage(src, 0, 0, PORTRAIT_PX, PORTRAIT_PX);
+  const px = ctx.getImageData(0, 0, PORTRAIT_PX, PORTRAIT_PX).data;
+  let clear = false; for (let i = 3; i < px.length; i += 4) if (px[i] < 250) { clear = true; break; }
+  if (clear) { const w = out.toDataURL("image/webp", 0.85); return w.startsWith("data:image/webp") ? w : out.toDataURL("image/png"); }
+  return out.toDataURL("image/jpeg", 0.85);
+}
 function vCamp() {
   const pend = id => A.grants.filter(g => g.character_id === id && g.status === "pending").length;
   if (isDM()) {
@@ -945,7 +1052,7 @@ function vCamp() {
       const d = r.data, h = hpOf(d);
       const tags = [...(d.conditions || []), d.exhaustion ? "Exhaustion " + d.exhaustion : "", d.stress ? "Stress " + d.stress : "", h.cur <= 0 ? "Down" : ""].filter(Boolean);
       return `<button class="pc" data-a="sheet" data-id="${r.id}" data-pc="${r.id}">
-        <div class="row nw"><div class="grow"><div class="nm">${esc(d.name || "Unnamed")}</div><div class="small muted">${esc(d.species)} ${esc(E.classLabel(d))} · ${esc(memberName(r.owner) || "player")}</div></div>${pend(r.id) ? `<span class="pill">${pend(r.id)} pending</span>` : ""}</div>
+        <div class="row nw">${ava(d)}<div class="grow"><div class="nm">${esc(d.name || "Unnamed")}</div><div class="small muted">${esc(d.species)} ${esc(E.classLabel(d))} · ${esc(memberName(r.owner) || "player")}</div></div>${pend(r.id) ? `<span class="pill">${pend(r.id)} pending</span>` : ""}</div>
         <div class="row nw" style="margin-top:8px"><span class="num small">${h.cur}/${h.max}${h.temp ? " +" + h.temp : ""}</span><div class="grow">${hpBar(h)}</div></div>
         <div class="meta"><div><b>${h.x.ac}</b><span>AC</span></div><div><b>${h.x.passive}</b><span>Passive Perc</span></div><div><b>${sg(h.x.init)}</b><span>Init</span></div></div>
         ${tags.length ? `<div class="chips" style="margin-top:8px">${tags.map(t => `<span class="pill bad">${esc(t)}</span>`).join("")}</div>` : ""}
@@ -969,7 +1076,7 @@ function vCamp() {
   }
   const mine = A.chars.filter(c => c.owner === A.user);
   return `
-    ${mine.map(r => { const d = r.data, h = hpOf(d); return `<button class="pc card" data-a="sheet" data-id="${r.id}" style="display:block"><div class="row nw"><div class="grow"><div class="nm">${esc(d.name || "Unnamed")}</div><div class="small muted">${esc(d.species)} ${esc(E.classLabel(d))}</div></div>${pend(r.id) ? `<span class="pill">${pend(r.id)} from DM</span>` : ""}</div><div class="row nw" style="margin-top:8px"><span class="num small">${h.cur}/${h.max}</span><div class="grow">${hpBar(h)}</div></div></button>`; }).join("")}
+    ${mine.map(r => { const d = r.data, h = hpOf(d); return `<button class="pc card" data-a="sheet" data-id="${r.id}" style="display:block"><div class="row nw">${ava(d)}<div class="grow"><div class="nm">${esc(d.name || "Unnamed")}</div><div class="small muted">${esc(d.species)} ${esc(E.classLabel(d))}</div></div>${pend(r.id) ? `<span class="pill">${pend(r.id)} from DM</span>` : ""}</div><div class="row nw" style="margin-top:8px"><span class="num small">${h.cur}/${h.max}</span><div class="grow">${hpBar(h)}</div></div></button>`; }).join("")}
     ${mine.length ? "" : `<div class="card empty">You don't have a character in this campaign yet.</div>`}
     ${A.notesOk && liveSession() ? `<div class="banner row"><span class="grow"><b>${esc(liveSession().title || "A session")}</b> is being played now. Write down what you notice, suspect or plan.</span><button class="btn sm primary" data-a="notes">Add a note</button></div>` : ""}
     <button class="btn primary" style="margin-top:12px;width:100%" data-a="build">Create a character</button>`;
@@ -2809,6 +2916,25 @@ document.addEventListener("keydown", e => {
   e.preventDefault(); if (e.shiftKey) rollMenu(el); else doRoll(rollSpec(el));
 });
 
+Object.assign(ACT, {
+  portrait: el => portraitDialog(el.dataset.id || A.charId),
+  pcpick: () => { const f = $("#pcFile"); if (f) f.click(); },
+  pcsave: async () => {
+    const id = PC.id, r = charRow(id); if (!r || !PC.img) return;
+    const url = portraitData();
+    if (url.length > 400000) throw new Error("That picture is too large to save. Try a smaller one.");
+    closeDlg(); PC.img = null;
+    await edit(id, d => { d.portrait = url; });
+    toast("Portrait saved");
+  },
+  pcremove: async () => {
+    const id = PC.id; if (!charRow(id)) return;
+    if (!await ask({ title: "Remove this portrait?", text: "The sheet and the initiative tracker go back to showing initials.", ok: "Remove", danger: true })) return;
+    closeDlg(); PC.img = null;
+    await edit(id, d => { delete d.portrait; });
+    toast("Portrait removed");
+  },
+});
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-a]"); if (!el) return;
   if (el.tagName === "INPUT" && el.type === "checkbox") return; // handled on change

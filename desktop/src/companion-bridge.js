@@ -1,6 +1,6 @@
 // Runs after the DM Screen's own script in the desktop app. Connects the initiative tracker and party list
 // to the Ebon Star Companion: players' characters fill the party, and HP / temp HP / conditions /
-// Exhaustion / Stress flow both ways between the tracker and their phones.
+// Exhaustion / Stress flow both ways between the tracker and their phones. Portraits come one way, from the phones.
 (() => {
   const D = window.desktop;
   if (!D || !D.companionGet || location.hash === "#players" || typeof S === "undefined") return;
@@ -18,6 +18,7 @@
   // Copy a character's live numbers onto a tracker row.
   function pull(c, p) {
     c.companionId = p.id; c.ac = p.ac; c.maxHp = p.maxHp; c.hp = p.hp; c.temp = p.temp; c.mod = p.mod; c.stress = Math.min(p.stress, 4);
+    if (p.portrait) c.portrait = p.portrait; else delete c.portrait;
     const keep = (c.conds || []).filter(x => !SRD_CONDS.includes(x.n) && x.n !== "Exhaustion");
     const add = p.conditions.map(n => { const old = (c.conds || []).find(x => x.n === n); return old || { n }; });
     if (p.exhaustion) add.push({ n: "Exhaustion", lvl: p.exhaustion });

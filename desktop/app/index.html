@@ -538,6 +538,13 @@ html[data-theme="dark"][data-trim="silver"] input:focus, html[data-theme="dark"]
 html[data-theme="dark"][data-trim="silver"] .panel-head { border-bottom-color: rgb(212 218 227 / .25); }
 html[data-theme="dark"][data-trim="silver"] .dice-out b, html[data-theme="dark"][data-trim="silver"] .die.d20, html[data-theme="dark"][data-trim="silver"] .die:hover { color: #eef1f5; }
 html[data-theme="dark"]:not([data-trim="silver"]) .themebtn .moon { color: #d4dae3; }
+/* Portraits in the tracker: the character's picture from the Companion in a gilt (or silver) ring, or initials. */
+.cava { --s: 38px; flex: none; width: var(--s); height: var(--s); border-radius: 50%; overflow: hidden; display: inline-grid; place-items: center; background: radial-gradient(circle at 50% 30%, var(--raised), var(--accent-soft)); border: 2px solid var(--gilt); box-shadow: 0 0 0 1px var(--gold), 0 1px 4px rgb(0 0 0 / .2); font-family: var(--display); font-weight: 700; font-size: calc(var(--s) * .36); line-height: 1; color: var(--muted); user-select: none; }
+.cava img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cava.pc { color: var(--pc); } .cava.npc { color: var(--npc); } .cava.monster { color: var(--mon); }
+.cbt.down .cava, .pv-row.out .cava { filter: grayscale(1); }
+.pv-row .cava { --s: 2.3em; border-width: .1em; }
+.pv-row.on .cava { box-shadow: 0 0 0 .08em var(--gold), 0 0 .6em rgb(226 184 90 / .55); }
 </style>
 
 <header class="bar">
@@ -1079,6 +1086,13 @@ function pickHtml(c) {
     <label class="rd">Lasts <input type="number" min="1" placeholder="—" data-condr value="${pickRounds}"> rounds (blank = until removed)</label>
   </div>`;
 }
+// A row's portrait (from the Companion), or its initials in a ring.
+const PIC_OK = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+function cavaHtml(c) {
+  const pic = typeof c.portrait === "string" && PIC_OK.test(c.portrait) ? c.portrait : "";
+  const ini = (String(c.name || "").trim().match(/[^\s'"()-]+/g) || ["?"]).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+  return `<span class="cava ${esc(c.kind || "")} ${pic ? "pic" : ""}" aria-hidden="true">${pic ? `<img src="${pic}" alt="" draggable="false">` : esc(ini)}</span>`;
+}
 let pickRounds = "";
 function renderInit() {
   activeOrDefault();
@@ -1102,7 +1116,7 @@ function renderInit() {
     return `<div class="cbt ${c.id === S.activeId ? "active" : ""} ${isDown(c) && c.kind !== "pc" ? "down" : ""} ${c.hidden ? "hidp" : ""}" data-id="${c.id}">
       <input class="init num" type="number" value="${c.init}" data-f="init" aria-label="Initiative for ${esc(c.name)}">
       <div class="who">
-        <div class="who-top"><input class="cname" type="text" value="${esc(c.name)}" data-f="name" aria-label="Name"><span class="tag ${c.kind}">${c.kind === "monster" ? "Mon" : c.kind.toUpperCase()}</span>${conds}${pcExtras}</div>
+        <div class="who-top">${cavaHtml(c)}<input class="cname" type="text" value="${esc(c.name)}" data-f="name" aria-label="Name"><span class="tag ${c.kind}">${c.kind === "monster" ? "Mon" : c.kind.toUpperCase()}</span>${conds}${pcExtras}</div>
         ${c.note ? `<div class="note">${esc(c.note)}</div>` : ""}
       </div>
       <label class="ac"><span class="shield">AC</span><input type="number" value="${c.ac ?? ""}" placeholder="—" data-f="ac" aria-label="Armor class"></label>
@@ -1767,7 +1781,7 @@ function renderPlayers() {
     const stress = c.kind === "pc" && c.stress ? `<span class="pv-stress" title="Stress">${face.repeat(Math.min(c.stress, 4))}<span class="lbl">−${c.stress}d4 on d20s</span></span>` : "";
     const hp = h ? `<div class="pv-hp t${h.t}"><span>${h.w}</span><span class="pips">${[1,2,3,4].map(k => `<i class="${h.t >= k ? "f" : ""}"></i>`).join("")}</span></div>` : `<div></div>`;
     return `<div class="pv-row ${c.kind} ${c.id === S.activeId ? "on" : ""} ${h && h.t === 0 && c.kind !== "pc" ? "out" : ""}">
-      <span class="pv-n">${n + 1}</span><div class="pv-main"><span class="pv-name">${esc(c.name)}</span>${stress}</div>${hp}${conds ? `<div class="pv-conds">${conds}</div>` : ""}</div>`;
+      <span class="pv-n">${n + 1}</span><div class="pv-main">${cavaHtml(c)}<span class="pv-name">${esc(c.name)}</span>${stress}</div>${hp}${conds ? `<div class="pv-conds">${conds}</div>` : ""}</div>`;
   }).join("");
   fitPlayers();
 }

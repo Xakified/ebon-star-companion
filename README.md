@@ -55,6 +55,7 @@ Open the app, create your campaign, and tap **Copy invite link**. The link fills
 - A **still to choose** card at the top of the sheet lists anything not decided yet (class choices, subclass, cantrips, spells, Magic Initiate spells), with buttons to make them.
 - Custom features and skills, with optional limited uses that reset on a short rest, long rest, or dawn. Players can also add custom items and spells.
 - An inbox for things the DM sends, with Accept and Decline.
+- **A character portrait.** Tap the round picture at the top of the sheet, choose a picture, then drag and zoom it to fit the circle. It shows on the sheet, on the DM's party board, and next to the character in the DM Suite's initiative tracker and player screen. Pictures are shrunk to 192×192 and saved inside the character, so there's nothing extra to set up in Supabase. The DM can change or remove any character's portrait the same way.
 
 **DM**
 - A live party board showing HP bars, AC, passive Perception, initiative, conditions, Exhaustion, Stress, and anyone who is down.
