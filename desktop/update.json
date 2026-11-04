@@ -1,14 +1,14 @@
 {
-  "version": "1.13.0",
+  "version": "1.14.0",
   "minShell": "1.2.0",
-  "notes": "Dark theme (ebon and gold) for the DM Screen and the Companion: the moon button in the top bar switches it",
-  "published": "2026-11-04T02:17:12.698Z",
+  "notes": "Silver trim: the theme button now cycles light, dark with gold trim, and dark with silver trim",
+  "published": "2026-11-04T02:23:13.627Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "985878ad9bb4cf3037864dc1616f38938efac9e2233eaa45f0bd3fbd9e99d269",
+    "package.json": "87cc874b2e16edd4ae861625a43340c167ecdf83b8306f1f918bc4efa3ee1e8d",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
@@ -25,8 +25,8 @@
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "09d6201805b04e24bdbbfea3b5817854044dcd59eeb0f2165761f5504c92affc",
+    "app/companion/index.html": "77d461d9bfd46b68716522d08d48b20d675bb1e2309720cc8b2aa3ae743c2233",
     "app/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
-    "app/index.html": "90de4cacf4db52fddbff401c00d71a64d4a8c61878a78585153b68a95ce6669f"
+    "app/index.html": "5abb9abb686840be1e59febb33926f2368010742930c4ea803d5713df050dba2"
   }
 }
