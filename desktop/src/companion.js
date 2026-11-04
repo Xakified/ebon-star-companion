@@ -27,7 +27,8 @@ function summarize(row, members, parties = []) {
     summary: `${d.species || ""} ${E.classLabel ? E.classLabel(d) : `${d.cls || ""} ${d.level || 1}`}`.trim(),
     ac: x.ac, maxHp: x.hpMax, hp: d.hp && d.hp.cur != null ? d.hp.cur : x.hpMax, temp: (d.hp && d.hp.temp) || 0,
     mod: x.init, passive: x.passive, speed: x.speed,
-    conditions: (d.conditions || []).filter(c => SRD_CONDS.includes(c)), exhaustion: d.exhaustion || 0, stress: d.stress || 0
+    conditions: (d.conditions || []).filter(c => SRD_CONDS.includes(c)), exhaustion: d.exhaustion || 0, stress: d.stress || 0,
+    portrait: typeof d.portrait === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(d.portrait) && d.portrait.length < 400000 ? d.portrait : ""
   };
 }
 

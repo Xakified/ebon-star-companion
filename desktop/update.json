@@ -1,20 +1,20 @@
 {
-  "version": "1.14.0",
+  "version": "1.15.0",
   "minShell": "1.2.0",
-  "notes": "Silver trim: the theme button now cycles light, dark with gold trim, and dark with silver trim",
-  "published": "2026-11-04T02:23:13.627Z",
+  "notes": "Character portraits: players' pictures from the Companion show in the initiative tracker and on the player screen",
+  "published": "2026-11-04T02:35:02.114Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "87cc874b2e16edd4ae861625a43340c167ecdf83b8306f1f918bc4efa3ee1e8d",
+    "package.json": "1d94a3148723bf0b431fd3d51097d97d7bb882bca9ac97c1cde0f1b5487a8cb1",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "src/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
-    "src/companion-bridge.js": "f2187103314cb84adb50442d9ce3f4eadb0bca65a0d491a7b4dfd529cd641a89",
-    "src/companion.js": "c5529b49090bbef1fe7da717bf8f293342881b331a9ff106c83866e632232116",
+    "src/companion-bridge.js": "a6e6af191e44a9387471c24caca9497d9e47cb1b632d90e195ccda0ac6536a63",
+    "src/companion.js": "9735afb4f95638ab2fde45da688740c821a7ac831c9358541166abea78f148c3",
     "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
     "src/key.html": "b9c9c7a73913847b6d7f50fe238f4556bdaeece103b17868bbb71241331bb1a5",
     "src/main.js": "eb000bf218d62128bbc1db40712d940beca32e6d1dc9656add6ad565610b47b3",
@@ -25,8 +25,8 @@
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "77d461d9bfd46b68716522d08d48b20d675bb1e2309720cc8b2aa3ae743c2233",
+    "app/companion/index.html": "5dae8c4cf3cdaeaa8a2d64c6082663cac7bd143721253a71d054cbeda4b712c9",
     "app/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
-    "app/index.html": "5abb9abb686840be1e59febb33926f2368010742930c4ea803d5713df050dba2"
+    "app/index.html": "bcab385dd0cbcf2591cad38f1a698c86f67dedf3383a5ca57a6b6912c60ac250"
   }
 }
