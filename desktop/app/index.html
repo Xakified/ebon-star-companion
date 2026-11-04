@@ -8,19 +8,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
 <script>
-// Theme: "dm-theme" in localStorage (light or dark), else the system setting. The Players tab's Companion frame follows it.
+// Theme: "dm-theme" in localStorage: light, dark (gold trim) or silver (dark, silver trim); else the system setting.
+// The theme button cycles them. The Players tab's Companion frame follows it.
 (function () {
-  var r = document.documentElement, m = matchMedia("(prefers-color-scheme: dark)");
+  var r = document.documentElement, m = matchMedia("(prefers-color-scheme: dark)"), MODES = ["light", "dark", "silver"];
+  function mode() { var t = null; try { t = localStorage.getItem("dm-theme"); } catch (e) {} return MODES.indexOf(t) >= 0 ? t : m.matches ? "dark" : "light"; }
   function apply() {
-    var t = null; try { t = localStorage.getItem("dm-theme"); } catch (e) {}
-    r.dataset.theme = t === "dark" || t === "light" ? t : m.matches ? "dark" : "light";
-    document.querySelectorAll("iframe").forEach(function (f) { try { f.contentWindow.postMessage({ esTheme: r.dataset.theme }, "*"); } catch (e) {} });
+    var t = mode();
+    r.dataset.theme = t === "light" ? "light" : "dark"; r.dataset.trim = t === "silver" ? "silver" : "gold";
+    document.querySelectorAll("iframe").forEach(function (f) { try { f.contentWindow.postMessage({ esTheme: t }, "*"); } catch (e) {} });
   }
-  window.dmTheme = { apply: apply, toggle: function () { var t = r.dataset.theme === "dark" ? "light" : "dark"; try { localStorage.setItem("dm-theme", t); } catch (e) {} apply(); } };
+  window.dmTheme = { apply: apply, toggle: function () { var t = MODES[(MODES.indexOf(mode()) + 1) % MODES.length]; try { localStorage.setItem("dm-theme", t); } catch (e) {} apply(); } };
   apply();
   m.addEventListener("change", apply);
   addEventListener("storage", function (e) { if (e.key === "dm-theme") apply(); });
-  addEventListener("message", function (e) { if (e.data && e.data.esThemeAsk && e.source) try { e.source.postMessage({ esTheme: r.dataset.theme }, "*"); } catch (x) {} });
+  addEventListener("message", function (e) { if (e.data && e.data.esThemeAsk && e.source) try { e.source.postMessage({ esTheme: mode() }, "*"); } catch (x) {} });
 })();
 </script>
 <style>
@@ -522,6 +524,20 @@ html[data-theme="dark"] .pv-row { background: rgb(22 20 30 / .92); border-color:
 html[data-theme="dark"] .pv-row.on { background: linear-gradient(90deg, #3d3017, var(--active)); border-color: var(--gold); box-shadow: 0 0 0 1px var(--gilt), 0 0 22px rgb(226 184 90 / .22); }
 .themebtn { display: inline-grid; place-items: center; width: 34px; height: 32px; padding: 0; }
 .themebtn svg { display: block; }
+/* ---- silver trim: the dark theme's second choice (data-trim="silver"); same night-black pages, frames and headings in silver ---- */
+html[data-theme="dark"][data-trim="silver"] { --gold:#9aa3b0; --gilt:#d4dae3; --royal:#dfe5ee; --accent:#c9d1dc; --accent-ink:#14161c; --accent-soft:#262a33; --active:#22252e; --frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='%2316141e' stroke='%234a505b' stroke-width='3'/%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='none' stroke='%23d4dae3' stroke-width='.9'/%3E%3Cpath d='M11.5 6H52.5L58 11.5V52.5L52.5 58H11.5L6 52.5V11.5Z' fill='none' stroke='%23c3cad6' stroke-opacity='.45'/%3E%3Cg fill='%23e6ebf2'%3E%3Cpath d='M5.75 3 8.5 5.75 5.75 8.5 3 5.75Z'/%3E%3Cpath d='M58.25 3 61 5.75 58.25 8.5 55.5 5.75Z'/%3E%3Cpath d='M58.25 55.5 61 58.25 58.25 61 55.5 58.25Z'/%3E%3Cpath d='M5.75 55.5 8.5 58.25 5.75 61 3 58.25Z'/%3E%3C/g%3E%3C/svg%3E"); --frame-raised:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='%231e1b28' stroke='%234a505b' stroke-width='3'/%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='none' stroke='%23d4dae3' stroke-width='.9'/%3E%3Cpath d='M11.5 6H52.5L58 11.5V52.5L52.5 58H11.5L6 52.5V11.5Z' fill='none' stroke='%23c3cad6' stroke-opacity='.45'/%3E%3Cg fill='%23e6ebf2'%3E%3Cpath d='M5.75 3 8.5 5.75 5.75 8.5 3 5.75Z'/%3E%3Cpath d='M58.25 3 61 5.75 58.25 8.5 55.5 5.75Z'/%3E%3Cpath d='M58.25 55.5 61 58.25 58.25 61 55.5 58.25Z'/%3E%3Cpath d='M5.75 55.5 8.5 58.25 5.75 61 3 58.25Z'/%3E%3C/g%3E%3C/svg%3E"); }
+html[data-theme="dark"][data-trim="silver"] ::selection { background:#4a505b; }
+html[data-theme="dark"][data-trim="silver"] .bar .tabs button.on, html[data-theme="dark"][data-trim="silver"] header.top .btn.primary { background: linear-gradient(#eef1f5, #a9b1bd); color:#14161c; border-color:#4a505b; }
+html[data-theme="dark"][data-trim="silver"] .bar, html[data-theme="dark"][data-trim="silver"] header.top { border-bottom-color:#9aa3b0; box-shadow: 0 1px 0 #3a3f48, 0 6px 18px rgb(0 0 0 / .55); --line: rgb(212 218 227 / .25); }
+html[data-theme="dark"][data-trim="silver"] .die { border-color: rgb(212 218 227 / .35); }
+html[data-theme="dark"][data-trim="silver"] .cbt.active, html[data-theme="dark"][data-trim="silver"] .pv-row.on { background: linear-gradient(90deg, #2c303a, var(--active) 45%); box-shadow: inset 4px 0 0 var(--gilt), 0 0 14px rgb(212 218 227 / .12); }
+html[data-theme="dark"][data-trim="silver"] .cond { border-color:#4a505b; }
+html[data-theme="dark"][data-trim="silver"] #rollCard .rtotal { background: linear-gradient(#30343d, #22252e); color:#fff; }
+html[data-theme="dark"][data-trim="silver"] .rdie { color:#e6ebf2; }
+html[data-theme="dark"][data-trim="silver"] input:focus, html[data-theme="dark"][data-trim="silver"] select:focus, html[data-theme="dark"][data-trim="silver"] textarea:focus { box-shadow: 0 0 0 3px rgb(212 218 227 / .22); }
+html[data-theme="dark"][data-trim="silver"] .panel-head { border-bottom-color: rgb(212 218 227 / .25); }
+html[data-theme="dark"][data-trim="silver"] .dice-out b, html[data-theme="dark"][data-trim="silver"] .die.d20, html[data-theme="dark"][data-trim="silver"] .die:hover { color: #eef1f5; }
+html[data-theme="dark"]:not([data-trim="silver"]) .themebtn .moon { color: #d4dae3; }
 </style>
 
 <header class="bar">
@@ -536,7 +552,7 @@ html[data-theme="dark"] .pv-row.on { background: linear-gradient(90deg, #3d3017,
       <button data-tab="sessions">Sessions</button>
       <button data-tab="lore">Lore</button>
     </nav>
-    <button class="btn ghost themebtn" id="themeBtn" type="button" onclick="dmTheme.toggle()" title="Switch between the light and dark theme" aria-label="Switch between the light and dark theme"><svg class="moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>
+    <button class="btn ghost themebtn" id="themeBtn" type="button" onclick="dmTheme.toggle()" title="Theme: light, dark with gold trim, or dark with silver trim" aria-label="Change theme: light, dark with gold trim, or dark with silver trim"><svg class="moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>
     <div class="dice-out" id="diceOut" aria-live="polite"><b>—</b><small>Pick a die</small></div>
     <div class="dhist" id="dHist" aria-label="Recent rolls"></div>
     <div class="dtray" id="diceTray">
