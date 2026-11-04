@@ -96,6 +96,13 @@ class Companion {
       this.contentChan = this.sb.channel("suite-content-" + link.campaignId)
         .on("postgres_changes", { event: "*", schema: "public", table: "content_packs", filter: "campaign_id=eq." + link.campaignId }, () => { this.loadContent().then(() => this.soon()).catch(() => {}); this.onChange({ table: "content_packs" }); })
         .subscribe();
+      // Battle maps (fix-09-battle-maps.sql): table changes plus the live channel for rulers, dragging and pings.
+      this.mapChan = this.sb.channel("vtt-" + link.campaignId, { config: { broadcast: { self: false } } })
+        .on("broadcast", { event: "vtt" }, p => this.onChange({ live: p.payload }))
+        .on("postgres_changes", { event: "*", schema: "public", table: "battle_maps", filter: "campaign_id=eq." + link.campaignId }, () => this.onChange({ table: "battle_maps" }))
+        .on("postgres_changes", { event: "*", schema: "public", table: "map_tokens", filter: "campaign_id=eq." + link.campaignId }, () => this.onChange({ table: "map_tokens" }))
+        .on("postgres_changes", { event: "*", schema: "public", table: "map_effects", filter: "campaign_id=eq." + link.campaignId }, () => this.onChange({ table: "map_effects" }))
+        .subscribe(s => { if (s === "SUBSCRIBED") this.onChange({ table: "resync" }); });
       // safety net in case a live update is missed
       this.poll = setInterval(() => this.refresh().catch(() => {}), 60000);
     } catch (e) { this.status("error", e.message); throw e; }
@@ -106,7 +113,8 @@ class Companion {
     if (this.notesChan && this.sb) this.sb.removeChannel(this.notesChan);
     if (this.contentChan && this.sb) this.sb.removeChannel(this.contentChan);
     if (this.partyChan && this.sb) this.sb.removeChannel(this.partyChan);
-    this.chan = null; this.notesChan = null; this.contentChan = null; this.partyChan = null; this.link = null; this.party = []; this.status("off");
+    if (this.mapChan && this.sb) this.sb.removeChannel(this.mapChan);
+    this.chan = null; this.notesChan = null; this.contentChan = null; this.partyChan = null; this.mapChan = null; this.urls = null; this.link = null; this.party = []; this.status("off");
   }
   // Book classes and species change hit points and AC, so the party list needs the same books the players use.
   async loadContent() {
@@ -222,6 +230,46 @@ const CALLS = {
     for (const r of old.data || []) if (!want.has(r.session_id + "/" + r.user_id)) ok(await this.sb.from("session_private_recaps").delete().eq("campaign_id", cid).eq("session_id", r.session_id).eq("user_id", r.user_id));
     return out;
   },
+  // Battle maps (fix-09-battle-maps.sql in the Companion repo). Pictures are in the private "battle-maps" bucket.
+  async listMaps() { return ok(await this.sb.from("battle_maps").select("*").eq("campaign_id", this.cid()).order("created_at")); },
+  async saveMap(row, id) {
+    const cid = this.cid(), r = Object.assign({}, row, { updated_at: new Date().toISOString() });
+    if (r.shown) ok(await this.sb.from("battle_maps").update({ shown: false }).eq("campaign_id", cid).eq("shown", true).neq("id", id || "00000000-0000-0000-0000-000000000000"));
+    if (id) return ok(await this.sb.from("battle_maps").update(r).eq("id", id).select().single());
+    return ok(await this.sb.from("battle_maps").insert(Object.assign({ campaign_id: cid }, r)).select().single());
+  },
+  async deleteMap(m) {
+    ok(await this.sb.from("battle_maps").delete().eq("id", m.id).eq("campaign_id", this.cid()));
+    if (m.image_path) await this.sb.storage.from("battle-maps").remove([m.image_path]);
+    return true;
+  },
+  async uploadMap(name, bytes, mime, w, h, grid) {
+    const cid = this.cid(), ext = { "image/png": "png", "image/webp": "webp" }[mime] || "jpg";
+    if (!/^image\/(jpeg|png|webp)$/.test(mime)) throw new Error("Maps can be JPEG, PNG or WebP pictures.");
+    const path = `${cid}/${require("crypto").randomUUID()}.${ext}`;
+    const up = await this.sb.storage.from("battle-maps").upload(path, Buffer.from(bytes), { contentType: mime, upsert: false, cacheControl: "31536000" });
+    if (up.error) throw new Error(/bucket not found/i.test(up.error.message) ? "Map pictures need one more setup step: run fix-09-battle-maps.sql in the Supabase SQL Editor." : up.error.message);
+    try { return ok(await this.sb.from("battle_maps").insert({ campaign_id: cid, name: String(name || "Map").slice(0, 120), image_path: path, width: w | 0, height: h | 0, grid: grid || {} }).select().single()); }
+    catch (e) { await this.sb.storage.from("battle-maps").remove([path]); throw e; }
+  },
+  async mapImageUrl(path) {
+    this.urls = this.urls || new Map();
+    const hit = this.urls.get(path); if (hit && hit.until > Date.now()) return hit.url;
+    const r = await this.sb.storage.from("battle-maps").createSignedUrl(String(path), 7 * 86400);
+    if (r.error) throw new Error(r.error.message);
+    this.urls.set(path, { url: r.data.signedUrl, until: Date.now() + 6 * 86400e3 }); return r.data.signedUrl;
+  },
+  async listTokens(mapId) { return ok(await this.sb.from("map_tokens").select("*").eq("map_id", mapId).order("created_at")); },
+  async addTokens(rows) { const cid = this.cid(); return ok(await this.sb.from("map_tokens").insert((rows || []).map(r => Object.assign({}, r, { campaign_id: cid }))).select()); },
+  async saveToken(row, id) { return ok(await this.sb.from("map_tokens").update(Object.assign({}, row, { updated_at: new Date().toISOString() })).eq("id", id).select().single()); },
+  async deleteToken(id) { ok(await this.sb.from("map_tokens").delete().eq("id", id)); return true; },
+  async moveToken(id, x, y) { return ok(await this.sb.rpc("move_token", { p_id: id, p_x: x, p_y: y })); },
+  async listEffects(mapId) { return ok(await this.sb.from("map_effects").select("*").eq("map_id", mapId).order("created_at")); },
+  async addEffect(row) { return ok(await this.sb.from("map_effects").insert(Object.assign({}, row, { campaign_id: this.cid() })).select().single()); },
+  async deleteEffect(id) { ok(await this.sb.from("map_effects").delete().eq("id", id)); return true; },
+  async clearEffects(mapId, mineOnly) { let q = this.sb.from("map_effects").delete().eq("map_id", mapId); if (mineOnly) q = q.eq("owner", this.userId); ok(await q); return true; },
+  // Rulers, dragging and pings: sent to phones over the live channel. The DM Suite's own windows get it from main.js.
+  async live(msg) { if (this.mapChan) await this.mapChan.send({ type: "broadcast", event: "vtt", payload: msg }); return true; },
   // Every note in the campaign, including ones players deleted (so this computer can drop its copy).
   async listNotes() { return ok(await this.sb.from("session_notes").select("*").eq("campaign_id", this.cid()).order("created_at")); },
 };
@@ -230,7 +278,7 @@ Companion.prototype.call = async function (method, args) {
   const f = Object.prototype.hasOwnProperty.call(CALLS, method) && CALLS[method];
   if (!f) throw new Error("Unknown request: " + method);
   const out = await f.apply(this, Array.isArray(args) ? args : []);
-  if (/^(save|delete|send|set|reassign)/.test(method)) this.soon(); // keep the tracker's party list current too
+  if (/^(save|delete|send|set|reassign)/.test(method) && !/Map|Token|Effect/.test(method)) this.soon(); // keep the tracker's party list current too
   return out;
 };
 

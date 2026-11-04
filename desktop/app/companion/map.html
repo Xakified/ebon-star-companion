@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Battle Map</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap">
+<script>
+// Theme: inside the DM Suite's Battle Map tab it follows the Suite; the player screen window uses the Suite's
+// saved choice ("dm-theme"); on its own it uses the Companion's ("esc-theme").
+(function () {
+  var r = document.documentElement, m = matchMedia("(prefers-color-scheme: dark)"), MODES = ["light", "dark", "silver"], forced = null;
+  var h = location.hash.slice(1), suite = /(^|[#&])suite\b/.test(h), framed = window.parent !== window;
+  var key = suite ? "dm-theme" : "esc-theme";
+  function mode() { var t = forced; if (!t) { try { t = localStorage.getItem(key); } catch (e) {} } return MODES.indexOf(t) >= 0 ? t : m.matches ? "dark" : "light"; }
+  function apply() { var t = mode(); r.dataset.theme = t === "light" ? "light" : "dark"; r.dataset.trim = t === "silver" ? "silver" : "gold"; }
+  if (suite && framed) {
+    addEventListener("message", function (e) { if (e.source === window.parent && e.data && MODES.indexOf(e.data.esTheme) >= 0) { forced = e.data.esTheme; apply(); } });
+    try { var pr = window.parent.document.documentElement.dataset; if (pr.theme) forced = pr.theme === "light" ? "light" : pr.trim === "silver" ? "silver" : "dark"; } catch (e) {}
+    try { window.parent.postMessage({ esThemeAsk: 1 }, "*"); } catch (e) {}
+  }
+  apply();
+  m.addEventListener("change", apply);
+  addEventListener("storage", function (e) { if (e.key === key) apply(); });
+})();
+</script>
+<style>
+:root {
+  --bg: #dbe9f4; --surface: #f4f9fd; --raised: #ffffff; --ink: #142a4c; --muted: #4b6584; --line: #bcd2e6;
+  --gold: #b8862a; --gilt: #e0b44a; --accent: #1f5ca8; --accent-ink: #fff; --accent-soft: #fbefc8;
+  --good: #2e7a3a; --warn: #a06200; --bad: #b02a1f; --stage: #16131f;
+  --display: "Cinzel", Georgia, serif; --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  --bg: #0c0b11; --surface: #16141e; --raised: #1e1b28; --ink: #ece4d3; --muted: #a99f8c; --line: #3a3343;
+  --gold: #c99a3c; --gilt: #e2b85a; --accent: #e2b85a; --accent-ink: #1a1408; --accent-soft: #33291a;
+  --good: #7cc68b; --warn: #e8a84a; --bad: #f0705f; color-scheme: dark;
+}
+html[data-theme="dark"][data-trim="silver"] { --gold: #9aa3b0; --gilt: #d4dae3; --accent: #d4dae3; --accent-ink: #15171c; --accent-soft: #262a31; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.4 var(--body); overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+.btn { border: 1px solid var(--line); background: var(--raised); color: var(--ink); border-radius: 8px; padding: 5px 10px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--gold); }
+.btn.on, .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.sm { padding: 3px 8px; font-size: .86rem; }
+.btn.danger { color: var(--bad); }
+.btn[disabled] { opacity: .5; cursor: default; }
+input[type=text], input[type=number], select { background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 4px 7px; min-width: 0; }
+input[type=number] { width: 72px; }
+input[type=range] { width: 100%; accent-color: var(--gold); }
+input[type=color] { width: 34px; height: 28px; padding: 0 2px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.muted { color: var(--muted); } .small { font-size: .86rem; } .grow { flex: 1; }
+.row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+kbd { font: 600 .75rem var(--body); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--muted); }
+
+/* editor */
+body.editor #app { display: flex; flex-direction: column; height: 100%; }
+.tb { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tb .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+.tb select { max-width: 220px; }
+.tools { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.tools button { border: 0; border-right: 1px solid var(--line); background: var(--raised); padding: 5px 10px; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+.tools button:last-child { border-right: 0; }
+.tools button.on { background: var(--accent); color: var(--accent-ink); }
+.tools svg { width: 16px; height: 16px; }
+.body { flex: 1; display: flex; min-height: 0; }
+.stage { position: relative; flex: 1; min-width: 0; background: var(--stage); overflow: hidden; }
+.side { width: 310px; flex: none; overflow-y: auto; background: var(--surface); border-left: 1px solid var(--line); padding: 10px 12px 40px; }
+.side h3 { font: 600 .95rem var(--display); margin: 14px 0 6px; color: var(--gold); letter-spacing: .02em; }
+.side h3:first-child { margin-top: 2px; }
+.side label.f { display: block; margin: 6px 0; } .side label.f > span { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 2px; }
+.side .hint { font-size: .84rem; color: var(--muted); margin: 6px 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-right: 1px solid var(--line); background: var(--raised); padding: 4px 9px; cursor: pointer; font-size: .88rem; }
+.seg button:last-child { border-right: 0; } .seg button.on { background: var(--accent); color: var(--accent-ink); }
+.tok { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 8px; cursor: pointer; }
+.tok:hover { background: var(--raised); } .tok.on { background: var(--accent-soft); }
+.tok .av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--gilt); background: #444 center/cover; flex: none; display: grid; place-items: center; font: 700 .72rem var(--body); color: #fff; }
+.tok .av.monster { border-color: #d0453a; background-color: #6b2219; } .tok .av.npc { border-color: #a77be0; background-color: #4b2f73; } .tok .av.pc { background-color: #2a4f86; }
+.tok .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tok.hid .nm { opacity: .6; font-style: italic; }
+.icon { border: 0; background: none; cursor: pointer; padding: 2px 4px; color: var(--muted); border-radius: 5px; }
+.icon:hover { color: var(--ink); background: var(--raised); }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--raised); margin: 8px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { border: 1px solid var(--line); background: var(--raised); border-radius: 999px; padding: 2px 9px; font-size: .84rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.chip i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.chip:hover { border-color: var(--gold); }
+.empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #cfc6dd; padding: 24px; }
+.empty h2 { font: 600 1.3rem var(--display); color: #e2b85a; margin: 0 0 8px; }
+.empty p { margin: 0 0 14px; max-width: 460px; }
+.busy { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: rgb(10 9 18 / .88); color: #f3ead8; border: 1px solid #e2b85a; border-radius: 10px; padding: 6px 12px; font-size: .9rem; z-index: 5; }
+.pill { font-size: .78rem; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+.warnbox { border: 1px solid var(--warn); color: var(--warn); border-radius: 10px; padding: 8px 10px; margin: 8px; font-size: .9rem; background: var(--surface); }
+@media (max-width: 760px) { .body { flex-direction: column; } .side { width: auto; height: 42%; border-left: 0; border-top: 1px solid var(--line); } }
+
+/* the players' screen */
+body.screen { background: #0b0a10; }
+body.screen .stage { position: fixed; inset: 0; }
+.hud { position: fixed; right: 14px; bottom: 14px; display: flex; gap: 8px; align-items: center; transition: opacity .4s; z-index: 4; }
+.hud .btn { background: rgb(10 9 18 / .82); color: #f3ead8; border-color: #e2b85a; }
+.hud .name { color: #e2b85a; font: 600 1rem var(--display); background: rgb(10 9 18 / .8); padding: 4px 10px; border-radius: 8px; }
+body.idle .hud { opacity: 0; pointer-events: none; } body.idle { cursor: none; }
+.wait { position: fixed; inset: 0; display: grid; place-items: center; color: #9d94b3; font: 600 1.6rem var(--display); text-align: center; padding: 30px; }
+.wait small { display: block; font: 400 1rem var(--body); margin-top: 10px; color: #7d7590; }
+.lockb { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); background: rgb(10 9 18 / .85); color: #e2b85a; border: 1px solid #e2b85a; border-radius: 999px; padding: 4px 14px; font-weight: 600; z-index: 4; }
+#toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: #14121c; color: #f3ead8; border: 1px solid #e2b85a; padding: 8px 14px; border-radius: 10px; z-index: 50; max-width: calc(100vw - 32px); opacity: 0; transition: opacity .2s; pointer-events: none; }
+#toast.on { opacity: 1; pointer-events: auto; }
+#toast button { margin-left: 10px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileMap" accept="image/*" hidden>
+<input type="file" id="fileTok" accept="image/*" hidden>
+<script src="config.js"></script>
+<script>window.Engine = window.Engine || { uid: () => (crypto.randomUUID ? crypto.randomUUID() : "id-" + Math.random().toString(36).slice(2) + Date.now().toString(36)) };</script>
+<script src="backend.js"></script>
+<script src="vtt.js"></script>
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const HASH = location.hash.slice(1), QS = new URLSearchParams(location.search);
+const IN_SUITE = /(^|[#&])suite\b/.test(HASH);
+const SCREEN = /(^|[#&-])screen\b/.test(HASH) || QS.has("screen");
+const M = { be: null, user: null, camp: null, ses: null, view: null, tool: "select", sel: null, chars: [], parties: [], members: [], pending: {}, saveT: {}, mapId: null, adding: false, cellN: 1, fogOpt: { m: 1, k: "r", w: 2, snap: true }, tpl: { shape: "circle", size: 20, width: 5, color: "#e8572a", label: "Fireball" } };
+const SIZES = [[0.5, "Tiny"], [1, "Small or Medium"], [2, "Large"], [3, "Huge"], [4, "Gargantuan"]];
+
+function toast(msg, label, fn, ms = 3200) {
+  const t = $("#toast"); t.innerHTML = esc(msg);
+  if (label) { const b = document.createElement("button"); b.className = "btn sm"; b.textContent = label; b.onclick = () => { fn(); t.classList.remove("on"); }; t.appendChild(b); }
+  t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), label ? 6000 : ms);
+}
+function fail(e) { console.error(e); toast((M.ses && M.ses.setupMsg ? M.ses.setupMsg(e) : e.message) || String(e), null, null, 6000); }
+function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("Couldn't load " + src)); document.head.appendChild(s); }); }
+function message(html, btn) {
+  document.body.className = "editor";
+  $("#app").innerHTML = `<div class="stage" style="flex:1"><div class="empty"><div><h2>Battle Map</h2><p>${html}</p>${btn || ""}</div></div></div>`;
+}
+const portraitOf = d => { const p = d && d.portrait; return typeof p === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p) ? p : ""; };
+
+async function boot() {
+  try {
+    const cfg = window.APP_CONFIG || {};
+    if (!IN_SUITE && cfg.supabaseUrl && cfg.supabaseAnonKey && !QS.has("demo")) await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.75.0/dist/umd/supabase.js");
+    // Demo mode keeps each browser tab as its own person; the Companion passes who you are when it opens this page.
+    if (QS.has("demo") && QS.get("u")) try { sessionStorage.setItem("esc-demo-user", QS.get("u")); } catch (e) {}
+    M.be = makeBackend();
+    M.user = await M.be.init();
+    const camps = await M.be.myCampaigns();
+    let camp = null;
+    if (M.be.mode === "suite") camp = camps[0] || null;
+    else { const want = QS.get("c") || localStorage.getItem("esc-camp-" + M.be.mode); camp = camps.find(c => c.id === want) || (camps.length === 1 ? camps[0] : null); }
+    if (!camp) {
+      if (M.be.mode === "suite") return message("Connect this campaign to the Companion first. Battle maps are kept in your Companion campaign, so your players' phones can see them.", SCREEN ? "" : `<button class="btn primary" onclick="M.be.openConnect()">Connect to Companion…</button>`);
+      return message(`Open your campaign in the <a href="index.html" style="color:#e2b85a">Companion</a> first, then come back to this page.`);
+    }
+    M.camp = camp;
+    if (SCREEN) startScreen();
+    else if (camp.role === "dm") startEditor();
+    else location.replace("index.html");
+  } catch (e) { console.error(e); message("Couldn't start the battle map: " + esc(e.message)); }
+}
+
+/* =================== the players' screen =================== */
+function startScreen() {
+  document.body.className = "screen";
+  $("#app").innerHTML = `<div class="stage" id="stage"></div><div class="wait" id="wait" hidden></div><div class="lockb" id="lockb" hidden>Movement paused</div>
+    <div class="hud" id="hud"><span class="name" id="mapName"></span><button class="btn" id="fitBtn" title="Show the whole map">Fit map</button><button class="btn" id="fullBtn" title="Fill the screen (F11)">Fullscreen</button></div>`;
+  M.view = VTT.create($("#stage"), { mode: "screen", canMove: () => false, on: { ping: c => M.ses.ping(c) }, pingColor: "#e2b85a" });
+  M.ses = VTT.session({
+    be: M.be, cid: M.camp.id, view: M.view, mode: "screen", user: M.user, who: "Screen",
+    pickMap: maps => maps.find(m => m.shown) || null,
+    onChange: st => {
+      const w = $("#wait");
+      w.hidden = !!st.map;
+      w.innerHTML = st.err ? `${esc(st.err)}` : `Waiting for the DM to show a map…<small>${esc(M.camp.name || "")}</small>`;
+      $("#mapName").textContent = st.map ? st.map.name : "";
+      $("#lockb").hidden = !(st.map && st.map.locked);
+    },
+    onView: m => { if (m.map && M.ses.state.map && m.map !== M.ses.state.map.id) return; if (m.fit) M.view.fit(); else if (m.v) M.view.setView(m.v); },
+    onError: fail,
+  });
+  $("#fitBtn").onclick = () => M.view.fit();
+  $("#fullBtn").onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); };
+  let idle = null;
+  const wake = () => { document.body.classList.remove("idle"); clearTimeout(idle); idle = setTimeout(() => document.body.classList.add("idle"), 2500); };
+  ["pointermove", "pointerdown", "keydown", "wheel"].forEach(k => addEventListener(k, wake, { passive: true }));
+  addEventListener("keydown", e => { if (e.key === "f" || e.key === "F11") { e.preventDefault(); $("#fullBtn").click(); } if (e.key === "0") M.view.fit(); });
+  wake();
+}
+
+/* =================== the DM's editor =================== */
+const TOOLS = [
+  ["select", "Move", "V", `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 3l14 8-6 1.6 3.6 6.4-2.6 1.4-3.6-6.4L6 18z"/></svg>`],
+  ["ruler", "Measure", "R", `<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 17L17 3l4 4L7 21z M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>`],
+  ["template", "Templates", "T", `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>`],
+  ["fog", "Fog", "F", `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 15a4 4 0 0 1 .7-7.9A6 6 0 0 1 18 8.5 3.5 3.5 0 0 1 18 15z"/><path stroke="currentColor" stroke-width="2" d="M4 19h16"/></svg>`],
+  ["grid", "Grid", "G", `<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg>`],
+  ["ping", "Ping", "P", `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2" opacity=".6"/></svg>`],
+];
+const cur = () => M.ses && M.ses.state.map ? Object.assign({}, M.ses.state.map, M.pending[M.ses.state.map.id] || {}) : null;
+const grid = () => VTT.gridOf(cur());
+const tokens = () => (M.ses ? M.ses.state.tokens : []);
+const tokById = id => tokens().find(t => t.id === id);
+const charById = id => M.chars.find(c => c.id === id);
+
+function startEditor() {
+  document.body.className = "editor";
+  try { M.mapId = localStorage.getItem("vtt-map-" + M.camp.id); } catch (e) {}
+  $("#app").innerHTML = `<div class="tb" id="tb"></div><div id="warn"></div><div class="body"><div class="stage" id="stage"><div class="empty" id="empty" hidden></div><div class="busy" id="busy" hidden></div></div><aside class="side" id="side"></aside></div>`;
+  M.view = VTT.create($("#stage"), {
+    mode: "dm", canMove: () => true, pingColor: "#e2b85a",
+    on: {
+      select: t => { M.sel = t ? t.id : null; if (M.tool === "select") side(); },
+      move: (t, at, from) => M.ses.moveToken(t, at, from),
+      drag: (t, at, from) => M.ses.drag(t, at, from),
+      dragEnd: t => M.ses.dragEnd(t),
+      measure: r => M.ses.measure(r),
+      ping: c => M.ses.ping(c),
+      template: e => M.ses.addTemplate(e),
+      fog: fog => { queueSave({ fog }); if (M.tool === "fog") side(); },
+      cell: r => gridFromCell(r),
+    },
+  });
+  M.ses = VTT.session({
+    be: M.be, cid: M.camp.id, view: M.view, mode: "dm", user: M.user, who: "DM", color: "#e2b85a",
+    pickMap: maps => maps.find(m => m.id === M.mapId) || maps.find(m => m.shown) || maps[maps.length - 1] || null,
+    patch: m => Object.assign({}, m, M.pending[m.id] || {}),
+    onChange: st => {
+      if (st.map && st.map.id !== M.mapId) { M.mapId = st.map.id; try { localStorage.setItem("vtt-map-" + M.camp.id, M.mapId); } catch (e) {} }
+      if (M.sel && !tokById(M.sel)) M.sel = null;
+      toolbar(); side(); emptyState(); syncPortraits();
+    },
+    onError: fail,
+  });
+  loadChars();
+  if (M.be.subscribe) M.be.subscribe(M.camp.id, ev => { if (ev && /^(characters|parties)$/.test(ev.table)) { clearTimeout(loadChars.t); loadChars.t = setTimeout(loadChars, 300); } });
+  $("#tb").addEventListener("click", onClick); $("#side").addEventListener("click", onClick); $("#stage").addEventListener("click", onClick);
+  $("#tb").addEventListener("change", onChange); $("#side").addEventListener("change", onChange); $("#side").addEventListener("input", onInput);
+  $("#fileMap").onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (f) uploadMap(f).catch(fail); };
+  $("#fileTok").onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (f && M.tokPic) M.tokPic(f); };
+  addEventListener("keydown", onKey);
+  // Drop a picture on the map to add it as a new map.
+  $("#stage").addEventListener("dragover", e => { if ([...e.dataTransfer.items].some(i => i.kind === "file")) e.preventDefault(); });
+  $("#stage").addEventListener("drop", e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) uploadMap(f).catch(fail); });
+  setTool("select");
+}
+
+async function loadChars() {
+  try { M.chars = await M.be.listCharacters(M.camp.id); } catch (e) { M.chars = []; }
+  try { M.parties = M.be.listParties ? await M.be.listParties(M.camp.id) : []; } catch (e) { M.parties = []; }
+  try { M.members = await M.be.members(M.camp.id); } catch (e) { M.members = []; }
+  syncPortraits(); if (M.tool === "select" || M.tool === "template") side();
+}
+// Player character tokens keep their character's current name and portrait.
+let syncing = false;
+async function syncPortraits() {
+  if (syncing || !M.chars.length) return;
+  const todo = tokens().filter(t => t.character_id && charById(t.character_id)).map(t => { const d = charById(t.character_id).data || {}; return [t, { name: d.name || t.name, image: portraitOf(d) }]; })
+    .filter(([t, p]) => t.name !== p.name || (t.image || "") !== p.image);
+  if (!todo.length) return;
+  syncing = true;
+  try { for (const [t, p] of todo) await M.be.saveToken(M.camp.id, p, t.id); M.ses.poke("tokens"); M.ses.reload("tokens"); } catch (e) { console.warn(e); }
+  syncing = false;
+}
+
+function setTool(t) {
+  M.tool = t;
+  const opt = t === "fog" ? M.fogOpt : t === "template" ? M.tpl : {};
+  M.view.setTool(t === "grid" ? "cell" : t, t === "fog" ? Object.assign({}, opt, { w: opt.w * grid().size }) : opt);
+  toolbar(); side();
+}
+
+function toolbar() {
+  const maps = M.ses ? M.ses.state.maps : [], m = cur();
+  $("#tb").innerHTML = `
+    <select id="mapSel" title="Which map you're working on">${maps.length ? "" : `<option value="">No maps yet</option>`}${maps.map(x => `<option value="${x.id}" ${m && x.id === m.id ? "selected" : ""}>${x.shown ? "● " : ""}${esc(x.name || "Map")}</option>`).join("")}</select>
+    <button class="btn sm" data-a="upload" title="Upload a battle map picture (or drop one on the map)">＋ New map</button>
+    <span class="sep"></span>
+    <span class="tools">${TOOLS.map(([k, l, key, ico]) => `<button data-tool="${k}" class="${M.tool === k ? "on" : ""}" title="${l} (${key})" ${m ? "" : "disabled"}>${ico}${l}</button>`).join("")}</span>
+    <span class="grow"></span>
+    ${m ? `<button class="btn sm ${m.shown ? "on" : ""}" data-a="show" title="${m.shown ? "Players see this map on their phones and the player screen. Click to hide it." : "Show this map to your players"}">${m.shown ? "● Shown to players" : "Show to players"}</button>
+    <button class="btn sm ${m.locked ? "on" : ""}" data-a="lock" title="${m.locked ? "Players can't move their tokens. Click to let them." : "Stop players moving their tokens (between turns, for a cutscene…)"}">${m.locked ? "Movement paused" : "Pause movement"}</button>` : ""}
+    <button class="btn sm" data-a="screen" title="Opens what the players see in its own window. Drag it to the TV or third screen and press F for fullscreen.">Player screen ↗</button>`;
+}
+
+function emptyState() {
+  const st = M.ses.state, el = $("#empty");
+  $("#warn").innerHTML = st.err ? `<div class="warnbox">${esc(st.err)}</div>` : "";
+  if (st.map || !st.loaded) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<div><h2>Battle maps</h2><p>Upload a map picture (JPEG, PNG or WebP), line up the grid, then add your party's tokens. Players see the map you show on the player screen and in the Companion's Map tab, and move their own tokens from their phones.</p>
+    <button class="btn primary" data-a="upload">Upload a battle map</button><p class="small" style="margin-top:12px;opacity:.8">You can also drop a picture here.</p></div>`;
+}
+
+/* ----- side panel: depends on the tool ----- */
+let sideHeld = false;
+function side() {
+  const el = $("#side");
+  if (!el) return;
+  const f = document.activeElement;
+  if (f && el.contains(f) && /INPUT|SELECT|TEXTAREA/.test(f.tagName) && f.type !== "range" && f.type !== "checkbox") { sideHeld = true; return; }
+  sideHeld = false;
+  const m = cur();
+  if (!m) { el.innerHTML = `<p class="hint">No map yet. Upload one to start.</p>`; return; }
+  el.innerHTML = ({ select: sideSelect, ruler: sideRuler, template: sideTemplate, fog: sideFog, grid: sideGrid, ping: sidePing }[M.tool] || sideSelect)(m);
+}
+document.addEventListener("focusout", () => setTimeout(() => { if (sideHeld) side(); }, 60));
+
+function avatar(t) {
+  const img = t.image ? `style="background-image:url('${t.image}')"` : "";
+  return `<span class="av ${t.kind}" ${img}>${t.image ? "" : esc(VTT.initials(t.name))}</span>`;
+}
+function sideSelect(m) {
+  const list = tokens(), sel = tokById(M.sel);
+  const pcs = list.filter(t => t.kind === "pc"), others = list.filter(t => t.kind !== "pc");
+  const row = t => `<div class="tok ${t.id === M.sel ? "on" : ""} ${t.hidden ? "hid" : ""}" data-a="pick" data-id="${t.id}">${avatar(t)}<span class="nm">${esc(t.name || "Token")}</span>
+    <button class="icon" data-a="hide" data-id="${t.id}" title="${t.hidden ? "Hidden from players. Click to reveal." : "Hide from players"}">${t.hidden ? "🙈" : "👁"}</button>
+    <button class="icon" data-a="center" data-id="${t.id}" title="Find on the map">⌖</button></div>`;
+  const named = M.parties.filter(p => (p.character_ids || []).length);
+  return `
+    <h3>Tokens</h3>
+    <div class="row">
+      ${named.length ? `<select id="partyPick" title="Which party Add party brings in"><option value="">Everyone</option>${named.map(p => `<option value="${p.id}" ${M.partyPick === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select>` : ""}
+      <button class="btn sm primary" data-a="addparty" title="Your players' characters, with their portraits">Add party</button>
+      ${M.be.tracker ? `<button class="btn sm" data-a="addinit" title="Everyone in the initiative tracker who isn't on the map yet">From initiative</button>` : ""}
+      <button class="btn sm" data-a="newtok">＋ Token</button>
+    </div>
+    ${M.adding ? addForm() : ""}
+    ${sel ? tokenEditor(sel) : `<p class="hint">Drag tokens on the map; they snap to the grid and show how far they moved. Click one to edit it. <kbd>H</kbd> hides, <kbd>Del</kbd> removes, arrow keys nudge.</p>`}
+    ${pcs.length ? `<div class="small muted" style="margin-top:8px">Player characters</div>${pcs.map(row).join("")}` : ""}
+    ${others.length ? `<div class="small muted" style="margin-top:8px">Monsters and NPCs</div>${others.map(row).join("")}` : ""}
+    ${others.some(t => !t.hidden) || others.length ? `<div class="row" style="margin-top:6px"><button class="btn sm" data-a="hideall">Hide all monsters</button><button class="btn sm" data-a="showall">Reveal all</button></div>` : ""}
+    <h3>Map</h3>
+    <label class="f"><span>Name</span><input type="text" id="mapName" value="${esc(m.name || "")}"></label>
+    <div class="row"><button class="btn sm" data-a="sendview" title="The player screen shows exactly what you see now">Show my view on the screen</button><button class="btn sm" data-a="fitscreen">Screen: whole map</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm" data-a="fit">Fit map here</button><button class="btn sm danger" data-a="delmap">Delete map</button></div>
+    <p class="hint">${m.width}×${m.height} px. Double-click or long-press anywhere to ping.</p>`;
+}
+function addForm() {
+  const a = M.newTok || (M.newTok = { name: "", kind: "monster", size: 1, count: 1, hidden: false, image: "" });
+  return `<div class="card">
+    <label class="f"><span>Name</span><input type="text" id="ntName" value="${esc(a.name)}" placeholder="Goblin, Captain Solana…"></label>
+    <div class="row"><label class="f"><span>Type</span><select id="ntKind"><option value="monster" ${a.kind === "monster" ? "selected" : ""}>Monster</option><option value="npc" ${a.kind === "npc" ? "selected" : ""}>NPC</option></select></label>
+    <label class="f"><span>Size</span><select id="ntSize">${SIZES.map(([v, l]) => `<option value="${v}" ${+a.size === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <label class="f"><span>How many</span><input type="number" id="ntCount" min="1" max="30" value="${a.count}"></label></div>
+    <div class="row"><label class="row small"><input type="checkbox" id="ntHidden" ${a.hidden ? "checked" : ""}> Hidden from players</label></div>
+    <div class="row" style="margin-top:6px">${a.image ? `<span class="tok" style="padding:0">${avatar({ kind: a.kind, image: a.image, name: a.name })}</span>` : ""}<button class="btn sm" data-a="ntpic">${a.image ? "Change picture" : "Picture…"}</button><span class="grow"></span><button class="btn sm" data-a="ntcancel">Cancel</button><button class="btn sm primary" data-a="ntadd">Add</button></div>
+  </div>`;
+}
+function tokenEditor(t) {
+  const ch = t.character_id && charById(t.character_id);
+  return `<div class="card">
+    <div class="row"><span class="tok" style="padding:0">${avatar(t)}</span><b class="grow">${esc(t.name || "Token")}</b><button class="icon" data-a="desel" title="Done">✕</button></div>
+    ${ch ? `<p class="hint" style="margin:4px 0">${esc((M.members.find(x => x.user_id === ch.owner) || {}).display_name || "A player")}'s character. They can move it from the Map tab in the Companion${cur().locked ? " (paused right now)" : ""}.</p>` :
+      `<label class="f"><span>Name</span><input type="text" id="tkName" value="${esc(t.name)}"></label>
+       <label class="f"><span>Type</span><select id="tkKind"><option value="monster" ${t.kind === "monster" ? "selected" : ""}>Monster</option><option value="npc" ${t.kind === "npc" ? "selected" : ""}>NPC</option></select></label>`}
+    <div class="row"><label class="f"><span>Size</span><select id="tkSize">${SIZES.map(([v, l]) => `<option value="${v}" ${+t.size === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label class="f"><span>Ring</span><input type="color" id="tkColor" value="${t.color || ({ pc: "#e2b85a", npc: "#a77be0", monster: "#d0453a" })[t.kind]}"></label></div>
+    <div class="row"><label class="row small"><input type="checkbox" id="tkHidden" ${t.hidden ? "checked" : ""}> Hidden from players</label></div>
+    <div class="row" style="margin-top:6px">${ch ? "" : `<button class="btn sm" data-a="tkpic">${t.image ? "Change picture" : "Picture…"}</button>${t.image ? `<button class="btn sm" data-a="tknopic">No picture</button>` : ""}`}<span class="grow"></span><button class="btn sm danger" data-a="tkdel">Remove</button></div>
+  </div>`;
+}
+function sideRuler(m) {
+  const g = grid();
+  return `<h3>Measure</h3>
+    <p class="hint">Drag on the map to measure. It snaps to the middle of squares (hold <kbd>Alt</kbd> to measure freely). The player screen and phones see your ruler. Moving a token shows its distance too.</p>
+    <label class="f"><span>Diagonals</span><select id="gDiag"><option value="5" ${g.diag === "5" ? "selected" : ""}>Every square is ${g.ft} ft (2024 rules)</option><option value="alt" ${g.diag === "alt" ? "selected" : ""}>Alternate ${g.ft} / ${g.ft * 2} ft</option><option value="euclid" ${g.diag === "euclid" ? "selected" : ""}>Straight line</option></select></label>
+    <label class="f"><span>Feet per square</span><input type="number" id="gFt" min="1" max="100" value="${g.ft}"></label>`;
+}
+function sideTemplate(m) {
+  const T = M.tpl, fx = M.ses.state.effects, who = id => id === M.user ? "DM" : (M.members.find(x => x.user_id === id) || {}).display_name || "player";
+  return `<h3>Spell templates</h3>
+    <div class="chips">${VTT.PRESETS.map((p, i) => `<button class="chip" data-a="preset" data-i="${i}" title="${VTT.SHAPES[p.shape]}, ${p.size} ft"><i style="background:${p.color}"></i>${esc(p.name)}</button>`).join("")}</div>
+    <div class="row" style="margin-top:8px">
+      <label class="f"><span>Shape</span><select id="tShape">${Object.entries(VTT.SHAPES).map(([k, l]) => `<option value="${k}" ${T.shape === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label class="f"><span>${T.shape === "circle" ? "Radius" : T.shape === "cube" ? "Side" : "Length"} (ft)</span><input type="number" id="tSize" min="5" max="500" step="5" value="${T.size}"></label>
+      ${T.shape === "line" ? `<label class="f"><span>Width (ft)</span><input type="number" id="tWidth" min="5" max="60" step="5" value="${T.width}"></label>` : ""}
+      <label class="f"><span>Colour</span><input type="color" id="tColor" value="${T.color}"></label></div>
+    <label class="f"><span>Label</span><input type="text" id="tLabel" value="${esc(T.label)}" placeholder="Fireball"></label>
+    <p class="hint">${T.shape === "circle" ? "Click where it's centred." : "Press where it starts and drag to aim it."} It snaps to the grid (hold <kbd>Alt</kbd> for free placement), and shades every square it covers. Everyone sees it.</p>
+    <h3>On the map</h3>
+    ${fx.length ? fx.map(e => `<div class="tok"><span class="av" style="background:${esc(e.color)};border-color:${esc(e.color)}"></span><span class="nm">${esc(e.label || VTT.SHAPES[e.shape])} <span class="muted small">${e.size} ft · ${esc(who(e.owner))}</span></span><button class="icon" data-a="fxdel" data-id="${e.id}" title="Remove">✕</button></div>`).join("") + `<div class="row" style="margin-top:6px"><button class="btn sm" data-a="fxclear">Clear all templates</button></div>` : `<p class="hint">None yet.</p>`}`;
+}
+function sideFog(m) {
+  const o = M.fogOpt, fog = m.fog || {};
+  return `<h3>Fog of war</h3>
+    <div class="row"><button class="btn sm ${fog.on ? "on" : ""}" data-a="fogtoggle">${fog.on ? "Fog is on" : "Fog is off"}</button><button class="btn sm" data-a="fogcover" title="Hide the whole map again">Cover all</button><button class="btn sm" data-a="fogclear" title="Remove all fog">Clear all</button></div>
+    <p class="hint">${fog.on ? "Players see black where the fog is. You see it shaded so you can still work underneath." : "Turn the fog on to hide the map from players, then reveal it as they explore."}</p>
+    <div class="row" style="margin-top:8px"><span class="seg"><button data-a="fogm" data-v="1" class="${o.m ? "on" : ""}">Reveal</button><button data-a="fogm" data-v="0" class="${o.m ? "" : "on"}">Hide</button></span>
+      <span class="seg"><button data-a="fogk" data-v="r" class="${o.k === "r" ? "on" : ""}">Rectangle</button><button data-a="fogk" data-v="p" class="${o.k === "p" ? "on" : ""}">Outline</button><button data-a="fogk" data-v="b" class="${o.k === "b" ? "on" : ""}">Brush</button></span></div>
+    ${o.k === "b" ? `<label class="f"><span>Brush: ${o.w} square${o.w === 1 ? "" : "s"} wide</span><input type="range" id="fogW" min="0.5" max="12" step="0.5" value="${o.w}"></label>`
+      : `<label class="row small" style="margin-top:8px"><input type="checkbox" id="fogSnap" ${o.snap ? "checked" : ""}> Follow the grid lines (hold <kbd>Alt</kbd> to go free)</label>`}
+    <p class="hint">${o.k === "r" ? "Drag a box over a room." : o.k === "p" ? "Click around the area's corners, then click the first point (or press Enter, or double-click) to close it. Esc cancels." : "Paint over the area."}</p>
+    <div class="row"><button class="btn sm" data-a="fogundo" ${(fog.ops || []).length ? "" : "disabled"}>Undo last</button><span class="muted small">${(fog.ops || []).length} area${(fog.ops || []).length === 1 ? "" : "s"}</span></div>`;
+}
+function sideGrid(m) {
+  const g = grid(), across = (m.width - g.ox) / g.size;
+  return `<h3>Grid</h3>
+    <label class="row small"><input type="checkbox" id="gShow" ${g.show ? "checked" : ""}> Show the grid</label>
+    <div class="card"><b class="small">Line it up with the map</b>
+      <p class="hint" style="margin:4px 0">Drag a box over ${M.cellN === 1 ? "one square" : `${M.cellN}×${M.cellN} squares`} of the map's own grid. Zoom in with the wheel for accuracy.</p>
+      <div class="row small">Box covers <select id="gCellN">${[1, 2, 3, 4, 5, 10].map(n => `<option value="${n}" ${M.cellN === n ? "selected" : ""}>${n}×${n}</option>`).join("")}</select> squares</div></div>
+    <label class="f"><span>Square size: ${g.size.toFixed(1)} px</span><input type="range" id="gSize" min="10" max="400" step="0.1" value="${g.size}"></label>
+    <div class="row"><label class="f"><span>Size (px)</span><input type="number" id="gSizeN" step="0.1" min="5" value="${+g.size.toFixed(2)}"></label><label class="f"><span>Squares across</span><input type="number" id="gAcross" step="1" min="1" value="${Math.round(across)}"></label></div>
+    <label class="f"><span>Shift right: ${g.ox.toFixed(1)} px</span><input type="range" id="gOx" min="0" max="${g.size.toFixed(1)}" step="0.1" value="${g.ox}"></label>
+    <label class="f"><span>Shift down: ${g.oy.toFixed(1)} px</span><input type="range" id="gOy" min="0" max="${g.size.toFixed(1)}" step="0.1" value="${g.oy}"></label>
+    <div class="row"><label class="f"><span>Line colour</span><input type="color" id="gColor" value="${g.color}"></label><label class="f grow"><span>Strength</span><input type="range" id="gOpacity" min="0.05" max="1" step="0.05" value="${g.opacity}"></label></div>
+    <div class="row"><label class="f"><span>Feet per square</span><input type="number" id="gFt" min="1" max="100" value="${g.ft}"></label></div>`;
+}
+function sidePing() { return `<h3>Ping</h3><p class="hint">Click the map to flash a ring there on every screen and phone. In any tool you can also double-click (or long-press on a touch screen).</p>`; }
+
+/* ----- saving map changes (grid, fog, name) a moment after the last edit ----- */
+function queueSave(patch) {
+  const m = M.ses.state.map; if (!m) return;
+  const id = m.id;
+  M.pending[id] = Object.assign(M.pending[id] || {}, patch);
+  clearTimeout(M.saveT[id]);
+  M.saveT[id] = setTimeout(async () => {
+    const p = M.pending[id]; if (!p) return;
+    try {
+      await M.be.saveMap(M.camp.id, p, id);
+      if (M.pending[id] === p) delete M.pending[id];
+      const row = M.ses.state.maps.find(x => x.id === id); if (row) Object.assign(row, p);
+      if (M.ses.state.map && M.ses.state.map.id === id) Object.assign(M.ses.state.map, p);
+      M.ses.poke("maps");
+    } catch (e) { fail(e); }
+  }, 350);
+}
+function setGrid(patch, redraw = true) {
+  const g = Object.assign(grid(), patch);
+  const r2 = v => Math.round(v * 100) / 100, wrap = v => { v = r2(((+v || 0) % g.size + g.size) % g.size); return v >= g.size - 0.05 ? 0 : v; };
+  g.size = r2(Math.max(5, +g.size || 70)); g.ox = wrap(g.ox); g.oy = wrap(g.oy);
+  M.view.setGrid(g); queueSave({ grid: g });
+  if (redraw) side();
+}
+function gridFromCell(r) {
+  const n = M.cellN || 1, size = (r[2] + r[3]) / 2 / n;
+  if (size < 5) return;
+  setGrid({ size, ox: r[0] % size, oy: r[1] % size });
+  toast(`Grid set: ${size.toFixed(1)} px squares. Fine-tune with the sliders if it drifts across the map.`);
+}
+
+/* ----- uploading a map ----- */
+function guessCell(w, h) {
+  // Maps made for VTTs are usually a whole number of 50 to 200 px squares; pick the one closest to ~28 squares across.
+  const fits = [200, 150, 140, 128, 120, 100, 96, 90, 80, 75, 72, 70, 64, 60, 50].filter(c => w % c === 0 && h % c === 0 && w / c >= 8 && w / c <= 80);
+  if (fits.length) return fits.sort((a, b) => Math.abs(w / a - 28) - Math.abs(w / b - 28))[0];
+  return Math.max(20, Math.round(w / 30));
+}
+async function uploadMap(file) {
+  if (!/^image\//.test(file.type)) throw new Error("That file isn't a picture.");
+  const busy = $("#busy"); busy.hidden = false; busy.textContent = "Preparing the map…";
+  try {
+    const url = URL.createObjectURL(file);
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error("Couldn't open that picture. Try a JPEG, PNG or WebP.")); i.src = url; });
+    let w = img.naturalWidth, h = img.naturalHeight, cell = guessCell(w, h);
+    // Big pictures are shrunk so phones can show them: at most 4096 px across, and under about 8 MB.
+    const k = Math.min(1, 4096 / Math.max(w, h));
+    let blob = file, mime = file.type;
+    if (k < 1 || file.size > 8e6 || !/^image\/(jpeg|png|webp)$/.test(mime)) {
+      const cv = document.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+      const c = cv.getContext("2d"); c.imageSmoothingQuality = "high"; c.drawImage(img, 0, 0, cv.width, cv.height);
+      blob = await new Promise(ok => cv.toBlob(ok, "image/jpeg", 0.9)); mime = "image/jpeg";
+      w = cv.width; h = cv.height; cell *= k;
+    }
+    URL.revokeObjectURL(url);
+    busy.textContent = `Uploading ${(blob.size / 1048576).toFixed(1)} MB…`;
+    const name = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim().slice(0, 80) || "Map";
+    const row = await M.be.uploadMap(M.camp.id, name, blob, mime, w, h, Object.assign({}, VTT.GRID_DEFAULT, { size: cell }));
+    M.mapId = row.id; try { localStorage.setItem("vtt-map-" + M.camp.id, row.id); } catch (e) {}
+    M.ses.reload("all"); M.ses.poke("maps");
+    setTool("grid");
+    toast("Map added. Now line up the grid: drag a box over one square of the map.", null, null, 6000);
+  } finally { busy.hidden = true; }
+}
+
+/* ----- tokens ----- */
+async function addTokens(rows) {
+  const m = cur(); if (!m || !rows.length) return [];
+  const out = await M.be.addTokens(M.camp.id, rows.map(r => Object.assign({ map_id: m.id }, r)));
+  M.ses.reload("tokens"); M.ses.poke("tokens");
+  return out || [];
+}
+async function patchToken(id, patch) {
+  const t = tokById(id); if (!t) return;
+  const was = Object.assign({}, t);
+  Object.assign(t, patch); M.view.setTokens(tokens()); side();
+  try { await M.be.saveToken(M.camp.id, patch, id); M.ses.poke("tokens"); }
+  catch (e) { Object.assign(t, was); M.view.setTokens(tokens()); side(); fail(e); }
+}
+async function removeToken(id) {
+  const t = tokById(id); if (!t) return;
+  try {
+    await M.be.deleteToken(id);
+    M.ses.state.tokens = tokens().filter(x => x.id !== id); M.view.setTokens(tokens());
+    if (M.sel === id) M.sel = null; side(); M.ses.poke("tokens");
+    const { id: _i, campaign_id: _c, created_at: _a, updated_at: _u, ...back } = t;
+    toast(`Removed ${t.name || "the token"}.`, "Undo", () => addTokens([back]).catch(fail));
+  } catch (e) { fail(e); }
+}
+function placeRows(list) {
+  const taken = [];
+  return list.map(r => { const at = M.view.freeCell(Math.max(1, Math.ceil(r.size || 1)), taken); taken.push({ x: at.x, y: at.y, size: Math.max(1, r.size || 1) }); return Object.assign({ x: at.x, y: at.y }, r); });
+}
+async function addParty() {
+  if (!M.chars.length) await loadChars();
+  const pt = M.parties.find(p => p.id === M.partyPick);
+  const have = new Set(tokens().filter(t => t.character_id).map(t => t.character_id));
+  const list = M.chars.filter(c => !have.has(c.id) && (!pt || (pt.character_ids || []).includes(c.id)));
+  if (!list.length) { toast(M.chars.length ? "Everyone is already on the map." : "No characters in the Companion yet."); return; }
+  await addTokens(placeRows(list.map(c => ({ character_id: c.id, name: (c.data && c.data.name) || "Unnamed", kind: "pc", size: 1, image: portraitOf(c.data) }))));
+  toast(`Added ${list.length} to the map.`);
+}
+async function addFromInit() {
+  const list = await M.be.tracker();
+  if (!list || !list.length) { toast("The initiative tracker is empty."); return; }
+  const onMap = tokens(), rows = [];
+  for (const c of list) {
+    if (c.kind === "pc" && c.companionId) {
+      if (onMap.some(t => t.character_id === c.companionId) || rows.some(r => r.character_id === c.companionId)) continue;
+      const ch = charById(c.companionId);
+      rows.push({ character_id: c.companionId, name: c.name, kind: "pc", size: 1, image: ch ? portraitOf(ch.data) : "" });
+    } else {
+      if (onMap.some(t => t.name === c.name) || rows.some(r => r.name === c.name)) continue;
+      rows.push({ name: c.name, kind: c.kind === "npc" || c.kind === "pc" ? c.kind : "monster", size: 1, hidden: !!c.hidden });
+    }
+  }
+  if (!rows.length) { toast("Everyone in the tracker is already on the map."); return; }
+  await addTokens(placeRows(rows));
+  toast(`Added ${rows.length} from the initiative tracker. Monsters you've marked hidden there stay hidden.`);
+}
+// A small square picture for a token, as a data URL.
+function tokenPicture(file) {
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const n = 160, cv = document.createElement("canvas"); cv.width = cv.height = n; const c = cv.getContext("2d"), k = Math.max(n / img.naturalWidth, n / img.naturalHeight); c.drawImage(img, (n - img.naturalWidth * k) / 2, (n - img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k); URL.revokeObjectURL(url); ok(cv.toDataURL("image/webp", 0.85).startsWith("data:image/webp") ? cv.toDataURL("image/webp", 0.85) : cv.toDataURL("image/jpeg", 0.85)); };
+    img.onerror = () => no(new Error("Couldn't open that picture."));
+    img.src = url;
+  });
+}
+
+/* ----- events ----- */
+async function onClick(e) {
+  const tb = e.target.closest("[data-tool]");
+  if (tb) { setTool(tb.dataset.tool); return; }
+  const b = e.target.closest("[data-a]"); if (!b) return;
+  const a = b.dataset.a, id = b.dataset.id, m = cur();
+  try {
+    if (a === "upload") $("#fileMap").click();
+    else if (a === "show") { await M.be.saveMap(M.camp.id, { shown: !m.shown }, m.id); M.ses.reload("maps"); M.ses.poke("maps"); toast(m.shown ? "Hidden from players." : "Players can see this map now."); }
+    else if (a === "lock") { await M.be.saveMap(M.camp.id, { locked: !m.locked }, m.id); M.ses.reload("maps"); M.ses.poke("maps"); }
+    else if (a === "screen") { if (M.be.openMapScreen) await M.be.openMapScreen(); else window.open("map.html?screen" + (M.be.mode === "demo" ? "&demo&u=" + encodeURIComponent(M.user) : ""), "esc-map-screen", "width=1280,height=800"); }
+    else if (a === "pick") { M.sel = id; M.view.select(id); side(); }
+    else if (a === "desel") { M.sel = null; M.view.select(null); side(); }
+    else if (a === "center") { e.stopPropagation(); M.view.centerOn(tokById(id)); M.sel = id; M.view.select(id); side(); }
+    else if (a === "hide") { e.stopPropagation(); const t = tokById(id); await patchToken(id, { hidden: !t.hidden }); }
+    else if (a === "hideall" || a === "showall") { for (const t of tokens().filter(t => t.kind !== "pc" && t.hidden !== (a === "hideall"))) await M.be.saveToken(M.camp.id, { hidden: a === "hideall" }, t.id); M.ses.reload("tokens"); M.ses.poke("tokens"); }
+    else if (a === "addparty") await addParty();
+    else if (a === "addinit") await addFromInit();
+    else if (a === "newtok") { M.adding = !M.adding; side(); if (M.adding) setTimeout(() => $("#ntName") && $("#ntName").focus(), 0); }
+    else if (a === "ntcancel") { M.adding = false; M.newTok = null; side(); }
+    else if (a === "ntpic") { M.tokPic = f => tokenPicture(f).then(u => { M.newTok.image = u; side(); }).catch(fail); $("#fileTok").click(); }
+    else if (a === "ntadd") {
+      const n = M.newTok; n.name = ($("#ntName").value || "").trim() || (n.kind === "npc" ? "NPC" : "Monster");
+      const count = Math.max(1, Math.min(30, +$("#ntCount").value || 1)), size = +n.size || 1;
+      const rows = Array.from({ length: count }, (_, i) => ({ name: count > 1 ? `${n.name} ${i + 1}` : n.name, kind: n.kind, size, hidden: !!n.hidden, image: n.image || "" }));
+      await addTokens(placeRows(rows)); M.adding = false; M.newTok = null; side();
+    }
+    else if (a === "tkpic") { const tid = M.sel; M.tokPic = f => tokenPicture(f).then(u => patchToken(tid, { image: u })).catch(fail); $("#fileTok").click(); }
+    else if (a === "tknopic") await patchToken(M.sel, { image: "" });
+    else if (a === "tkdel") await removeToken(M.sel);
+    else if (a === "sendview") { M.ses.send({ t: "view", v: M.view.getView() }); toast("The player screen now shows your view."); }
+    else if (a === "fitscreen") M.ses.send({ t: "view", fit: true });
+    else if (a === "fit") M.view.fit();
+    else if (a === "delmap") {
+      if (!confirm(`Delete “${m.name}”, its tokens, fog and templates? This can't be undone.`)) return;
+      await M.be.deleteMap(M.ses.state.map); M.mapId = null; M.sel = null; M.ses.reload("all"); M.ses.poke("maps");
+    }
+    else if (a === "preset") { const p = VTT.PRESETS[+b.dataset.i]; Object.assign(M.tpl, { shape: p.shape, size: p.size, width: p.width || 5, color: p.color, label: p.name }); setTool("template"); }
+    else if (a === "fxdel") await M.ses.removeTemplate(id);
+    else if (a === "fxclear") await M.ses.clearTemplates(false);
+    else if (a === "fogtoggle") { const f = m.fog || {}; const fog = { on: !f.on, ops: f.ops || [] }; M.view.setFog(fog); queueSave({ fog }); side(); }
+    else if (a === "fogcover") { if ((m.fog && (m.fog.ops || []).length) && !confirm("Cover the whole map with fog again?")) return; const fog = { on: true, ops: [] }; M.view.setFog(fog); queueSave({ fog }); side(); }
+    else if (a === "fogclear") { const fog = { on: false, ops: [] }; M.view.setFog(fog); queueSave({ fog }); side(); }
+    else if (a === "fogundo") { const f = m.fog || {}; const fog = { on: !!f.on, ops: (f.ops || []).slice(0, -1) }; M.view.setFog(fog); queueSave({ fog }); side(); }
+    else if (a === "fogm") { M.fogOpt.m = +b.dataset.v; setTool("fog"); }
+    else if (a === "fogk") { M.fogOpt.k = b.dataset.v; M.view.cancel(); setTool("fog"); }
+  } catch (err) { fail(err); }
+}
+function onChange(e) {
+  const t = e.target, id = t.id, m = cur();
+  if (id === "mapSel") { M.mapId = t.value; M.sel = null; try { localStorage.setItem("vtt-map-" + M.camp.id, t.value); } catch (x) {} M.ses.reload("all"); return; }
+  if (id === "partyPick") { M.partyPick = t.value; return; }
+  if (id === "mapName") { queueSave({ name: t.value.trim() || "Map" }); toolbar(); return; }
+  if (id === "tkName") return patchToken(M.sel, { name: t.value.trim() || "Token" });
+  if (id === "tkKind") return patchToken(M.sel, { kind: t.value });
+  if (id === "tkSize") return patchToken(M.sel, { size: +t.value });
+  if (id === "tkColor") return patchToken(M.sel, { color: t.value });
+  if (id === "tkHidden") return patchToken(M.sel, { hidden: t.checked });
+  if (/^nt/.test(id) && M.newTok) { const n = M.newTok; if (id === "ntKind") n.kind = t.value; if (id === "ntSize") n.size = +t.value; if (id === "ntCount") n.count = +t.value || 1; if (id === "ntHidden") n.hidden = t.checked; if (id === "ntName") n.name = t.value; return; }
+  if (id === "tShape") { M.tpl.shape = t.value; setTool("template"); return; }
+  if (id === "tSize") { M.tpl.size = Math.max(5, +t.value || 5); setTool("template"); return; }
+  if (id === "tWidth") { M.tpl.width = Math.max(5, +t.value || 5); setTool("template"); return; }
+  if (id === "tColor") { M.tpl.color = t.value; setTool("template"); return; }
+  if (id === "tLabel") { M.tpl.label = t.value.trim(); setTool("template"); return; }
+  if (id === "fogSnap") { M.fogOpt.snap = t.checked; setTool("fog"); return; }
+  if (id === "fogW") { M.fogOpt.w = +t.value; setTool("fog"); return; }
+  if (id === "gShow") return setGrid({ show: t.checked });
+  if (id === "gCellN") { M.cellN = +t.value; side(); return; }
+  if (id === "gSizeN") return setGrid({ size: +t.value });
+  if (id === "gAcross") { const n = Math.max(1, +t.value || 1); return setGrid({ size: (m.width - grid().ox) / n }); }
+  if (id === "gColor") return setGrid({ color: t.value });
+  if (id === "gFt") return setGrid({ ft: Math.max(1, +t.value || 5) });
+  if (id === "gDiag") return setGrid({ diag: t.value });
+  if (/^g(Size|Ox|Oy|Opacity)$/.test(id)) { side(); }
+}
+// Sliders move the grid while you drag them.
+function onInput(e) {
+  const t = e.target, id = t.id;
+  if (id === "gSize") { setGrid({ size: +t.value }, false); const l = t.previousElementSibling; if (l) l.textContent = `Square size: ${(+t.value).toFixed(1)} px`; }
+  else if (id === "gOx") { setGrid({ ox: +t.value }, false); t.previousElementSibling.textContent = `Shift right: ${(+t.value).toFixed(1)} px`; }
+  else if (id === "gOy") { setGrid({ oy: +t.value }, false); t.previousElementSibling.textContent = `Shift down: ${(+t.value).toFixed(1)} px`; }
+  else if (id === "gOpacity") setGrid({ opacity: +t.value }, false);
+  else if (id === "fogW") { M.fogOpt.w = +t.value; M.view.setTool("fog", Object.assign({}, M.fogOpt, { w: M.fogOpt.w * grid().size })); t.previousElementSibling.textContent = `Brush: ${t.value} square${+t.value === 1 ? "" : "s"} wide`; }
+}
+function onKey(e) {
+  if (e.target.closest && e.target.closest("input, select, textarea")) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase(), tool = TOOLS.find(t => t[2].toLowerCase() === k);
+  if (tool && cur()) { setTool(tool[0]); e.preventDefault(); return; }
+  const t = tokById(M.sel);
+  if (!t) return;
+  if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); removeToken(t.id); }
+  else if (k === "h") { e.preventDefault(); patchToken(t.id, { hidden: !t.hidden }); }
+  else if (e.key === "Escape") { M.sel = null; M.view.select(null); side(); }
+  else if (/^Arrow/.test(e.key)) {
+    e.preventDefault();
+    const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key], from = { x: t.x, y: t.y }, at = { x: t.x + d[0], y: t.y + d[1] };
+    t.x = at.x; t.y = at.y; M.view.setTokens(tokens()); M.ses.moveToken(t, at, from);
+  }
+}
+
+boot();
+</script>
+</body>
+</html>

@@ -473,6 +473,24 @@ header.top .ava { --s: 48px; color: var(--ink); background: rgb(255 255 255 / .1
 .pcrop [hidden], #pcZoomL[hidden] { display: none !important; }
 #pcZoom { width: 100%; padding: 0; border: 0; background: none; box-shadow: none; min-height: 28px; }
 .pcrop .ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 28px; color: var(--muted); font-size: .9rem; cursor: pointer; }
+
+/* Map tab: the battle map the DM is showing */
+.mapwrap { margin-top: 10px; }
+.mapbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.mapbar .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.mapbar .seg button { border: 0; border-right: 1px solid var(--line); background: var(--raised); color: var(--ink); padding: 6px 10px; font: inherit; font-size: .9rem; cursor: pointer; }
+.mapbar .seg button:last-child { border-right: 0; }
+.mapbar .seg button.on { background: var(--accent); color: var(--accent-ink); }
+.maphost { position: relative; height: calc(100dvh - 210px); min-height: 300px; border-radius: 12px; overflow: hidden; background: #0b0a10; border: 1px solid var(--line); }
+.mapstage { position: absolute; inset: 0; }
+.mapnote { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #b6adc8; padding: 24px; pointer-events: none; font-size: .95rem; }
+.mapinfo { font-size: .86rem; margin-top: 6px; color: var(--muted); min-height: 1.2em; }
+.mapinfo b { color: var(--ink); }
+.mapinfo .turn { color: var(--good); font-weight: 700; }
+.maptpl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: .9rem; }
+.maptpl select, .maptpl input { font: inherit; font-size: .9rem; }
+.mapwrap.full { position: fixed; inset: 0; z-index: 60; margin: 0; background: var(--bg); padding: calc(env(safe-area-inset-top) + 8px) 8px calc(env(safe-area-inset-bottom) + 8px); display: flex; flex-direction: column; }
+.mapwrap.full .maphost { flex: 1; height: auto; min-height: 0; }
 </style>
 </head>
 <body>
@@ -488,6 +506,7 @@ header.top .ava { --s: 48px; color: var(--ink); background: rgb(255 255 255 / .1
 <script src="srd.js"></script>
 <script src="engine.js"></script>
 <script src="backend.js"></script>
+<script src="vtt.js"></script>
 <script>
 "use strict";
 // ---------- 3D dice ----------
@@ -891,10 +910,11 @@ function onLive(ev) {
 // Don't redraw under someone's thumb while they're typing.
 function softRender() {
   const f = document.activeElement;
-  if (f && f.closest("#app, #dlg") && /INPUT|TEXTAREA|SELECT/.test(f.tagName)) { A.pendingRender = true; return; }
+  if ((f && f.closest("#app, #dlg") && /INPUT|TEXTAREA|SELECT/.test(f.tagName)) || (MT.view && MT.view.busy)) { A.pendingRender = true; return; }
   render();
 }
 document.addEventListener("focusout", () => setTimeout(() => { if (A.pendingRender) { A.pendingRender = false; softRender(); } }, 50));
+document.addEventListener("pointerup", () => setTimeout(() => { if (A.pendingRender && !(MT.view && MT.view.busy)) { A.pendingRender = false; softRender(); } }, 80));
 
 // Save a change to a character: show it right away, then write it with a version check.
 async function edit(id, fn) {
@@ -912,7 +932,7 @@ function header() {
   let pic = "";
   if (A.view === "sheet") { const r = charRow(A.charId); back = `<button class="btn icon ghost" data-a="camp" aria-label="Back">‹</button>`; if (r) pic = canEditChar(r) ? ava(r.data, { act: "portrait", id: r.id, empty: true }) : ava(r.data); title = r ? r.data.name || "Unnamed" : ""; if (r) { const d = r.data; sub = `${d.species} ${E.classLabel(d)}${d.subclass ? " · " + d.subclass : ""}${isDM() ? " · " + (memberName(r.owner) || "player") : ""}`; } if (isDM()) right = `<button class="btn sm primary" data-a="send" data-id="${A.charId}">Send</button>`; }
   if (A.view === "build") { back = `<button class="btn icon ghost" data-a="bcancel" aria-label="Cancel">‹</button>`; title = A.draft && A.draft.editId ? `Edit ${A.draft.name || "character"}` : "New character"; sub = A.camp ? A.camp.name : ""; }
-  if (A.view === "camp" && isDM()) right = `<button class="btn sm primary" data-a="send">Send</button>`;
+  if (A.view === "camp" && isDM()) right = `${SUITE ? "" : `<a class="btn sm" style="text-decoration:none" href="map.html${A.be && A.be.mode === "demo" ? "?demo&u=" + encodeURIComponent(A.user) : ""}" target="_blank" rel="noopener" title="Battle maps: upload maps, place tokens, fog of war. The DM Suite has the same thing in its Battle Map tab.">Battle map</a>`}<button class="btn sm primary" data-a="send">Send</button>`;
   if ((A.view === "camp" || A.view === "sheet") && A.camp && !isDM() && A.notesOk) right = `<button class="btn sm ${liveSession() ? "primary" : ""}" data-a="notes" title="Recaps of past sessions, and notes for your DM">Sessions${liveSession() ? " ●" : ""}</button>`;
   if (A.view === "notes") { back = `<button class="btn icon ghost" data-a="notesback" aria-label="Back">‹</button>`; title = "Sessions"; sub = A.camp ? A.camp.name : ""; }
   const theme = SUITE ? "" : `<button class="btn icon ghost themebtn" data-a="theme" title="Theme: light, dark with gold trim, or dark with silver trim" aria-label="Change theme: light, dark with gold trim, or dark with silver trim"><svg class="moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>`;
@@ -924,6 +944,7 @@ function render() {
   $("#app").className = "wrap" + (A.view === "camp" && isDM() ? " wide" : "");
   const v = { unlinked: vUnlinked, home: vHome, camp: vCamp, build: vBuild, sheet: vSheet, notes: vNotes }[A.view] || vHome;
   $("#app").innerHTML = v();
+  mapMount();
   if (A.flashId) { const el = document.querySelector(`[data-pc="${A.flashId}"]`); if (el) el.classList.add("flash"); A.flashId = null; }
 }
 
@@ -1699,15 +1720,109 @@ function choiceWarn() {
   return n ? `<span class="needtxt">⚠ ${n} choice${n > 1 ? "s" : ""} still to make</span>` : "";
 }
 
+
+// ---------- Map tab: the battle map the DM is showing ----------
+// The map, tokens, fog and templates come from the DM Suite (supabase/fix-09-battle-maps.sql). Players drag their own
+// character's token; it snaps to the grid and moves on the big screen straight away. They can also measure, drop
+// spell templates and ping. The map itself (canvas and its live connection) stays alive across re-renders of the sheet.
+const MT = { el: null, view: null, ses: null, cid: null, focused: null, tool: "select", tpl: { shape: "circle", size: 20, width: 5, color: "#e8572a", label: "Fireball" }, full: false, turnSeen: null, scrolled: false };
+const MAP_COLOR = "#7fc3ff";
+function myToken() { const st = MT.ses && MT.ses.state; if (!st) return null; return st.tokens.find(t => t.character_id === A.charId) || st.tokens.find(t => t.character_id && charRow(t.character_id) && charRow(t.character_id).owner === A.user) || null; }
+function canMoveTok(t) {
+  const st = MT.ses && MT.ses.state;
+  if (isDM()) return true;
+  if (!t.character_id || !st || !st.map || st.map.locked) return false;
+  const r = charRow(t.character_id); return !!r && r.owner === A.user;
+}
+function tMap() {
+  const T = MT.tpl, P = VTT.PRESETS, pi = P.findIndex(p => p.name === T.label && p.shape === T.shape && p.size === T.size);
+  return `<div class="mapwrap ${MT.full ? "full" : ""}" id="mapWrap">
+    <div class="mapbar">
+      <span class="seg">${[["select", "Move"], ["ruler", "Measure"], ["template", "Spell area"], ["ping", "Ping"]].map(([k, l]) => `<button class="${MT.tool === k ? "on" : ""}" data-a="maptool" data-v="${k}">${l}</button>`).join("")}</span>
+      <span class="grow"></span>
+      <button class="btn sm" data-a="mapfind" title="Centre the map on your token">Find me</button>
+      <button class="btn sm" data-a="mapfull" title="${MT.full ? "Back to the sheet" : "Use the whole screen"}">${MT.full ? "Done" : "⤢"}</button>
+    </div>
+    ${MT.tool === "template" ? `<div class="maptpl">
+      <select id="mapTpl"><option value="">Custom</option>${P.map((p, i) => `<option value="${i}" ${i === pi ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select>
+      <select id="mapTplShape">${Object.entries(VTT.SHAPES).map(([k, l]) => `<option value="${k}" ${T.shape === k ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <input id="mapTplSize" type="number" min="5" max="500" step="5" value="${T.size}" class="num" style="width:64px"> ft
+      <button class="btn sm ghost" data-a="mapclear">Clear mine</button>
+    </div>` : ""}
+    <div class="maphost" id="mapHost"></div>
+    <div class="mapinfo" id="mapInfo"></div>
+  </div>`;
+}
+function mapTip() {
+  return { select: "Drag your token to move it. It snaps to the squares and shows how far you went. Pinch to zoom, drag the map to look around.", ruler: "Drag on the map to measure. Everyone sees your ruler.", template: MT.tpl.shape === "circle" ? "Tap where the spell is centred." : "Press where it starts and drag to aim it.", ping: "Tap the map to point something out to everyone." }[MT.tool] || "";
+}
+function mapInfo() {
+  const el = $("#mapInfo"), host = $("#mapHost"); if (!el || !MT.ses) return;
+  const st = MT.ses.state, mine = myToken();
+  let note = host && host.querySelector(".mapnote");
+  const msg = st.err ? esc(st.err) : !st.loaded ? "Loading the map…" : !st.map ? "Your DM isn't showing a map right now. It appears here when they do." : "";
+  if (msg) { if (!note) { note = document.createElement("div"); note.className = "mapnote"; host.appendChild(note); } note.innerHTML = msg; } else if (note) note.remove();
+  if (!st.map) { el.textContent = ""; return; }
+  const myTurn = st.turn && mine && st.turn.cid === mine.character_id;
+  el.innerHTML = [`<b>${esc(st.map.name || "Map")}</b>`, myTurn ? `<span class="turn">It's your turn</span>` : "", st.map.locked && !isDM() ? "The DM has paused movement." : "", !mine && !isDM() ? "Your token isn't on this map yet. Ask your DM to add it." : "", mapTip()].filter(Boolean).join(" · ");
+}
+function mapMount() {
+  const host = $("#mapHost");
+  if (!host || !A.camp) { mapUnmount(); return; }
+  if (!MT.el) {
+    MT.el = document.createElement("div"); MT.el.className = "mapstage";
+    host.appendChild(MT.el);
+    MT.view = VTT.create(MT.el, {
+      mode: isDM() ? "dm" : "player", canMove: canMoveTok, pingColor: MAP_COLOR, rulerColor: MAP_COLOR,
+      on: {
+        move: (t, at, from) => MT.ses && MT.ses.moveToken(t, at, from),
+        drag: (t, at, from) => MT.ses && MT.ses.drag(t, at, from),
+        dragEnd: t => MT.ses && MT.ses.dragEnd(t),
+        measure: r => MT.ses && MT.ses.measure(r),
+        ping: c => MT.ses && MT.ses.ping(c),
+        template: e => MT.ses && MT.ses.addTemplate(e),
+        select: t => { if (t && !canMoveTok(t) && MT.ses && MT.ses.state.map && MT.ses.state.map.locked && charRow(t.character_id)) toast("The DM has paused movement."); },
+      },
+    });
+  } else host.appendChild(MT.el);
+  MT.view.setTool(MT.tool, MT.tpl);
+  MT.view.resize();
+  if (!MT.ses || MT.cid !== A.camp.id) {
+    if (MT.ses) MT.ses.close();
+    MT.cid = A.camp.id; MT.turnSeen = null;
+    const r = charRow(A.charId);
+    MT.ses = VTT.session({
+      be: A.be, cid: A.camp.id, view: MT.view, mode: isDM() ? "dm" : "player", user: A.user,
+      who: isDM() ? "DM" : (r && r.data.name) || localStorage.getItem("esc-name") || "Player", color: MAP_COLOR,
+      onChange: st => {
+        // A newly shown map opens on your own token, close enough to see the squares.
+        if (st.map && MT.focused !== st.map.id && st.tokens.length) { MT.focused = st.map.id; const t = myToken(); if (t && MT.view) MT.view.centerOn(t, 40); }
+        mapInfo();
+        const mine = myToken(), turn = !!(st.turn && mine && st.turn.cid === mine.character_id);
+        if (turn && MT.turnSeen === false) { toast("It's your turn!"); navigator.vibrate && navigator.vibrate([80, 60, 80]); }
+        MT.turnSeen = turn;
+      },
+      onError: fail,
+    });
+  }
+  mapInfo();
+  if (!MT.scrolled) { MT.scrolled = true; const w = $("#mapWrap"); if (w && !MT.full) setTimeout(() => w.scrollIntoView({ block: "start", behavior: "smooth" }), 30); }
+}
+function mapUnmount() {
+  if (MT.ses) { MT.ses.close(); MT.ses = null; MT.cid = null; }
+  if (MT.view) { MT.view.destroy(); MT.view = null; MT.el = null; }
+  MT.scrolled = false; MT.full = false; MT.focused = null;
+}
+
 // ---------- sheet ----------
-const TABS = [["main", "Main"], ["combat", "Combat"], ["spells", "Spells"], ["gear", "Gear"], ["features", "Features"], ["notes", "Notes"]];
+const TABS = [["main", "Main"], ["combat", "Combat"], ["spells", "Spells"], ["gear", "Gear"], ["features", "Features"], ["notes", "Notes"], ["map", "Map"]];
 function vSheet() {
   const r = charRow(A.charId); if (!r) { A.view = "camp"; return vCamp(); }
   const d = r.data, x = E.derive(d), h = hpOf(d);
   const pending = A.grants.filter(g => g.character_id === r.id && g.status === "pending");
   const inbox = pending.length ? `<div class="card inbox"><h3>From your DM</h3>${pending.map(g => `<div class="grant"><div class="grow"><b>${esc(E.grantLabel(g))}</b> <span class="small muted">${{ item: "item", feature: "feature", spell: "spell", coins: "coins", xp: "experience", level: "level up" }[g.kind] || g.kind}</span>${g.note ? `<div class="small muted">“${esc(g.note)}”</div>` : ""}${grantDetail(g)}</div>${isDM() ? `<span class="pill">waiting</span>` : `<button class="btn sm primary" data-a="accept" data-id="${g.id}">Accept</button><button class="btn sm ghost" data-a="decline" data-id="${g.id}">Decline</button>`}</div>`).join("")}</div>` : "";
   const lvlReady = d.level < 20 && ((d.pendingLevels || 0) > 0 || x.canLevelByXp);
-  const tabBody = { main: tMain, combat: tCombat, spells: tSpells, gear: tGear, features: tFeatures, notes: tNotes }[A.tab](r, d, x, h);
+  const tabBody = ({ main: tMain, combat: tCombat, spells: tSpells, gear: tGear, features: tFeatures, notes: tNotes, map: tMap }[A.tab] || tMain)(r, d, x, h);
   return `${inbox}
     ${todoCard(d)}
     ${lvlReady ? `<div class="banner row"><span class="grow">${(d.pendingLevels || 0) > 0 ? "Your DM gave you a level!" : "You have enough XP to level up."}</span><button class="btn sm primary" data-a="levelup">Level up</button></div>` : ""}
@@ -2389,6 +2504,10 @@ const ACT = {
   build() { A.draft = newDraft(); A.step = 0; A.view = "build"; render(); },
   sheet(el) { A.charId = el.dataset.id; A.view = "sheet"; A.tab = "main"; render(); scrollTo(0, 0); },
   tab(el) { A.tab = el.dataset.v; render(); },
+  maptool(el) { MT.tool = el.dataset.v; render(); },
+  mapfind() { const t = myToken(); if (t && MT.view) MT.view.centerOn(t); else if (MT.view) { MT.view.fit(); if (MT.ses && MT.ses.state.map) toast("Your token isn't on this map yet."); } },
+  mapfull() { MT.full = !MT.full; render(); },
+  async mapclear() { if (MT.ses) await MT.ses.clearTemplates(true); },
   // builder
   bset(el) {
     const k = el.dataset.k, v = el.dataset.v ?? el.value, d = A.draft; d[k] = v;
@@ -2945,6 +3064,9 @@ document.addEventListener("click", e => {
 document.addEventListener("change", e => {
   const el = e.target;
   if (el.id === "nSess") { A.noteSess = el.value; return; }
+  if (el.id === "mapTpl") { const p = VTT.PRESETS[+el.value]; if (el.value !== "" && p) Object.assign(MT.tpl, { shape: p.shape, size: p.size, width: p.width || 5, color: p.color, label: p.name }); else MT.tpl.label = ""; render(); return; }
+  if (el.id === "mapTplShape") { Object.assign(MT.tpl, { shape: el.value, label: "" }); render(); return; }
+  if (el.id === "mapTplSize") { Object.assign(MT.tpl, { size: Math.max(5, Math.min(500, +el.value || 5)), label: "" }); render(); return; }
   if (el.id === "cKind") { A.coinKind = el.value; return; }
   if (el.matches("input[type=checkbox][data-a]")) { const f = ACT[el.dataset.a]; f && Promise.resolve(f(el)).catch(fail); return; }
   if (A.view === "build") {

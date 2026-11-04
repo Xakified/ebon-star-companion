@@ -119,6 +119,26 @@ In the DM Suite's initiative tracker, a party picker appears next to **Add party
 
 Parties are visible only to the DM. Needs `supabase/fix-08-parties.sql` run once in the Supabase SQL Editor. Until then the Party section says so and shows everyone together.
 
+## Battle maps
+A virtual tabletop for fights and dungeon crawls. The DM runs it from the DM Suite's **Battle Map** tab; players see it on the player screen (a TV or third monitor) and in the **Map** tab of their sheet.
+
+**The DM (DM Suite > Battle Map tab)**
+- **New map**: upload a JPEG, PNG or WebP (or drop one on the map). Big pictures are shrunk to 4096 px across so phones can show them.
+- **Grid**: drag a box over one square of the map's own grid (or 2×2, 3×3…) and the overlay lines up with it. Sliders fine-tune the square size and shift it right or down; you can also type how many squares across. Feet per square and the diagonal rule (every square 5 ft as in the 2024 rules, alternating 5/10, or straight line) set how distances are counted.
+- **Tokens**: **Add party** brings in your players' characters with their Companion portraits (and keeps them current). **From initiative** adds everyone in the tracker. **＋ Token** adds monsters or NPCs (several at once, any size from Tiny to Gargantuan, with an optional picture). Drag tokens and they snap into the squares, with a ruler showing how far they moved. Click one to rename, resize, recolour, hide it from players (<kbd>H</kbd>) or remove it (<kbd>Del</kbd>); arrow keys nudge it a square.
+- **Fog**: turn the fog on to black out the map for players, then reveal rooms as they explore with a rectangle, an outline you click around, or a brush. **Hide** puts fog back. Rectangles and outlines follow the grid lines (hold Alt to go free). **Undo last**, **Cover all** and **Clear all** are there too. You see the fog shaded so you can work underneath it. Monsters under fog are hidden from players; player characters always show.
+- **Measure**: drag a ruler; everyone sees it.
+- **Templates**: sphere, cone, line and cube, with presets (Fireball, Cone of Cold, Lightning Bolt, Thunderwave…). Click to place, drag to aim. Every square the area covers is shaded.
+- **Ping**: double-click or long-press anywhere to flash a ring on every screen.
+- **Show to players** chooses which map players see. **Pause movement** stops players moving their tokens. **Player screen ↗** opens the players' view in its own window (also View > Battle Map Screen, Ctrl+M). Drag it to the TV and press F for fullscreen; it opens there again next time. **Show my view on the screen** makes the TV show exactly what you're looking at.
+- Whoever's turn it is in the initiative tracker gets a glowing ring on the map.
+
+**Players (Map tab on their sheet)**: they see the map the DM is showing, drag their own character's token (it snaps to the squares and moves on the big screen straight away), measure, drop spell areas, ping, and get a buzz when it's their turn while the tab is open. Pinch to zoom; **⤢** uses the whole screen.
+
+Outside the DM Suite, the DM can open `map.html` (the **Battle map** button in the Companion's DM view) to do the same in a browser; `map.html?screen` is the player screen.
+
+Needs `supabase/fix-09-battle-maps.sql` run once in the Supabase SQL Editor (it makes the tables and a private `battle-maps` storage bucket for the pictures). Until then the Map tab and the Battle Map tab say so.
+
 ## Moving a character to a new phone
 A player's phone remembers them, so a new phone or cleared browser data makes them a new person. To give them their character back:
 1. They open the Companion on the new device and join again with the campaign code.
@@ -131,6 +151,8 @@ Needs `supabase/fix-03-move-character.sql` run once in the Supabase SQL Editor.
 - `srd.js`: rules data from SRD 5.2 (CC-BY-4.0)
 - `engine.js`: the character math, level-ups, and applying DM grants (no UI, so it's testable in Node)
 - `backend.js`: Supabase and demo storage with live sync
+- `vtt.js`: the battle map (drawing, grid, tokens, fog, rulers, templates, and keeping devices in step)
+- `map.html`: the DM's battle map editor and the players' big screen
 - `config.js`: your Supabase URL and key
 - `supabase/schema.sql`: tables, security rules, and live-sync setup
 - `sw.js`, `manifest.webmanifest`, `icon-*.png`: what makes it installable and work offline

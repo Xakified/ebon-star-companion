@@ -1,6 +1,6 @@
 // Ebon Star DM Screen: desktop shell. The page itself is app/index.html (built from the web version);
 // this process owns the campaign file, backups, the player window and the Claude API key.
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage, clipboard } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage, clipboard, screen } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -9,13 +9,14 @@ const { Companion } = require("./companion");
 const updater = require("./updater");
 
 const PAGE = path.join(__dirname, "..", "app", "index.html");
+const MAP_PAGE = path.join(__dirname, "..", "app", "companion", "map.html");
 const PRELOAD = path.join(__dirname, "preload.js");
 const SETTINGS = () => path.join(app.getPath("userData"), "settings.json");
 const MODEL = "claude-opus-5-5";
 
 let settings = {};
 let current = null;        // OpenCampaign
-let dmWin = null, playersWin = null, keyWin = null, connectWin = null;
+let dmWin = null, playersWin = null, mapWin = null, keyWin = null, connectWin = null;
 const running = new Map(); // Claude requests by id, for Stop
 
 /* ---------- settings ---------- */
@@ -44,7 +45,7 @@ const companion = new Companion({
   storage: companionStorage,
   onParty: list => { if (dmWin && !dmWin.isDestroyed()) dmWin.webContents.send("companion:party", list); },
   onStatus: st => { companionStatus = st; if (dmWin && !dmWin.isDestroyed()) dmWin.webContents.send("companion:status", st); buildMenu(); },
-  onChange: ev => { if (dmWin && !dmWin.isDestroyed()) dmWin.webContents.send("companion:event", ev); },
+  onChange: ev => { for (const w of [dmWin, mapWin]) if (w && !w.isDestroyed()) w.webContents.send("companion:event", ev); },
 });
 function startCompanion() {
   companion.stop();
@@ -105,6 +106,7 @@ function openCampaign(file) {
   settings.recent = [file, ...(settings.recent || []).filter(f => f !== file)].slice(0, 8);
   saveSettings(); buildMenu();
   if (playersWin && !playersWin.isDestroyed()) playersWin.close();
+  if (mapWin && !mapWin.isDestroyed()) mapWin.close();
   showDm();
   startCompanion();
   setTimeout(offerConflictCopies, 1500);
@@ -228,7 +230,7 @@ function showDm() {
   dmWin = new BrowserWindow({ width: 1320, height: 900, minWidth: 720, minHeight: 500, title: title(), backgroundColor: "#dbe9f4", webPreferences });
   guard(dmWin);
   dmWin.on("page-title-updated", e => { e.preventDefault(); refreshTitle(); });
-  dmWin.on("closed", () => { dmWin = null; if (playersWin && !playersWin.isDestroyed()) playersWin.close(); });
+  dmWin.on("closed", () => { dmWin = null; for (const w of [playersWin, mapWin]) if (w && !w.isDestroyed()) w.close(); });
   dmWin.loadFile(PAGE);
 }
 function openPlayers() {
@@ -238,6 +240,20 @@ function openPlayers() {
   playersWin.on("page-title-updated", e => e.preventDefault());
   playersWin.on("closed", () => { playersWin = null; });
   playersWin.loadFile(PAGE, { hash: "players" });
+}
+// The battle map as the players see it, for the TV or third monitor. It opens where it was last time.
+function openMapScreen() {
+  if (mapWin && !mapWin.isDestroyed()) { mapWin.show(); mapWin.focus(); return; }
+  const b = settings.mapBounds, onScreen = b && screen.getAllDisplays().some(d => b.x < d.bounds.x + d.bounds.width && b.x + b.width > d.bounds.x && b.y < d.bounds.y + d.bounds.height && b.y + b.height > d.bounds.y);
+  mapWin = new BrowserWindow({ ...(onScreen ? b : { width: 1280, height: 800 }), title: "Battle Map", backgroundColor: "#0b0a10", autoHideMenuBar: true, webPreferences });
+  guard(mapWin);
+  mapWin.on("page-title-updated", e => e.preventDefault());
+  const keep = () => { if (mapWin && !mapWin.isDestroyed() && !mapWin.isFullScreen() && !mapWin.isMaximized()) { settings.mapBounds = mapWin.getBounds(); saveSettings(); } };
+  mapWin.on("resized", keep); mapWin.on("moved", keep);
+  mapWin.on("close", () => { if (mapWin) { settings.mapFull = mapWin.isFullScreen(); saveSettings(); } });
+  mapWin.on("closed", () => { mapWin = null; });
+  if (onScreen && settings.mapFull) mapWin.once("ready-to-show", () => mapWin.setFullScreen(true));
+  mapWin.loadFile(MAP_PAGE, { hash: "suite-screen" });
 }
 function broadcast(sender, col) {
   for (const w of [dmWin, playersWin]) if (w && !w.isDestroyed() && w.webContents !== sender) w.webContents.send("db:changed", col, current.camp[col] || {});
@@ -274,6 +290,7 @@ function buildMenu() {
     { role: "editMenu" },
     { label: "View", submenu: [
       { label: "Player Screen", accelerator: "CmdOrCtrl+P", click: openPlayers },
+      { label: "Battle Map Screen", accelerator: "CmdOrCtrl+M", click: openMapScreen },
       { type: "separator" },
       { role: "reload" }, { role: "togglefullscreen" },
       { role: "zoomIn" }, { role: "zoomOut" }, { role: "resetZoom" },
@@ -322,9 +339,19 @@ ipcMain.handle("companion:connect", async (_e, code) => {
 ipcMain.on("companion:cancel", () => { if (connectWin) connectWin.close(); });
 ipcMain.handle("companion:get", () => ({ status: companionStatus, party: companion.party }));
 // The Players tab: the Companion's DM view, with every request made here using this computer's DM sign-in.
+// What the battle map's player screen may ask for: it only shows things.
+const SCREEN_CALLS = new Set(["status", "campaign", "members", "listCharacters", "listMaps", "mapImageUrl", "listTokens", "listEffects", "live"]);
 ipcMain.handle("companion:call", async (e, method, args) => {
-  if (!dmWin || e.sender !== dmWin.webContents) return { error: "Not allowed from this window." };
+  const fromDm = dmWin && e.sender === dmWin.webContents, fromMap = mapWin && !mapWin.isDestroyed() && e.sender === mapWin.webContents;
+  if (!fromDm && !(fromMap && SCREEN_CALLS.has(method))) return { error: "Not allowed from this window." };
   try {
+    if (method === "openMapScreen") { openMapScreen(); return { ok: true, value: true }; }
+    if (method === "live") {
+      // Rulers, dragging, pings and "show my view": to this computer's other windows straight away, and to phones.
+      for (const w of [dmWin, mapWin]) if (w && !w.isDestroyed() && w.webContents !== e.sender) w.webContents.send("companion:event", { live: args && args[0] });
+      if (companion.mapChan) await companion.call("live", args);
+      return { ok: true, value: true };
+    }
     if (method === "status") {
       const link = current && current.camp.companion;
       return { ok: true, value: { linked: !!link && companionStatus.state !== "unlinked", state: companionStatus.state, message: companionStatus.message || "", user: companion.userId || null, name: link && link.name } };
