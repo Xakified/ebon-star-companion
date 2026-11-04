@@ -15,9 +15,30 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<script>
+// Theme: "esc-theme" in localStorage (light or dark), else the system setting. Inside the DM Suite it follows the Suite's theme.
+(function () {
+  var r = document.documentElement, m = matchMedia("(prefers-color-scheme: dark)"), forced = null;
+  var suite = /(^|[#&])suite\b/.test(location.hash.slice(1)) && window.parent !== window;
+  function apply() {
+    var t = forced; if (!t) { try { t = localStorage.getItem("esc-theme"); } catch (e) {} }
+    r.dataset.theme = t === "dark" || t === "light" ? t : m.matches ? "dark" : "light";
+    var mc = document.querySelector('meta[name="theme-color"]'); if (mc) mc.content = r.dataset.theme === "dark" ? "#1f1a31" : "#2a68b6";
+  }
+  window.escTheme = { suite: suite, toggle: function () { var t = r.dataset.theme === "dark" ? "light" : "dark"; try { localStorage.setItem("esc-theme", t); } catch (e) {} apply(); } };
+  if (suite) {
+    addEventListener("message", function (e) { if (e.source === window.parent && e.data && (e.data.esTheme === "dark" || e.data.esTheme === "light")) { forced = e.data.esTheme; apply(); } });
+    try { forced = window.parent.document.documentElement.dataset.theme || null; } catch (e) {}
+    try { window.parent.postMessage({ esThemeAsk: 1 }, "*"); } catch (e) {}
+  }
+  apply();
+  m.addEventListener("change", apply);
+  addEventListener("storage", function (e) { if (e.key === "esc-theme") apply(); });
+})();
+</script>
 <style>
 :root {
-  /* Sky and gold: pale sky pages, deep navy ink, royal blue and burnished gold accents. Light only, whatever the system setting. */
+  /* Sky and gold (the light theme): pale sky pages, deep navy ink, royal blue and burnished gold accents. The dark theme, ebon and gold, is at the end of this style block. */
   --bg: #dbe9f4;
   --surface: #f4f9fd;
   --raised: #ffffff;
@@ -344,6 +365,82 @@ dialog .dh h2 { color: var(--royal); }
 .sw { width: 24px; height: 24px; border-radius: 6px; border: 2px solid transparent; padding: 0; cursor: pointer; font-size: 10px; line-height: 1; }
 .sw.on { border-color: var(--gilt); box-shadow: 0 0 0 1px var(--ink); }
 .rhint { margin: 0 0 8px; }
+/* ---- ebon and gold: the dark theme. Night-black pages, pale gold ink for headings, gilt trim on ornate frames, amethyst buttons. Picked with the moon/sun button, else follows the system setting. ---- */
+html[data-theme="dark"] {
+  --bg: #0c0b11;
+  --surface: #16141e;
+  --raised: #1e1b28;
+  --ink: #ece4d3;
+  --muted: #a99f8c;
+  --line: #3a3343;
+  --gold: #c99a3c;
+  --gilt: #e2b85a;
+  --royal: #ecc97a;
+  --royal-2: #6b44a8;
+  --accent: #e2b85a;
+  --accent-ink: #1a1408;
+  --accent-soft: #33291a;
+  --active: #2b2416;
+  --good: #7cc68b;
+  --warn: #e8a84a;
+  --bad: #f0705f;
+  --pc: #82b4ff;
+  --npc: #c49df2;
+  --mon: #f2896d;
+  --r-common: #aab2bf;
+  --r-uncommon: #7cc68b;
+  --r-rare: #72a9ff;
+  --r-veryrare: #c08cf2;
+  --r-legendary: #f2a24c;
+  --r-artifact: #f0705f;
+  --frame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='%2316141e' stroke='%236e5020' stroke-width='3'/%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='none' stroke='%23e2b85a' stroke-width='.9'/%3E%3Cpath d='M11.5 6H52.5L58 11.5V52.5L52.5 58H11.5L6 52.5V11.5Z' fill='none' stroke='%23e2b85a' stroke-opacity='.45'/%3E%3Cg fill='%23e2b85a'%3E%3Cpath d='M5.75 3 8.5 5.75 5.75 8.5 3 5.75Z'/%3E%3Cpath d='M58.25 3 61 5.75 58.25 8.5 55.5 5.75Z'/%3E%3Cpath d='M58.25 55.5 61 58.25 58.25 61 55.5 58.25Z'/%3E%3Cpath d='M5.75 55.5 8.5 58.25 5.75 61 3 58.25Z'/%3E%3C/g%3E%3C/svg%3E");
+  --frame-raised: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='%231e1b28' stroke='%236e5020' stroke-width='3'/%3E%3Cpath d='M10 1.5H54L62.5 10V54L54 62.5H10L1.5 54V10Z' fill='none' stroke='%23e2b85a' stroke-width='.9'/%3E%3Cpath d='M11.5 6H52.5L58 11.5V52.5L52.5 58H11.5L6 52.5V11.5Z' fill='none' stroke='%23e2b85a' stroke-opacity='.45'/%3E%3Cg fill='%23e2b85a'%3E%3Cpath d='M5.75 3 8.5 5.75 5.75 8.5 3 5.75Z'/%3E%3Cpath d='M58.25 3 61 5.75 58.25 8.5 55.5 5.75Z'/%3E%3Cpath d='M58.25 55.5 61 58.25 58.25 61 55.5 58.25Z'/%3E%3Cpath d='M5.75 55.5 8.5 58.25 5.75 61 3 58.25Z'/%3E%3C/g%3E%3C/svg%3E");
+  --amethyst: linear-gradient(#6b44a8, #47297a);
+  color-scheme: dark;
+}
+html[data-theme="dark"] body { background-color: var(--bg); background-image: radial-gradient(1px 1px at 37px 61px, rgb(255 244 214 / .55), transparent), radial-gradient(1px 1px at 151px 23px, rgb(255 255 255 / .35), transparent), radial-gradient(1.5px 1.5px at 97px 173px, rgb(226 184 90 / .45), transparent), radial-gradient(ellipse 70% 50% at 12% 0%, rgb(107 68 168 / .24), transparent 70%), radial-gradient(ellipse 55% 40% at 92% 12%, rgb(201 154 60 / .09), transparent 70%), radial-gradient(ellipse 120% 60% at 50% 115%, rgb(71 41 122 / .3), transparent 70%), linear-gradient(#0e0c16, #0b0a10 60%); background-size: 211px 197px, 263px 241px, 331px 307px, auto, auto, auto, auto; background-attachment: fixed; }
+html[data-theme="dark"] ::selection { background: #6b4f1c; color: #fff8e6; }
+html[data-theme="dark"] h1, html[data-theme="dark"] h2, html[data-theme="dark"] h3 { text-shadow: 0 1px 0 rgb(0 0 0 / .6); }
+html[data-theme="dark"] .btn.primary { background: var(--amethyst); border-color: var(--gilt); color: #fff8e6; box-shadow: inset 0 1px 0 rgb(255 255 255 / .18), 0 0 0 1px rgb(0 0 0 / .5), 0 2px 8px rgb(107 68 168 / .35); text-shadow: 0 1px 0 rgb(0 0 0 / .4); }
+html[data-theme="dark"] .btn.primary:hover { filter: brightness(1.18); }
+html[data-theme="dark"] .btn:hover { border-color: var(--gold); }
+html[data-theme="dark"] .toast, html[data-theme="dark"] #toast { background: #221e2d; color: var(--ink); border: 1px solid var(--gilt); box-shadow: 0 8px 28px rgb(0 0 0 / .6); }
+html[data-theme="dark"] .toast .btn { color: var(--ink); border-color: var(--gilt); }
+html[data-theme="dark"] dialog::backdrop { background: rgb(4 3 8 / .7); }
+html[data-theme="dark"] input[type=text], html[data-theme="dark"] input[type=number], html[data-theme="dark"] input:not([type]), html[data-theme="dark"] select, html[data-theme="dark"] textarea { background-color: #0f0e15; border-color: #443c50; box-shadow: inset 0 1px 3px rgb(0 0 0 / .5); }
+html[data-theme="dark"] input:focus, html[data-theme="dark"] select:focus, html[data-theme="dark"] textarea:focus { border-color: var(--gilt); box-shadow: 0 0 0 3px rgb(226 184 90 / .25); }
+html[data-theme="dark"] ::placeholder { color: #776e80; }
+html[data-theme="dark"] .banner { background: #1d1a28; border: 1px solid var(--line); }
+html[data-theme="dark"] .themebtn .moon, html:not([data-theme="dark"]) .themebtn .sun { display: none; }
+html[data-theme="dark"] header.top { --ink: #f3ead8; --muted: #b9afc6; --line: rgb(226 184 90 / .28); --raised: rgb(255 255 255 / .06); --surface: rgb(255 255 255 / .04); --bg: rgb(0 0 0 / .3); background: linear-gradient(#1f1a31, #13101f); border-bottom: 3px solid var(--gold); box-shadow: 0 1px 0 #5e4418, 0 6px 18px rgb(0 0 0 / .55); }
+html[data-theme="dark"] header.top .btn.primary { background: linear-gradient(#f3d58c, #c99a3c); color: #1a1408; border-color: #6b4f1c; text-shadow: none; }
+html[data-theme="dark"] :is(.card, .stat, .pc) { border-color: var(--line); box-shadow: 0 2px 14px rgb(0 0 0 / .4); outline: 0; }
+html[data-theme="dark"] :is(.card:not(.pv, .todo, .done, .inbox, .choice, .need), .pc) { background: none; border: 1px solid transparent; border-radius: 0; border-image: var(--frame-raised) 16 fill / 14px stretch; box-shadow: none; }
+html[data-theme="dark"] :is(.stat, .abil) { background: none; border: 1px solid transparent; border-radius: 0; border-image: var(--frame) 16 fill / 11px stretch; box-shadow: none; }
+html[data-theme="dark"] :is(.pc, .stat.rl, .abil.rl):hover { background: none; filter: brightness(1.15); }
+html[data-theme="dark"] .card.pv { border-color: var(--gold); }
+html[data-theme="dark"] .tabs { background: rgb(12 11 17 / .92); }
+html[data-theme="dark"] .pill { background: var(--accent-soft); }
+html[data-theme="dark"] .pill.bad { background: color-mix(in srgb, var(--bad) 18%, transparent); } html[data-theme="dark"] .pill.good { background: color-mix(in srgb, var(--good) 18%, transparent); }
+html[data-theme="dark"] .bon { background: color-mix(in srgb, var(--good) 16%, transparent); }
+html[data-theme="dark"] :is(.choice.need, .card.todo) { background: #261f10; }
+html[data-theme="dark"] .lvpill { background: var(--amethyst); color: #fff8e6; box-shadow: 0 0 0 1px var(--gold); }
+html[data-theme="dark"] .lvbar button.on { background: var(--amethyst); border-color: var(--gilt); }
+html[data-theme="dark"] .lvbar button.on b, html[data-theme="dark"] .lvbar button.on span { color: #fff8e6; }
+html[data-theme="dark"] .pick2.on { box-shadow: 0 0 0 2px rgb(226 184 90 / .25); }
+html[data-theme="dark"] dialog { border-color: var(--gold); box-shadow: 0 0 0 1px #000, 0 16px 50px rgb(0 0 0 / .7); }
+html[data-theme="dark"] .rl:hover, html[data-theme="dark"] .rl:focus-visible, html[data-theme="dark"] .rmenu > button:hover, html[data-theme="dark"] .rmenu > button:focus-visible { background: var(--active); }
+html[data-theme="dark"] .rbtn { background: linear-gradient(#2a2435, #1d1927); border-color: var(--gold); color: var(--royal); box-shadow: 0 1px 2px rgb(0 0 0 / .5); }
+html[data-theme="dark"] .rbtn:hover, html[data-theme="dark"] .rbtn:focus-visible { border-color: var(--gilt); background: linear-gradient(#3a2f45, #2a2233); }
+html[data-theme="dark"] .rbtn.dmg { color: var(--ink); }
+html[data-theme="dark"] .rbtn.heal { color: var(--good); border-color: #4f8a5b; background: linear-gradient(#1f2a22, #18211b); }
+html[data-theme="dark"] #rollCard, html[data-theme="dark"] .rmenu { box-shadow: 0 12px 40px rgb(0 0 0 / .7); }
+html[data-theme="dark"] #rollCard .rtotal { background: linear-gradient(#3a2f1a, #2b2416); border-color: var(--gilt); color: #fff4d6; }
+html[data-theme="dark"] .rdie { background: #3d2870; color: #f3cf74; } html[data-theme="dark"] .rdie i { color: #cbbbe6; }
+html[data-theme="dark"] .rdie.nat20 { background: #b8862a; color: #1a1408; } html[data-theme="dark"] .rdie.nat20 i { color: #3a2a0a; }
+html[data-theme="dark"] .sw.on { box-shadow: 0 0 0 1px #fff; }
+header .btn.icon.themebtn { font-size: 1rem; }
+.themebtn svg { display: block; }
 </style>
 </head>
 <body>
@@ -785,7 +882,8 @@ function header() {
   if (A.view === "camp" && isDM()) right = `<button class="btn sm primary" data-a="send">Send</button>`;
   if ((A.view === "camp" || A.view === "sheet") && A.camp && !isDM() && A.notesOk) right = `<button class="btn sm ${liveSession() ? "primary" : ""}" data-a="notes" title="Recaps of past sessions, and notes for your DM">Sessions${liveSession() ? " ●" : ""}</button>`;
   if (A.view === "notes") { back = `<button class="btn icon ghost" data-a="notesback" aria-label="Back">‹</button>`; title = "Sessions"; sub = A.camp ? A.camp.name : ""; }
-  h.innerHTML = `${back}<div class="title"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>${right}`;
+  const theme = SUITE ? "" : `<button class="btn icon ghost themebtn" data-a="theme" title="Switch between the light and dark theme" aria-label="Switch between the light and dark theme"><svg class="moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>`;
+  h.innerHTML = `${back}<div class="title"><h1>${esc(title)}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>${theme}${right}`;
 }
 
 function render() {
@@ -2138,7 +2236,7 @@ async function importSuite(file) {
 
 // ---------- actions ----------
 const ACT = {
-  theme() { const r = document.documentElement, cur = r.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); r.dataset.theme = cur === "dark" ? "light" : "dark"; localStorage.setItem("esc-theme", r.dataset.theme); },
+  theme() { escTheme.toggle(); },
   home() { A.view = "home"; A.camp = null; if (A.unsub) A.unsub(); A.unsub = null; A.content = []; E.useContent([]); localStorage.removeItem("esc-camp-" + A.be.mode); render(); },
   camp() { A.view = "camp"; render(); },
   async open(el) { await openCamp(el.dataset.id); render(); },
@@ -2783,7 +2881,6 @@ $("#dlg").addEventListener("change", e => {
   }
   if (e.target.id === "featPick") { const v = e.target.value; const n = $("#featName"), t = $("#featText"); if (v && v !== "__custom") { n.value = v; t.value = FEATS[v] || ""; } else { n.value = ""; t.value = ""; } }
 });
-try { const t = localStorage.getItem("esc-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
 boot();
 </script>
 </body>
