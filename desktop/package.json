@@ -1,8 +1,8 @@
 {
   "name": "ebon-star-dm-screen",
   "productName": "Ebon Star DM Screen",
-  "version": "1.15.0",
-  "description": "D&D 5e DM screen with campaign save files: initiative, loot, magic items, prep, sessions and lore.",
+  "version": "1.16.0",
+  "description": "D&D 5e DM screen with campaign save files: initiative, loot, magic items, prep, sessions, lore and battle maps.",
   "main": "src/boot.js",
   "private": true,
   "scripts": {

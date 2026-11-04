@@ -1,32 +1,34 @@
 {
-  "version": "1.15.0",
+  "version": "1.16.0",
   "minShell": "1.2.0",
-  "notes": "Character portraits: players' pictures from the Companion show in the initiative tracker and on the player screen",
-  "published": "2026-11-04T02:35:02.114Z",
+  "notes": "Battle maps: upload maps, grid, tokens with portraits, fog of war, measuring and spell templates, a player screen window, and a Map tab for players' phones",
+  "published": "2026-11-04T03:11:15.573Z",
   "shell": {
     "boot": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "deps": "d48d819991fb2ffff8fa86cb10c1c8f549d83d2183254480712505a6b7a06a3d"
   },
   "files": {
-    "package.json": "1d94a3148723bf0b431fd3d51097d97d7bb882bca9ac97c1cde0f1b5487a8cb1",
+    "package.json": "1ca593d6510c5bce73b3e683b5bef3d592ad9c51a28e471f4cf7103e7ce827fe",
     "src/boot.js": "d6e70317fb846ef6a01444d0a53b7168bda2ddb247aa7849982eb4f688a3f13a",
     "src/campaign.js": "fe09948fce3f0529048737aae1b51d37f3c106d603c345d7d674126b788eb2cb",
     "src/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "src/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
-    "src/companion-bridge.js": "a6e6af191e44a9387471c24caca9497d9e47cb1b632d90e195ccda0ac6536a63",
-    "src/companion.js": "9735afb4f95638ab2fde45da688740c821a7ac831c9358541166abea78f148c3",
+    "src/companion-bridge.js": "5196e13e29b36c9db4129a85366d3d24b23bbb15dcecdd18cd4ad31619d8aa1a",
+    "src/companion.js": "3cf4e0f61ce8399b2b07cc3fa811e5ffc2c8e694cc4dd47ba77c479e9697b669",
     "src/connect.html": "2bc9e0ce669f15c0f59c5ac056330991eaaa5507cdae9a1746f8de4e2665d2a9",
     "src/key.html": "b9c9c7a73913847b6d7f50fe238f4556bdaeece103b17868bbb71241331bb1a5",
-    "src/main.js": "eb000bf218d62128bbc1db40712d940beca32e6d1dc9656add6ad565610b47b3",
+    "src/main.js": "f8486ba1b12cd11651e972e285074099236c1fa36e6da2fc88334d50132c2ce0",
     "src/preload.js": "16e218c7cb9f5988459610d680c64581ea0a7f0e8727f62433a7e4b87e3f60d8",
     "src/shim.js": "81e9da1e2804c82a7a1156b023db201c47bb2f4e5f687d3ece24bb738be0c597",
     "src/updater.js": "73c926a09ed7b70d0e1c34dde1915f2ac257cd0b40f4114e254af943481d8d71",
-    "app/companion/backend.js": "a24b624ddbb19d41bf2bd784b9b06f56eca53463a8d834bca39211c7e8c5788b",
+    "app/companion/backend.js": "e046aa66c0487b45fe8a560db453e90887f16137d9b9c67f02046aa19968208e",
     "app/companion/config.js": "7ce48b881cf73ad785a45024a417a544debf2e220406deeefa65f281d3172cd6",
     "app/companion/engine.js": "66ede523be0f6532e5807b4f6790037af89a01c5fefe14bd34700828c2cf8686",
     "app/companion/icon.svg": "803be4298be1663769c8ee122f8229079112c1a28e5c817a918f105a385f18d4",
-    "app/companion/index.html": "5dae8c4cf3cdaeaa8a2d64c6082663cac7bd143721253a71d054cbeda4b712c9",
+    "app/companion/index.html": "ceb9b99f12105eb2454a8593bc8b7685b72b63e75280e35338eaba84a5155c95",
+    "app/companion/map.html": "74c89bd87779c6d74702791d262acba8c9780d54c157ff3e0f898b93ad890464",
     "app/companion/srd.js": "05699595e0bb006cb607404b2475b4c38ae063440165d800a2e433a416968918",
+    "app/companion/vtt.js": "9cff16a4ca766cc3ff4b5c9316c38f60a47749a822ef5027b51cc42ec5b4597b",
     "app/index.html": "bcab385dd0cbcf2591cad38f1a698c86f67dedf3383a5ca57a6b6912c60ac250"
   }
 }

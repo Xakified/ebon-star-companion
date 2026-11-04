@@ -174,8 +174,9 @@
   // Runs the Companion in a frame. Its requests come here and go through this computer's DM sign-in (main process),
   // so everything a DM does in the Companion (sheets, sending, homebrew, moving characters, codes) happens here.
   const nav = document.getElementById("tabNav"), main = document.querySelector("main");
-  let frame = null, frameLoaded = false, linkedNow = null;
-  const post = m => { if (frame && frame.contentWindow) frame.contentWindow.postMessage(m, "*"); };
+  let frame = null, frameLoaded = false, linkedNow = null, mapFrame = null, mapLoaded = false;
+  const frames = () => [frame, mapFrame].filter(f => f && f.contentWindow);
+  const post = m => frames().forEach(f => f.contentWindow.postMessage(m, "*"));
   const theme = () => document.documentElement.dataset.theme || "";
   if (nav && main) {
     const btn = document.createElement("button");
@@ -198,14 +199,63 @@
     if (typeof setTab === "function") { const orig = setTab; window.setTab = t => { orig(t); show(t === "players"); }; }
     frame.addEventListener("load", () => post({ esc: "theme", theme: theme() }));
     new MutationObserver(() => post({ esc: "theme", theme: theme() })).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+    // ---------- Battle Map tab: the DM's side of the virtual tabletop ----------
+    // The map editor (companion/map.html) runs in its own frame, like the Players tab. The players' view of it
+    // opens in a separate window (View > Battle Map Screen, or the Player screen button in the tab) for the TV.
+    const mbtn = document.createElement("button");
+    mbtn.dataset.tab = "map"; mbtn.textContent = "Battle Map"; mbtn.title = "Battle maps: grid, tokens, fog of war, measuring and spell templates";
+    btn.before(mbtn);
+    const msec = document.createElement("section");
+    msec.id = "tab-map"; msec.hidden = true;
+    msec.innerHTML = `<iframe id="mapFrame" title="Battle map" allow="fullscreen" style="display:block;width:100%;border:1px solid var(--line);border-radius:12px;background:#16131f"></iframe>`;
+    main.appendChild(msec);
+    mapFrame = msec.querySelector("iframe");
+    const msize = () => { if (!msec.hidden) mapFrame.style.height = Math.max(480, innerHeight - mapFrame.getBoundingClientRect().top - 12) + "px"; };
+    const mshow = on => {
+      msec.hidden = !on;
+      document.body.classList.toggle("maptab", on);
+      if (!on) return;
+      if (!mapLoaded) { mapFrame.src = "companion/map.html#suite"; mapLoaded = true; }
+      requestAnimationFrame(msize);
+    };
+    addEventListener("resize", msize);
+    if (typeof setTab === "function") { const orig2 = window.setTab; window.setTab = t => { orig2(t); mshow(t === "map"); }; }
+    mapFrame.addEventListener("load", () => { post({ esc: "theme", theme: theme() }); sendTurn(true); });
+    // Footer and page scroll aren't needed under the map.
+    const st = document.createElement("style");
+    st.textContent = "body.maptab footer{display:none} body.maptab main{padding-bottom:0}";
+    document.head.appendChild(st);
   }
+  // Calls the battle map answers here, from the tracker on this page.
+  const LOCAL = {
+    tracker() {
+      return (typeof sorted === "function" ? sorted() : S.combatants).map(c => ({ id: c.id, name: c.name, kind: c.kind, companionId: c.companionId || null, hidden: !!c.hidden, active: c.id === S.activeId, hp: c.hp, maxHp: c.maxHp }));
+    },
+  };
   addEventListener("message", async e => {
-    if (!frame || e.source !== frame.contentWindow || !e.data || e.data.esc !== "call") return;
+    const from = frames().find(f => e.source === f.contentWindow);
+    if (!from || !e.data || e.data.esc !== "call") return;
     const { id, method, args } = e.data;
     let r;
-    try { r = await D.companionCall(String(method), Array.isArray(args) ? args : []); } catch (err) { r = { error: err.message }; }
-    post({ esc: "result", id, ok: !(r && r.error), value: r && r.value, error: r && r.error });
+    if (Object.prototype.hasOwnProperty.call(LOCAL, method)) { try { r = { value: LOCAL[method](...(args || [])) }; } catch (err) { r = { error: err.message }; } }
+    else try { r = await D.companionCall(String(method), Array.isArray(args) ? args : []); } catch (err) { r = { error: err.message }; }
+    from.contentWindow.postMessage({ esc: "result", id, ok: !(r && r.error), value: r && r.value, error: r && r.error }, "*");
   });
+
+  // Whose turn it is: the battle map rings their token on every screen and phone.
+  let turnSig = "";
+  function sendTurn(force) {
+    const c = S.combatants.find(x => x.id === S.activeId && !x.hidden);
+    const t = c ? { t: "turn", cid: c.companionId || null, name: c.companionId ? "" : c.name } : { t: "turn", cid: null, name: "" };
+    const sig = JSON.stringify(t);
+    if (!force && sig === turnSig) return;
+    turnSig = sig;
+    if (mapFrame && mapFrame.contentWindow) mapFrame.contentWindow.postMessage({ esc: "event", ev: { live: t } }, "*");
+    D.companionCall("live", [t]).catch(() => {});
+  }
+  setInterval(() => { try { sendTurn(false); } catch (e) {} }, 700);
+  setInterval(() => { try { sendTurn(true); } catch (e) {} }, 20000); // for screens and phones that just opened
   if (D.onCompanionEvent) D.onCompanionEvent(ev => post({ esc: "event", ev }));
   // Reload the tab when this campaign gets connected or disconnected.
   D.onCompanionStatus(st => {
